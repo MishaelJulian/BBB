@@ -1,0 +1,366 @@
+[
+  {
+    "meetup": 4,
+    "date": "2017-01-01",
+    "new_books": 1,
+    "returning_books": 0,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 5,
+    "date": "2017-01-01",
+    "new_books": 1,
+    "returning_books": 0,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 8,
+    "date": "2018-01-01",
+    "new_books": 62,
+    "returning_books": 0,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 9,
+    "date": "2018-01-01",
+    "new_books": 8,
+    "returning_books": 0,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 11,
+    "date": "2018-01-01",
+    "new_books": 14,
+    "returning_books": 2,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 12,
+    "date": "2018-01-01",
+    "new_books": 67,
+    "returning_books": 3,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 13,
+    "date": "2018-01-01",
+    "new_books": 1,
+    "returning_books": 0,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 14,
+    "date": "2018-01-01",
+    "new_books": 74,
+    "returning_books": 10,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 15,
+    "date": "2018-01-01",
+    "new_books": 25,
+    "returning_books": 6,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 16,
+    "date": "2018-01-01",
+    "new_books": 75,
+    "returning_books": 10,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 17,
+    "date": "2019-01-01",
+    "new_books": 43,
+    "returning_books": 7,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 18,
+    "date": "2019-01-01",
+    "new_books": 23,
+    "returning_books": 4,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 19,
+    "date": "2019-01-01",
+    "new_books": 31,
+    "returning_books": 5,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 20,
+    "date": "2019-01-01",
+    "new_books": 50,
+    "returning_books": 17,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 21,
+    "date": "2019-01-01",
+    "new_books": 40,
+    "returning_books": 19,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 22,
+    "date": "2019-01-01",
+    "new_books": 29,
+    "returning_books": 10,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 23,
+    "date": "2019-01-01",
+    "new_books": 47,
+    "returning_books": 22,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 24,
+    "date": "2019-01-01",
+    "new_books": 72,
+    "returning_books": 23,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 25,
+    "date": "2019-01-01",
+    "new_books": 48,
+    "returning_books": 29,
+    "venue": "Art Studio, Koramangala"
+  },
+  {
+    "meetup": 26,
+    "date": "2020-01-01",
+    "new_books": 43,
+    "returning_books": 20,
+    "venue": "Atta Galatta"
+  },
+  {
+    "meetup": 30,
+    "date": "2023-01-01",
+    "new_books": 1,
+    "returning_books": 0,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 31,
+    "date": "2020-01-01",
+    "new_books": 27,
+    "returning_books": 5,
+    "venue": "Online Virtual Meetup"
+  },
+  {
+    "meetup": 34,
+    "date": "2020-01-01",
+    "new_books": 20,
+    "returning_books": 10,
+    "venue": "Online Virtual Meetup"
+  },
+  {
+    "meetup": 37,
+    "date": "2021-01-01",
+    "new_books": 34,
+    "returning_books": 5,
+    "venue": "Online Virtual Meetup"
+  },
+  {
+    "meetup": 40,
+    "date": "2021-01-01",
+    "new_books": 41,
+    "returning_books": 13,
+    "venue": "Online Virtual Meetup"
+  },
+  {
+    "meetup": 45,
+    "date": "2021-01-01",
+    "new_books": 53,
+    "returning_books": 15,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 46,
+    "date": "2022-01-01",
+    "new_books": 37,
+    "returning_books": 10,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 47,
+    "date": "2022-01-01",
+    "new_books": 37,
+    "returning_books": 31,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 48,
+    "date": "2022-01-01",
+    "new_books": 67,
+    "returning_books": 17,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 49,
+    "date": "2022-01-01",
+    "new_books": 55,
+    "returning_books": 16,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 50,
+    "date": "2022-01-01",
+    "new_books": 34,
+    "returning_books": 10,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 52,
+    "date": "2022-01-01",
+    "new_books": 57,
+    "returning_books": 24,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 54,
+    "date": "2022-01-01",
+    "new_books": 47,
+    "returning_books": 19,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 70,
+    "date": "2024-01-01",
+    "new_books": 7,
+    "returning_books": 2,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 71,
+    "date": "2024-01-01",
+    "new_books": 30,
+    "returning_books": 7,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 72,
+    "date": "2024-01-01",
+    "new_books": 7,
+    "returning_books": 0,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 73,
+    "date": "2024-01-01",
+    "new_books": 2,
+    "returning_books": 0,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 74,
+    "date": "2024-01-01",
+    "new_books": 2,
+    "returning_books": 0,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 75,
+    "date": "2024-01-01",
+    "new_books": 72,
+    "returning_books": 23,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 76,
+    "date": "2024-01-01",
+    "new_books": 88,
+    "returning_books": 33,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 80,
+    "date": "2025-01-01",
+    "new_books": 4,
+    "returning_books": 4,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 82,
+    "date": "2025-01-01",
+    "new_books": 41,
+    "returning_books": 8,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 83,
+    "date": "2025-01-01",
+    "new_books": 2,
+    "returning_books": 1,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 84,
+    "date": "2025-01-01",
+    "new_books": 10,
+    "returning_books": 5,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 85,
+    "date": "2024-01-01",
+    "new_books": 65,
+    "returning_books": 26,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 86,
+    "date": "2025-01-01",
+    "new_books": 63,
+    "returning_books": 9,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 93,
+    "date": "2026-01-01",
+    "new_books": 3,
+    "returning_books": 2,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 94,
+    "date": "2026-01-01",
+    "new_books": 34,
+    "returning_books": 12,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 95,
+    "date": "2026-01-01",
+    "new_books": 22,
+    "returning_books": 15,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 96,
+    "date": "2026-01-01",
+    "new_books": 2,
+    "returning_books": 1,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 97,
+    "date": "2026-01-01",
+    "new_books": 0,
+    "returning_books": 0,
+    "venue": "Bookworm, Church Street"
+  },
+  {
+    "meetup": 98,
+    "date": "2026-01-01",
+    "new_books": 1,
+    "returning_books": 0,
+    "venue": "Bookworm, Church Street"
+  }
+]

@@ -1,0 +1,210 @@
+{
+  "most_discussed_books": [
+    {
+      "title": "The",
+      "discussion_count": 94
+    },
+    {
+      "title": "and",
+      "discussion_count": 15
+    },
+    {
+      "title": "Project Hail Mary",
+      "discussion_count": 10
+    },
+    {
+      "title": "Man’s Search for Meaning",
+      "discussion_count": 9
+    },
+    {
+      "title": "The 46th meetup of BBB happened on the 27th of February 2022.",
+      "discussion_count": 9
+    },
+    {
+      "title": "Goodreads: The Three Body Problem",
+      "discussion_count": 8
+    },
+    {
+      "title": "Ghachar Ghochar",
+      "discussion_count": 7
+    },
+    {
+      "title": "Goodreads: American Gods",
+      "discussion_count": 7
+    },
+    {
+      "title": "Mythos",
+      "discussion_count": 7
+    },
+    {
+      "title": "Desperately seeking Shahrukh Khan",
+      "discussion_count": 7
+    },
+    {
+      "title": "who",
+      "discussion_count": 7
+    },
+    {
+      "title": "Goodreads: Malice",
+      "discussion_count": 6
+    },
+    {
+      "title": "Bullet Train",
+      "discussion_count": 6
+    },
+    {
+      "title": "days",
+      "discussion_count": 6
+    },
+    {
+      "title": "are",
+      "discussion_count": 6
+    },
+    {
+      "title": "The vegetarian",
+      "discussion_count": 5
+    },
+    {
+      "title": "The God of small things",
+      "discussion_count": 5
+    },
+    {
+      "title": "The Dresden Files",
+      "discussion_count": 5
+    },
+    {
+      "title": "Goodreads: Deep Work",
+      "discussion_count": 5
+    },
+    {
+      "title": "Goodreads: A Man Called Ove",
+      "discussion_count": 5
+    },
+    {
+      "title": "Norwegian Wood",
+      "discussion_count": 5
+    },
+    {
+      "title": "Dune",
+      "discussion_count": 5
+    },
+    {
+      "title": "Goodreads: A Gentleman In Moscow",
+      "discussion_count": 5
+    },
+    {
+      "title": "Goodreads: Heroes",
+      "discussion_count": 5
+    },
+    {
+      "title": "The Midnight Library",
+      "discussion_count": 5
+    }
+  ],
+  "most_discussed_authors": [
+    {
+      "author": "Victor E Frankl",
+      "discussion_count": 9
+    },
+    {
+      "author": "Mohsin Hamid",
+      "discussion_count": 8
+    },
+    {
+      "author": "Vivek Shanbhag",
+      "discussion_count": 7
+    },
+    {
+      "author": "Haruki Murakami",
+      "discussion_count": 7
+    },
+    {
+      "author": "Murakami",
+      "discussion_count": 7
+    },
+    {
+      "author": "PKD",
+      "discussion_count": 7
+    },
+    {
+      "author": "Arundhati Roy",
+      "discussion_count": 6
+    },
+    {
+      "author": "Chimamanda Ngozi Adichie",
+      "discussion_count": 6
+    },
+    {
+      "author": "Sanderson",
+      "discussion_count": 6
+    },
+    {
+      "author": "Agatha Christie",
+      "discussion_count": 6
+    },
+    {
+      "author": "Matt Haig",
+      "discussion_count": 6
+    },
+    {
+      "author": "Stephen  King",
+      "discussion_count": 6
+    },
+    {
+      "author": "Agatha  Christie",
+      "discussion_count": 6
+    },
+    {
+      "author": "Jerry Pinto",
+      "discussion_count": 5
+    },
+    {
+      "author": "Hannu Rajaniemi",
+      "discussion_count": 5
+    },
+    {
+      "author": "Han Kang",
+      "discussion_count": 5
+    },
+    {
+      "author": "Jim Butcher",
+      "discussion_count": 5
+    },
+    {
+      "author": "Frank Herbert",
+      "discussion_count": 5
+    },
+    {
+      "author": "Isaac Asimov",
+      "discussion_count": 5
+    },
+    {
+      "author": "James Clear",
+      "discussion_count": 5
+    },
+    {
+      "author": "B  R  Ambedkar,  annotated",
+      "discussion_count": 5
+    },
+    {
+      "author": "Anthony  Horowitz   SHRADHA",
+      "discussion_count": 5
+    },
+    {
+      "author": "Manu  Joseph",
+      "discussion_count": 5
+    },
+    {
+      "author": "Meena  Kandasamy",
+      "discussion_count": 5
+    }
+  ],
+  "venue_usage": {
+    "Atta Galatta": 19,
+    "Art Studio, Koramangala": 1,
+    "Bookworm, Church Street": 39,
+    "Online Virtual Meetup": 4
+  },
+  "total_imported_records": 3121,
+  "possible_duplicates_staged": 217
+}

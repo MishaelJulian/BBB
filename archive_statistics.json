@@ -1,0 +1,421 @@
+{
+  "books_per_meetup": [
+    {
+      "meetup": 4,
+      "count": 14
+    },
+    {
+      "meetup": 5,
+      "count": 35
+    },
+    {
+      "meetup": 8,
+      "count": 52
+    },
+    {
+      "meetup": 9,
+      "count": 6
+    },
+    {
+      "meetup": 11,
+      "count": 11
+    },
+    {
+      "meetup": 12,
+      "count": 54
+    },
+    {
+      "meetup": 13,
+      "count": 64
+    },
+    {
+      "meetup": 14,
+      "count": 66
+    },
+    {
+      "meetup": 15,
+      "count": 23
+    },
+    {
+      "meetup": 16,
+      "count": 86
+    },
+    {
+      "meetup": 17,
+      "count": 55
+    },
+    {
+      "meetup": 18,
+      "count": 30
+    },
+    {
+      "meetup": 19,
+      "count": 39
+    },
+    {
+      "meetup": 20,
+      "count": 77
+    },
+    {
+      "meetup": 21,
+      "count": 66
+    },
+    {
+      "meetup": 22,
+      "count": 45
+    },
+    {
+      "meetup": 23,
+      "count": 65
+    },
+    {
+      "meetup": 24,
+      "count": 108
+    },
+    {
+      "meetup": 26,
+      "count": 57
+    },
+    {
+      "meetup": 31,
+      "count": 29
+    },
+    {
+      "meetup": 34,
+      "count": 30
+    },
+    {
+      "meetup": 37,
+      "count": 37
+    },
+    {
+      "meetup": 40,
+      "count": 49
+    },
+    {
+      "meetup": 45,
+      "count": 60
+    },
+    {
+      "meetup": 46,
+      "count": 45
+    },
+    {
+      "meetup": 47,
+      "count": 60
+    },
+    {
+      "meetup": 48,
+      "count": 69
+    },
+    {
+      "meetup": 49,
+      "count": 66
+    },
+    {
+      "meetup": 50,
+      "count": 40
+    },
+    {
+      "meetup": 52,
+      "count": 62
+    },
+    {
+      "meetup": 54,
+      "count": 62
+    },
+    {
+      "meetup": 65,
+      "count": 50
+    },
+    {
+      "meetup": 70,
+      "count": 41
+    },
+    {
+      "meetup": 71,
+      "count": 45
+    },
+    {
+      "meetup": 72,
+      "count": 57
+    },
+    {
+      "meetup": 73,
+      "count": 37
+    },
+    {
+      "meetup": 74,
+      "count": 39
+    },
+    {
+      "meetup": 75,
+      "count": 47
+    },
+    {
+      "meetup": 76,
+      "count": 40
+    },
+    {
+      "meetup": 80,
+      "count": 72
+    },
+    {
+      "meetup": 82,
+      "count": 43
+    },
+    {
+      "meetup": 83,
+      "count": 67
+    },
+    {
+      "meetup": 84,
+      "count": 44
+    },
+    {
+      "meetup": 85,
+      "count": 53
+    },
+    {
+      "meetup": 86,
+      "count": 64
+    },
+    {
+      "meetup": 93,
+      "count": 50
+    },
+    {
+      "meetup": 94,
+      "count": 36
+    },
+    {
+      "meetup": 95,
+      "count": 28
+    },
+    {
+      "meetup": 96,
+      "count": 45
+    },
+    {
+      "meetup": 97,
+      "count": 64
+    },
+    {
+      "meetup": 98,
+      "count": 54
+    }
+  ],
+  "books_per_year": [
+    {
+      "year": "2017",
+      "count": 49
+    },
+    {
+      "year": "2018",
+      "count": 362
+    },
+    {
+      "year": "2019",
+      "count": 485
+    },
+    {
+      "year": "2020",
+      "count": 116
+    },
+    {
+      "year": "2021",
+      "count": 146
+    },
+    {
+      "year": "2022",
+      "count": 404
+    },
+    {
+      "year": "2023",
+      "count": 50
+    },
+    {
+      "year": "2024",
+      "count": 306
+    },
+    {
+      "year": "2025",
+      "count": 290
+    },
+    {
+      "year": "2026",
+      "count": 277
+    }
+  ],
+  "most_discussed_books": [
+    {
+      "title": "A Man called Ove (",
+      "discussion_count": 5
+    },
+    {
+      "title": "Man\u2019s Search for Meaning (",
+      "discussion_count": 5
+    },
+    {
+      "title": "Big Magic (",
+      "discussion_count": 4
+    },
+    {
+      "title": "Deepak V",
+      "discussion_count": 4
+    },
+    {
+      "title": "Dune (",
+      "discussion_count": 4
+    },
+    {
+      "title": "Ghachar Ghochar",
+      "discussion_count": 4
+    },
+    {
+      "title": "Pachinko (",
+      "discussion_count": 4
+    },
+    {
+      "title": "Project Hail Mary",
+      "discussion_count": 4
+    },
+    {
+      "title": "Siddhartha (",
+      "discussion_count": 4
+    },
+    {
+      "title": "Zero to One",
+      "discussion_count": 4
+    },
+    {
+      "title": "(translator:ShannaTan)",
+      "discussion_count": 3
+    },
+    {
+      "title": "11/22/63",
+      "discussion_count": 3
+    },
+    {
+      "title": "12 Rules for Life",
+      "discussion_count": 3
+    },
+    {
+      "title": "1984",
+      "discussion_count": 3
+    },
+    {
+      "title": "A Book of Light",
+      "discussion_count": 3
+    },
+    {
+      "title": "A suitable boy (",
+      "discussion_count": 3
+    },
+    {
+      "title": "A thousand splendid suns",
+      "discussion_count": 3
+    },
+    {
+      "title": "Beast (",
+      "discussion_count": 3
+    },
+    {
+      "title": "Birthday Stories (",
+      "discussion_count": 3
+    },
+    {
+      "title": "Breath",
+      "discussion_count": 3
+    }
+  ],
+  "most_discussed_authors": [
+    {
+      "author": "Haruki Murakami",
+      "discussion_count": 12
+    },
+    {
+      "author": "Agatha Christie",
+      "discussion_count": 10
+    },
+    {
+      "author": "Terry Pratchett",
+      "discussion_count": 9
+    },
+    {
+      "author": "Jerry Pinto",
+      "discussion_count": 8
+    },
+    {
+      "author": "Brandon Sanderson",
+      "discussion_count": 8
+    },
+    {
+      "author": "Arundhati Roy",
+      "discussion_count": 8
+    },
+    {
+      "author": "Stephen King",
+      "discussion_count": 7
+    },
+    {
+      "author": "Roald Dahl",
+      "discussion_count": 7
+    },
+    {
+      "author": "Cixin Liu",
+      "discussion_count": 7
+    },
+    {
+      "author": "Chimamanda Ngozi Adichie",
+      "discussion_count": 7
+    },
+    {
+      "author": "Stuart Turton",
+      "discussion_count": 6
+    },
+    {
+      "author": "Satoshi Yagisawa",
+      "discussion_count": 6
+    },
+    {
+      "author": "Perumal Murugan",
+      "discussion_count": 6
+    },
+    {
+      "author": "Jhumpa Lahiri",
+      "discussion_count": 6
+    },
+    {
+      "author": "Chuck Palahniuk",
+      "discussion_count": 6
+    },
+    {
+      "author": "Richard Osman",
+      "discussion_count": 5
+    },
+    {
+      "author": "Manoranjan Byapari",
+      "discussion_count": 5
+    },
+    {
+      "author": "Isaac Asimov",
+      "discussion_count": 5
+    },
+    {
+      "author": "Han Kang",
+      "discussion_count": 5
+    },
+    {
+      "author": "Anthony Horowitz",
+      "discussion_count": 5
+    }
+  ],
+  "venue_usage": {
+    "Atta Galatta": 19,
+    "Bookworm": 28,
+    "Online": 4
+  },
+  "total_imported_records": 3554,
+  "possible_duplicates_staged": 0
+}

@@ -1,0 +1,28 @@
+Used tool: manage_task
+Ran command: `npm run dev`
+Used tool: manage_task
+
+Both the backend API and frontend Next.js applications are running. You can open any of the following links in your browser:
+
+### 🏛️ Primary Experience
+- **[3D Physical Library Room (P0/P1/P3)](http://localhost:3000/library-room)**  
+  *Browse 2,747 physical hardcover volumes across 27 alphabetical shelves, pull books out, hover for tooltips, inspect on the in-room Reading Table, and switch afternoon/evening ambient lighting.*
+
+---
+
+### 🌐 Key Archival Experiences
+- **[Home Page](http://localhost:3000/)**
+- **[The Readers Archive / Member Directory](http://localhost:3000/members)**
+- **[Meetups Archive & Timeline](http://localhost:3000/meetups)**
+- **[Catalog Grid / Filter View](http://localhost:3000/library)**
+
+---
+
+### 🔍 Try Bidirectional Spatial Deep-Linking (P3)
+Click any of these to see the library automatically scroll, mount the shelf, and physically extract the book:
+- **[Locate *Mort* by Terry Pratchett on 3D Shelf](http://localhost:3000/library-room?select=c544fb5b-e39d-4f82-ac9d-7f00207c9507)**
+- **[Locate *The Giver* by Lois Lowry on 3D Shelf](http://localhost:3000/library-room?select=61e36e6b-d761-4cc1-a86f-388319522538)**
+- **[Locate *Zeelam* in Section Z](http://localhost:3000/library-room?select=3cdf2138-1204-40c4-a40d-8cb9d0d9f751)**
+- **[Inspect Reader Dossier: MADHUSUDAN](http://localhost:3000/members/MADHUSUDAN)** *(from which you can click "Locate in Library →")*
+- **[Inspect Author Archive: Terry Pratchett](http://localhost:3000/authors/Terry%20Pratchett)** *(12 canonical volumes in BBB)*
+- **[Inspect Meetup #97 at Bookworm](http://localhost:3000/meetups/97)** *(64 books discussed, 18 attendees)*

@@ -1,0 +1,366 @@
+[
+  {
+    "meetup": 4,
+    "date": "2017-08-26",
+    "venue": "Atta Galatta",
+    "new_books": 14,
+    "returning_books": 0
+  },
+  {
+    "meetup": 5,
+    "date": "2017-09-30",
+    "venue": "Atta Galatta",
+    "new_books": 35,
+    "returning_books": 0
+  },
+  {
+    "meetup": 8,
+    "date": "2018-01-13",
+    "venue": "Atta Galatta",
+    "new_books": 52,
+    "returning_books": 0
+  },
+  {
+    "meetup": 9,
+    "date": "2018-02-24",
+    "venue": "Atta Galatta",
+    "new_books": 6,
+    "returning_books": 0
+  },
+  {
+    "meetup": 11,
+    "date": "2018-04-22",
+    "venue": "Atta Galatta",
+    "new_books": 9,
+    "returning_books": 2
+  },
+  {
+    "meetup": 12,
+    "date": "2018-05-27",
+    "venue": "Atta Galatta",
+    "new_books": 53,
+    "returning_books": 1
+  },
+  {
+    "meetup": 13,
+    "date": "2018-06-30",
+    "venue": "Atta Galatta",
+    "new_books": 58,
+    "returning_books": 6
+  },
+  {
+    "meetup": 14,
+    "date": "2018-07-29",
+    "venue": "Atta Galatta",
+    "new_books": 58,
+    "returning_books": 8
+  },
+  {
+    "meetup": 15,
+    "date": "2018-08-26",
+    "venue": "Atta Galatta",
+    "new_books": 22,
+    "returning_books": 1
+  },
+  {
+    "meetup": 16,
+    "date": "2018-11-25",
+    "venue": "Atta Galatta",
+    "new_books": 84,
+    "returning_books": 2
+  },
+  {
+    "meetup": 17,
+    "date": "2019-01-27",
+    "venue": "Atta Galatta",
+    "new_books": 49,
+    "returning_books": 6
+  },
+  {
+    "meetup": 18,
+    "date": "2019-03-31",
+    "venue": "Atta Galatta",
+    "new_books": 27,
+    "returning_books": 3
+  },
+  {
+    "meetup": 19,
+    "date": "2019-05-26",
+    "venue": "Atta Galatta",
+    "new_books": 37,
+    "returning_books": 2
+  },
+  {
+    "meetup": 20,
+    "date": "2019-06-23",
+    "venue": "Atta Galatta",
+    "new_books": 69,
+    "returning_books": 8
+  },
+  {
+    "meetup": 21,
+    "date": "2019-07-28",
+    "venue": "Atta Galatta",
+    "new_books": 51,
+    "returning_books": 15
+  },
+  {
+    "meetup": 22,
+    "date": "2019-08-22",
+    "venue": "Atta Galatta",
+    "new_books": 36,
+    "returning_books": 9
+  },
+  {
+    "meetup": 23,
+    "date": "2019-09-23",
+    "venue": "Atta Galatta",
+    "new_books": 48,
+    "returning_books": 17
+  },
+  {
+    "meetup": 24,
+    "date": "2019-11-24",
+    "venue": "Atta Galatta",
+    "new_books": 95,
+    "returning_books": 13
+  },
+  {
+    "meetup": 25,
+    "date": "2019-12-22",
+    "venue": "Unknown",
+    "new_books": 0,
+    "returning_books": 0
+  },
+  {
+    "meetup": 26,
+    "date": "2020-01-26",
+    "venue": "Atta Galatta",
+    "new_books": 43,
+    "returning_books": 14
+  },
+  {
+    "meetup": 31,
+    "date": "2020-07-12",
+    "venue": "Online",
+    "new_books": 27,
+    "returning_books": 2
+  },
+  {
+    "meetup": 34,
+    "date": "2020-10-25",
+    "venue": "Online",
+    "new_books": 23,
+    "returning_books": 7
+  },
+  {
+    "meetup": 37,
+    "date": "2021-01-31",
+    "venue": "Online",
+    "new_books": 34,
+    "returning_books": 3
+  },
+  {
+    "meetup": 40,
+    "date": "2021-05-30",
+    "venue": "Online",
+    "new_books": 43,
+    "returning_books": 6
+  },
+  {
+    "meetup": 45,
+    "date": "2021-12-17",
+    "venue": "Bookworm",
+    "new_books": 52,
+    "returning_books": 8
+  },
+  {
+    "meetup": 46,
+    "date": "2022-02-27",
+    "venue": "Bookworm",
+    "new_books": 41,
+    "returning_books": 4
+  },
+  {
+    "meetup": 47,
+    "date": "2022-03-27",
+    "venue": "Bookworm",
+    "new_books": 42,
+    "returning_books": 18
+  },
+  {
+    "meetup": 48,
+    "date": "2022-05-22",
+    "venue": "Bookworm",
+    "new_books": 66,
+    "returning_books": 3
+  },
+  {
+    "meetup": 49,
+    "date": "2022-06-26",
+    "venue": "Bookworm",
+    "new_books": 60,
+    "returning_books": 6
+  },
+  {
+    "meetup": 50,
+    "date": "2022-07-31",
+    "venue": "Bookworm",
+    "new_books": 35,
+    "returning_books": 5
+  },
+  {
+    "meetup": 52,
+    "date": "2022-09-25",
+    "venue": "Bookworm",
+    "new_books": 58,
+    "returning_books": 4
+  },
+  {
+    "meetup": 54,
+    "date": "2022-11-27",
+    "venue": "Bookworm",
+    "new_books": 54,
+    "returning_books": 8
+  },
+  {
+    "meetup": 65,
+    "date": "2023-10-01",
+    "venue": "Bookworm",
+    "new_books": 49,
+    "returning_books": 1
+  },
+  {
+    "meetup": 70,
+    "date": "2024-03-01",
+    "venue": "Bookworm",
+    "new_books": 41,
+    "returning_books": 0
+  },
+  {
+    "meetup": 71,
+    "date": "2024-04-01",
+    "venue": "Bookworm",
+    "new_books": 43,
+    "returning_books": 2
+  },
+  {
+    "meetup": 72,
+    "date": "2024-05-01",
+    "venue": "Bookworm",
+    "new_books": 53,
+    "returning_books": 4
+  },
+  {
+    "meetup": 73,
+    "date": "2024-06-01",
+    "venue": "Bookworm",
+    "new_books": 35,
+    "returning_books": 2
+  },
+  {
+    "meetup": 74,
+    "date": "2024-07-01",
+    "venue": "Bookworm",
+    "new_books": 33,
+    "returning_books": 6
+  },
+  {
+    "meetup": 75,
+    "date": "2024-08-01",
+    "venue": "Bookworm",
+    "new_books": 47,
+    "returning_books": 0
+  },
+  {
+    "meetup": 76,
+    "date": "2024-09-01",
+    "venue": "Bookworm",
+    "new_books": 37,
+    "returning_books": 3
+  },
+  {
+    "meetup": 80,
+    "date": "2025-01-01",
+    "venue": "Bookworm",
+    "new_books": 68,
+    "returning_books": 4
+  },
+  {
+    "meetup": 82,
+    "date": "2025-03-01",
+    "venue": "Bookworm",
+    "new_books": 39,
+    "returning_books": 4
+  },
+  {
+    "meetup": 83,
+    "date": "2025-04-01",
+    "venue": "Bookworm",
+    "new_books": 59,
+    "returning_books": 8
+  },
+  {
+    "meetup": 84,
+    "date": "2025-05-01",
+    "venue": "Bookworm",
+    "new_books": 37,
+    "returning_books": 7
+  },
+  {
+    "meetup": 85,
+    "date": null,
+    "venue": "Bookworm",
+    "new_books": 49,
+    "returning_books": 4
+  },
+  {
+    "meetup": 86,
+    "date": "2025-07-01",
+    "venue": "Bookworm",
+    "new_books": 59,
+    "returning_books": 5
+  },
+  {
+    "meetup": 93,
+    "date": "2026-02-01",
+    "venue": "Bookworm",
+    "new_books": 50,
+    "returning_books": 0
+  },
+  {
+    "meetup": 94,
+    "date": "2026-03-01",
+    "venue": "Bookworm",
+    "new_books": 34,
+    "returning_books": 2
+  },
+  {
+    "meetup": 95,
+    "date": "2026-04-01",
+    "venue": "Bookworm",
+    "new_books": 22,
+    "returning_books": 6
+  },
+  {
+    "meetup": 96,
+    "date": "2026-05-01",
+    "venue": "Bookworm",
+    "new_books": 41,
+    "returning_books": 4
+  },
+  {
+    "meetup": 97,
+    "date": "2026-06-28",
+    "venue": "Bookworm",
+    "new_books": 58,
+    "returning_books": 6
+  },
+  {
+    "meetup": 98,
+    "date": "2026-07-01",
+    "venue": "Bookworm",
+    "new_books": 49,
+    "returning_books": 5
+  }
+]

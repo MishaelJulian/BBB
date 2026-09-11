@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0f0d0e;
+  --foreground: #f4f1ea;
+  --primary: #d4af37;
+  --primary-foreground: #0f0d0e;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  overflow-x: hidden;
+}
