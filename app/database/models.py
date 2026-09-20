@@ -334,6 +334,8 @@ class Meetup(Base, UUIDMixin, TimestampMixin):
     source_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("sources.id"), nullable=True, index=True,
     )
+    photo_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    pdf_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
 
     # Relationships
     venue: Mapped[Optional[Venue]] = relationship("Venue", back_populates="meetups")

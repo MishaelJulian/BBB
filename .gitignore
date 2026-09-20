@@ -54,3 +54,12 @@ Thumbs.db
 # Next.js telemetry & cache
 .next/cache/
 */.next/cache/
+*.tsbuildinfo
+
+# SQLite temporary files
+*.db-shm
+*.db-wal
+*.db.bak
+
+# Local screenshots
+Screenshot *.png

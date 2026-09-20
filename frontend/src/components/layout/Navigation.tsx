@@ -10,6 +10,7 @@ const navItems = [
   { href: '/library-room', label: 'The Library Room' },
   { href: '/library', label: 'Library' },
   { href: '/meetups', label: 'Meetups' },
+  { href: '/admin', label: 'Database Admin' },
 ]
 
 export function Navigation() {

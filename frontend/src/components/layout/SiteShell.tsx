@@ -8,11 +8,11 @@ import { CommandPalette } from '@/components/search/CommandPalette'
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isLibraryRoom = pathname === '/library-room'
+  const isClosetView = pathname === '/' || pathname === '/library-room'
 
-  if (isLibraryRoom) {
+  if (isClosetView) {
     return (
-      <div className="min-h-screen w-screen bg-[#070504] overflow-hidden">
+      <div className="min-h-screen w-screen overflow-x-hidden">
         {children}
         <CommandPalette />
       </div>

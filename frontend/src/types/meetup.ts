@@ -6,6 +6,8 @@ export interface Meetup {
   format: 'IN_PERSON' | 'ONLINE'
   title?: string
   description?: string
+  photo_url?: string | null
+  pdf_url?: string | null
   books_discussed: BookReference[]
   discussion_mentions: BookReference[]
   members: MemberReference[]

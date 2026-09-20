@@ -56,6 +56,8 @@ export interface Meetup {
   format: string
   book_count: number
   member_count: number
+  photo_url?: string | null
+  pdf_url?: string | null
   books: BookReference[]
   members: MemberReference[]
 }

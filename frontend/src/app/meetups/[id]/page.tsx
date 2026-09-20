@@ -124,8 +124,59 @@ export default function MeetupPage() {
               <div className="text-sm text-muted">Mentions</div>
             </div>
           </div>
+
+          {/* Action links */}
+          <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
+            <a
+              href={`http://localhost:8000/admin/meetups/${meetup.number}/pdf`}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-sm font-semibold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+            >
+              <span>📑</span>
+              <span>Download Publication PDF</span>
+            </a>
+            <Link
+              href="/admin"
+              className="px-4 py-2 rounded-xl border border-border bg-paper hover:bg-paper-dark text-sm font-medium text-ink transition-all shadow-xs flex items-center gap-1.5"
+            >
+              <span>⚙️</span>
+              <span>Admin: Manage Meetup</span>
+            </Link>
+          </div>
         </Container>
       </Section>
+
+      {/* Group Photo Section */}
+      {meetup.photo_url && (
+        <>
+          <Divider />
+          <Section>
+            <Container size="narrow">
+              <div className="text-center mb-6">
+                <h2 className="font-display text-2xl font-bold text-ink mb-2">
+                  Meetup Group Photo
+                </h2>
+                <p className="text-sm text-muted">
+                  The Bengaluru Book Club gathering for Meetup #{meetup.number}
+                </p>
+              </div>
+              <div className="max-w-2xl mx-auto p-4 pb-6 bg-paper rounded-2xl border border-border shadow-md">
+                <div className="overflow-hidden rounded-xl bg-paper-dark">
+                  <img
+                    src={`http://localhost:8000${meetup.photo_url}`}
+                    alt={`BBB Meetup #${meetup.number} Group Photo`}
+                    className="w-full max-h-[480px] object-cover"
+                  />
+                </div>
+                <div className="mt-3 text-center font-mono text-xs text-muted">
+                  Bengaluru Book Club · Meetup #{meetup.number} · {meetup.venue || 'Bookworm'}
+                </div>
+              </div>
+            </Container>
+          </Section>
+        </>
+      )}
 
       <Divider />
 
