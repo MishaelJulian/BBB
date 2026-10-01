@@ -47,7 +47,14 @@ function Rotatable3DBook({
   const [dragOffset, setDragOffset] = React.useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = React.useState(false)
   const [dragStart, setDragStart] = React.useState({ x: 0, y: 0 })
-  const [mouseTilt, setMouseTilt] = React.useState({ x: -16, y: 6 })
+  const [mouseTilt, setMouseTilt] = React.useState({ x: -10, y: 4 })
+  const [imgFailed, setImgFailed] = React.useState(false)
+
+  React.useEffect(() => {
+    setImgFailed(false)
+  }, [coverSrc])
+
+  const showCoverImage = hasCover && Boolean(coverSrc) && !imgFailed
 
   // Track cursor position across the stage for subtle continuous tilt
   React.useEffect(() => {
@@ -57,8 +64,8 @@ function Rotatable3DBook({
       const normX = (e.clientX / innerWidth - 0.5) * 2 // -1 to +1
       const normY = (e.clientY / innerHeight - 0.5) * 2 // -1 to +1
       setMouseTilt({
-        x: -16 + normX * 36, // yaw from ~ -52° to +20°
-        y: 6 - normY * 18,   // pitch from ~ -12° to +24°
+        x: -10 + normX * 30, // subtle natural tilt
+        y: 4 - normY * 16,
       })
     }
     window.addEventListener('mousemove', handleMouseMove)
@@ -152,12 +159,13 @@ function Rotatable3DBook({
               backfaceVisibility: 'hidden',
             }}
           >
-            {hasCover ? (
+            {showCoverImage ? (
               <img
                 src={coverSrc}
                 alt={book.title}
                 className="w-full h-full object-cover pointer-events-none"
                 draggable={false}
+                onError={() => setImgFailed(true)}
               />
             ) : (
               /* Hardcover textured fallback with Criterion foil design */
@@ -438,21 +446,29 @@ export function CriterionDetailModal({
   const [rating, setRating] = React.useState<number | null>(book.rating || null)
   const [loadingSynopsis, setLoadingSynopsis] = React.useState(false)
 
+  // Track cover URL, replacing Goodreads nophoto placeholders
+  const [coverUrl, setCoverUrl] = React.useState<string | null>(
+    book.cover_url && !book.cover_url.includes('nophoto') ? book.cover_url : book.thumbnail_url || null
+  )
+
   // Reset metadata when active book changes
   React.useEffect(() => {
     setIsReadMore(false)
     setPageCount(book.page_count || null)
     setRating(book.rating || null)
     setSynopsis(book.description || null)
-  }, [book.id, book.description, book.page_count, book.rating])
+    const initialCover = book.cover_url && !book.cover_url.includes('nophoto') ? book.cover_url : book.thumbnail_url || null
+    setCoverUrl(initialCover)
+  }, [book.id, book.description, book.page_count, book.rating, book.cover_url, book.thumbnail_url])
 
-  // Fetch synopsis and page count if missing
+  // Fetch synopsis, page count, and real cover if missing
   React.useEffect(() => {
     let isMounted = true
     const needsSynopsis = !book.description || book.description.trim().length <= 20
     const needsPages = !book.page_count || book.page_count <= 0
+    const needsCover = !book.cover_url || book.cover_url.includes('nophoto')
 
-    if (needsSynopsis || needsPages) {
+    if (needsSynopsis || needsPages || needsCover) {
       setLoadingSynopsis(true)
       fetchBookSynopsis(book.id)
         .then((res) => {
@@ -460,6 +476,7 @@ export function CriterionDetailModal({
             if (res.description) setSynopsis(res.description)
             if (res.page_count) setPageCount(res.page_count)
             if (res.rating !== undefined && res.rating !== null) setRating(res.rating)
+            if (res.cover_url && !res.cover_url.includes('nophoto')) setCoverUrl(res.cover_url)
           }
         })
         .catch(() => {})
@@ -470,7 +487,7 @@ export function CriterionDetailModal({
     return () => {
       isMounted = false
     }
-  }, [book.id, book.description, book.page_count])
+  }, [book.id, book.description, book.page_count, book.cover_url])
 
   // Keyboard navigation: Escape closes, Left/Right arrows navigate
   React.useEffect(() => {
@@ -497,8 +514,8 @@ export function CriterionDetailModal({
   const prevBook = currentIdx > 0 ? allBooks[currentIdx - 1] : null
   const nextBook = currentIdx >= 0 && currentIdx < allBooks.length - 1 ? allBooks[currentIdx + 1] : null
 
-  const hasCover = Boolean(book.cover_url || book.thumbnail_url)
-  const coverSrc = book.cover_url || book.thumbnail_url || ''
+  const hasCover = Boolean(coverUrl)
+  const coverSrc = coverUrl || ''
 
   const publicationYear =
     book.publication_year ||
@@ -515,16 +532,19 @@ export function CriterionDetailModal({
     : `https://www.goodreads.com/search?q=${encodeURIComponent(`${book.title} ${book.author_name || ''}`)}`
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain">
       {/* Dark Blurred Backdrop: Clicking puts the book back on the shelf */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }}
-        className="fixed inset-0 bg-black/75 backdrop-blur-md cursor-pointer"
+        className="fixed inset-0 bg-black/85 backdrop-blur-md cursor-pointer"
         onClick={onClose}
       />
+
+      {/* Content Scroll Wrapper (items-start on mobile prevents flexbox negative-space clipping) */}
+      <div className="relative min-h-full w-full flex flex-col items-center justify-start lg:justify-center p-3 sm:p-6 py-8 pointer-events-none">
 
       {/* Floating Left Chevron Navigation Button */}
       {prevBook && (
@@ -825,6 +845,7 @@ export function CriterionDetailModal({
           </div>
         </div>
       </motion.div>
+      </div>
     </div>
   )
 }

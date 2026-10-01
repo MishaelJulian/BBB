@@ -246,6 +246,7 @@ export async function fetchBookSynopsis(bookId: string): Promise<{
   description: string | null
   page_count?: number | null
   rating?: number | null
+  cover_url?: string | null
   source?: string 
 }> {
   try {

@@ -450,8 +450,8 @@ def get_book(book_id: str):
 
 
 def fetch_book_metadata_from_web(title: str, author: str = "", goodreads_id: str = None) -> dict:
-    """Fetch book synopsis, page count, and rating from Goodreads JSON-LD or Apple Books."""
-    result = {"description": None, "page_count": None, "rating": None}
+    """Fetch book synopsis, page count, rating, and cover image from Goodreads JSON-LD or Apple Books."""
+    result = {"description": None, "page_count": None, "rating": None, "cover_url": None}
     # 1. Try Goodreads if goodreads_id is present
     if goodreads_id:
         try:
@@ -468,6 +468,8 @@ def fetch_book_metadata_from_web(title: str, author: str = "", goodreads_id: str
                 if m:
                     data = json.loads(m.group(1))
                     if isinstance(data, dict):
+                        if data.get("image") and "nophoto" not in str(data.get("image")):
+                            result["cover_url"] = str(data["image"])
                         if data.get("description"):
                             result["description"] = re.sub(r'<[^>]+>', ' ', data["description"]).strip()
                         if data.get("numberOfPages"):
@@ -480,12 +482,11 @@ def fetch_book_metadata_from_web(title: str, author: str = "", goodreads_id: str
                                 result["rating"] = float(data["aggregateRating"].get("ratingValue"))
                             except Exception:
                                 pass
-                        if result["description"]:
+                        if result["description"] and result["cover_url"]:
                             return result
                 m2 = re.search(r'data-testid="description"[^>]*>(.*?)</div>', html, re.DOTALL)
                 if m2:
                     result["description"] = re.sub(r'<[^>]+>', ' ', m2.group(1)).strip()
-                    return result
         except Exception:
             pass
 
@@ -497,11 +498,14 @@ def fetch_book_metadata_from_web(title: str, author: str = "", goodreads_id: str
         with urllib.request.urlopen(req, timeout=3.0) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             results = data.get("results", [])
-            if results and results[0].get("description"):
-                raw_desc = results[0]["description"]
-                result["description"] = re.sub(r'<[^>]+>', ' ', raw_desc).strip()
-                if results[0].get("averageUserRating") and not result["rating"]:
-                    result["rating"] = float(results[0]["averageUserRating"])
+            if results and len(results) > 0:
+                first = results[0]
+                if first.get("artworkUrl100") and not result.get("cover_url"):
+                    result["cover_url"] = first["artworkUrl100"].replace("100x100bb", "600x600bb")
+                if first.get("description") and not result.get("description"):
+                    result["description"] = re.sub(r'<[^>]+>', ' ', first["description"]).strip()
+                if first.get("averageUserRating") and not result["rating"]:
+                    result["rating"] = float(first["averageUserRating"])
                 return result
     except Exception:
         pass
@@ -527,7 +531,8 @@ def get_book_synopsis_endpoint(book_id: str):
         has_full_info = (
             book.description and len(book.description.strip()) > 20 and
             book.page_count and book.page_count > 0 and
-            book.rating is not None
+            book.rating is not None and
+            book.cover_url and "nophoto" not in book.cover_url
         )
         
         if not has_full_info:
@@ -539,6 +544,9 @@ def get_book_synopsis_endpoint(book_id: str):
                     
             meta = fetch_book_metadata_from_web(book.title, author_name, book.goodreads_id)
             updated = False
+            if meta.get("cover_url") and (not book.cover_url or "nophoto" in book.cover_url):
+                book.cover_url = meta["cover_url"]
+                updated = True
             if meta.get("description") and (not book.description or len(book.description.strip()) <= 20):
                 book.description = meta["description"]
                 updated = True
@@ -563,6 +571,7 @@ def get_book_synopsis_endpoint(book_id: str):
             "description": fallback_desc,
             "page_count": book.page_count,
             "rating": book.rating,
+            "cover_url": book.cover_url,
             "source": "goodreads" if book.goodreads_id else "archive"
         }
     finally:

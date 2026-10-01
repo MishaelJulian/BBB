@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, animate } from 'framer-motion'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { fetchBooks, type Book } from '@/lib/api'
@@ -759,11 +759,11 @@ export function CriterionBookCloset() {
   const smoothX = useSpring(mouseX, springConfig)
   const smoothY = useSpring(mouseY, springConfig)
 
-  // Touch Drag Motion Values for Mobile 3D Room Navigation
+  // Touch Drag Motion Values for Mobile 3D Room Navigation (Crisp, zero-lag tracking)
   const touchYawMotion = useMotionValue(0)
   const touchPitchMotion = useMotionValue(0)
-  const smoothTouchYaw = useSpring(touchYawMotion, { stiffness: 50, damping: 18 })
-  const smoothTouchPitch = useSpring(touchPitchMotion, { stiffness: 50, damping: 18 })
+  const smoothTouchYaw = useSpring(touchYawMotion, { stiffness: 320, damping: 32 })
+  const smoothTouchPitch = useSpring(touchPitchMotion, { stiffness: 320, damping: 32 })
   const touchStartRef = React.useRef({ x: 0, y: 0, startYaw: 0, startPitch: 0 })
   const [currentWallIndex, setCurrentWallIndex] = React.useState<0 | 1 | 2>(1) // 0: Left (+38°), 1: Main (0°), 2: Right (-38°)
 
@@ -780,7 +780,11 @@ export function CriterionBookCloset() {
   const snapToWall = (wallIdx: 0 | 1 | 2) => {
     setCurrentWallIndex(wallIdx)
     const targetYaws = [38, 0, -38] // Left wall +38°, Center 0°, Right -38°
-    touchYawMotion.set(targetYaws[wallIdx])
+    animate(touchYawMotion, targetYaws[wallIdx], {
+      type: 'spring',
+      stiffness: 240,
+      damping: 26,
+    })
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -802,17 +806,26 @@ export function CriterionBookCloset() {
     const dy = touch.clientY - touchStartRef.current.y
 
     // Swipe right pans towards Left Wing (+), swipe left pans towards Right Wing (-)
-    const newYaw = Math.max(-48, Math.min(48, touchStartRef.current.startYaw + dx * 0.22))
-    const newPitch = Math.max(-14, Math.min(14, touchStartRef.current.startPitch - dy * 0.1))
+    const newYaw = Math.max(-46, Math.min(46, touchStartRef.current.startYaw + dx * 0.22))
+    const newPitch = Math.max(-12, Math.min(12, touchStartRef.current.startPitch - dy * 0.08))
     touchYawMotion.set(newYaw)
     touchPitchMotion.set(newPitch)
   }
 
   const handleTouchEnd = () => {
     const yaw = touchYawMotion.get()
-    if (yaw > 18) setCurrentWallIndex(0)
-    else if (yaw < -18) setCurrentWallIndex(2)
-    else setCurrentWallIndex(1)
+    let targetIdx: 0 | 1 | 2 = 1
+    if (yaw > 18) targetIdx = 0
+    else if (yaw < -18) targetIdx = 2
+    else targetIdx = 1
+
+    setCurrentWallIndex(targetIdx)
+    const targetYaws = [38, 0, -38]
+    animate(touchYawMotion, targetYaws[targetIdx], {
+      type: 'spring',
+      stiffness: 240,
+      damping: 26,
+    })
   }
 
   // Sync hash #closet / #list
@@ -1614,30 +1627,28 @@ export function CriterionBookCloset() {
                   WALL 1: LEFT SHELVING WALL (Shelf 3*section + 1)
                   Angled at +38deg, right edge touches Left Divider Pillar
                   ======================================================== */}
-              {(!isMobile || currentWallIndex === 0 || currentWallIndex === 1) && (
-                <div
-                  className="absolute top-[-600px] flex flex-col justify-center"
-                  style={{
-                    width: '720px',
-                    right: '360px',
-                    transformOrigin: 'right center',
-                    transform: 'translateZ(-360px) rotateY(38deg)',
-                    transformStyle: isMobile ? 'flat' : 'preserve-3d',
-                  }}
-                >
-                  <ShelfWall
-                    wallName="LEFT WING"
-                    shelfNumber={currentShelfStartNumber}
-                    rows={shelf1Rows}
-                    selectedBookId={selectedBook?.id}
-                    hoveredBookId={hoveredBook?.id}
-                    userPicks={userPicks}
-                    onSelectBook={(b) => setSelectedBook(b)}
-                    onHoverBook={(b) => setHoveredBook(b)}
-                    isMobile={isMobile}
-                  />
-                </div>
-              )}
+              <div
+                className="absolute top-[-600px] flex flex-col justify-center"
+                style={{
+                  width: '720px',
+                  right: '360px',
+                  transformOrigin: 'right center',
+                  transform: 'translateZ(-360px) rotateY(38deg)',
+                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
+                }}
+              >
+                <ShelfWall
+                  wallName="LEFT WING"
+                  shelfNumber={currentShelfStartNumber}
+                  rows={shelf1Rows}
+                  selectedBookId={selectedBook?.id}
+                  hoveredBookId={hoveredBook?.id}
+                  userPicks={userPicks}
+                  onSelectBook={(b) => setSelectedBook(b)}
+                  onHoverBook={(b) => setHoveredBook(b)}
+                  isMobile={isMobile}
+                />
+              </div>
 
               {/* LEFT DIVIDER PILLAR (Between Wall 1 and Wall 2) */}
               <div
@@ -1702,30 +1713,28 @@ export function CriterionBookCloset() {
                   WALL 3: RIGHT SHELVING WALL (Shelf 3*section + 3)
                   Angled at -38deg, left edge touches Right Divider Pillar
                   ======================================================== */}
-              {(!isMobile || currentWallIndex === 1 || currentWallIndex === 2) && (
-                <div
-                  className="absolute top-[-600px] flex flex-col justify-center"
-                  style={{
-                    width: '720px',
-                    left: '360px',
-                    transformOrigin: 'left center',
-                    transform: 'translateZ(-360px) rotateY(-38deg)',
-                    transformStyle: isMobile ? 'flat' : 'preserve-3d',
-                  }}
-                >
-                  <ShelfWall
-                    wallName="RIGHT WING"
-                    shelfNumber={currentShelfStartNumber + 2}
-                    rows={shelf3Rows}
-                    selectedBookId={selectedBook?.id}
-                    hoveredBookId={hoveredBook?.id}
-                    userPicks={userPicks}
-                    onSelectBook={(b) => setSelectedBook(b)}
-                    onHoverBook={(b) => setHoveredBook(b)}
-                    isMobile={isMobile}
-                  />
-                </div>
-              )}
+              <div
+                className="absolute top-[-600px] flex flex-col justify-center"
+                style={{
+                  width: '720px',
+                  left: '360px',
+                  transformOrigin: 'left center',
+                  transform: 'translateZ(-360px) rotateY(-38deg)',
+                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
+                }}
+              >
+                <ShelfWall
+                  wallName="RIGHT WING"
+                  shelfNumber={currentShelfStartNumber + 2}
+                  rows={shelf3Rows}
+                  selectedBookId={selectedBook?.id}
+                  hoveredBookId={hoveredBook?.id}
+                  userPicks={userPicks}
+                  onSelectBook={(b) => setSelectedBook(b)}
+                  onHoverBook={(b) => setHoveredBook(b)}
+                  isMobile={isMobile}
+                />
+              </div>
             </motion.div>
           )}
 
