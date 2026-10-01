@@ -50,6 +50,9 @@ export function CriterionListDetailModal({
   const [pageCount, setPageCount] = React.useState<number | null>(book.page_count || null)
   const [rating, setRating] = React.useState<number | null>(book.rating || null)
   const [loadingSynopsis, setLoadingSynopsis] = React.useState(false)
+  const [coverUrl, setCoverUrl] = React.useState<string | null>(
+    book.cover_url && !book.cover_url.includes('nophoto') ? book.cover_url : book.thumbnail_url || null
+  )
 
   // Reset metadata when active book changes
   React.useEffect(() => {
@@ -57,12 +60,18 @@ export function CriterionListDetailModal({
     setPageCount(book.page_count || null)
     setRating(book.rating || null)
     setSynopsis(book.description || null)
-  }, [book.id, book.description, book.page_count, book.rating])
+    const initialCover =
+      book.cover_url && !book.cover_url.includes('nophoto') ? book.cover_url : book.thumbnail_url || null
+    setCoverUrl(initialCover)
+  }, [book.id, book.description, book.page_count, book.rating, book.cover_url, book.thumbnail_url])
 
-  // Fetch synopsis and metadata if missing
+  // Fetch synopsis and metadata/cover if missing
   React.useEffect(() => {
     let isCancelled = false
-    if (!book.description) {
+    const needsSynopsis = !book.description
+    const needsCover = !book.cover_url || book.cover_url.includes('nophoto')
+
+    if (needsSynopsis || needsCover) {
       setLoadingSynopsis(true)
       fetchBookSynopsis(book.id)
         .then((res) => {
@@ -70,6 +79,7 @@ export function CriterionListDetailModal({
           if (res.description) setSynopsis(res.description)
           if (res.page_count) setPageCount(res.page_count)
           if (res.rating !== undefined && res.rating !== null) setRating(res.rating)
+          if (res.cover_url && !res.cover_url.includes('nophoto')) setCoverUrl(res.cover_url)
         })
         .catch(() => {})
         .finally(() => {
@@ -79,7 +89,15 @@ export function CriterionListDetailModal({
     return () => {
       isCancelled = true
     }
-  }, [book.id, book.description])
+  }, [book.id, book.description, book.cover_url])
+
+  // Scroll to top whenever modal opens or book changes
+  const modalScrollRef = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    if (modalScrollRef.current) {
+      modalScrollRef.current.scrollTop = 0
+    }
+  }, [book.id])
 
   // Keyboard navigation: Escape to close, Left/Right arrow to switch books
   React.useEffect(() => {
@@ -102,8 +120,8 @@ export function CriterionListDetailModal({
   const prevBook = currentIndex > 0 ? allBooks[currentIndex - 1] : null
   const nextBook = currentIndex >= 0 && currentIndex < allBooks.length - 1 ? allBooks[currentIndex + 1] : null
 
-  const coverSrc = book.cover_url || book.thumbnail_url || ''
-  const hasCover = Boolean(coverSrc)
+  const coverSrc = coverUrl || ''
+  const hasCover = Boolean(coverUrl)
   const latestMeetup = book.meetups && book.meetups.length > 0 ? book.meetups[0] : null
   const pubYear =
     book.publication_year ||
@@ -116,7 +134,10 @@ export function CriterionListDetailModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div
+      ref={modalScrollRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+    >
       {/* Darkened backdrop with blur */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -169,7 +190,7 @@ export function CriterionListDetailModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 16 }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="relative z-10 w-full max-w-[480px] bg-white rounded-3xl p-5 sm:p-7 shadow-2xl border border-neutral-200/80 my-auto text-center max-h-[92vh] overflow-y-auto scrollbar-thin text-[#14130F]"
+        className="relative z-10 w-full max-w-[480px] bg-white rounded-3xl p-5 sm:p-7 shadow-2xl border border-neutral-200/80 my-4 text-center max-h-[92vh] overflow-y-auto scrollbar-thin text-[#14130F]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top-Right Circular Close Button */}
@@ -192,6 +213,8 @@ export function CriterionListDetailModal({
               src={coverSrc}
               alt={book.title}
               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              referrerPolicy="no-referrer"
+              loading="eager"
             />
           ) : (
             /* Fallback cloth texture */

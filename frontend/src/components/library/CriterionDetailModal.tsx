@@ -77,6 +77,9 @@ function Rotatable3DBook({
     e.stopPropagation()
     setIsDragging(true)
     setDragStart({ x: e.clientX, y: e.clientY })
+    try {
+      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    } catch {}
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
@@ -94,6 +97,9 @@ function Rotatable3DBook({
   const handlePointerUp = (e: React.PointerEvent) => {
     e.stopPropagation()
     setIsDragging(false)
+    try {
+      ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    } catch {}
   }
 
   const resetAngle = (e: React.MouseEvent) => {
@@ -120,11 +126,18 @@ function Rotatable3DBook({
     (book.first_discussed_date ? new Date(book.first_discussed_date).getFullYear() : null)
 
   return (
-    <div className="flex flex-col items-center justify-center select-none py-2">
+    <div className="flex flex-col items-center justify-center select-none py-2 w-full">
       {/* 3D Viewport with Perspective */}
       <div
-        className="relative w-[300px] sm:w-[330px] h-[390px] sm:h-[420px] flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
-        style={{ perspective: 1100 }}
+        className="relative flex items-center justify-center cursor-grab active:cursor-grabbing touch-none select-none"
+        style={{
+          width: '100%',
+          maxWidth: 320,
+          height: 400,
+          minHeight: 400,
+          perspective: 1100,
+          WebkitPerspective: 1100,
+        }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -142,10 +155,14 @@ function Rotatable3DBook({
 
         {/* 3D Rotatable Box */}
         <motion.div
-          className="relative w-[250px] h-[365px]"
+          className="relative"
           style={{
+            width: W,
+            height: H,
             transformStyle: 'preserve-3d',
+            WebkitTransformStyle: 'preserve-3d',
             transform: `rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg)`,
+            WebkitTransform: `rotateX(${currentRotateX}deg) rotateY(${currentRotateY}deg)`,
             transition: isDragging ? 'none' : 'transform 0.15s cubic-bezier(0.2, 0.8, 0.4, 1)',
           }}
         >
@@ -153,18 +170,25 @@ function Rotatable3DBook({
               FACE 1: FRONT COVER (translateZ = +halfD)
               ========================================================= */}
           <div
-            className="absolute inset-0 rounded-r-md overflow-hidden bg-[#1A1816] border border-white/20 shadow-2xl backface-hidden"
+            className="absolute inset-0 rounded-r-md overflow-hidden bg-[#1A1816] border border-white/20 shadow-2xl"
             style={{
+              width: `${W}px`,
+              height: `${H}px`,
               transform: `translateZ(${halfD}px)`,
+              WebkitTransform: `translateZ(${halfD}px)`,
               backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
             }}
           >
             {showCoverImage ? (
               <img
                 src={coverSrc}
                 alt={book.title}
-                className="w-full h-full object-cover pointer-events-none"
+                className="w-full h-full object-cover pointer-events-none select-none"
                 draggable={false}
+                referrerPolicy="no-referrer"
+                loading="eager"
+                decoding="async"
                 onError={() => setImgFailed(true)}
               />
             ) : (
@@ -212,8 +236,12 @@ function Rotatable3DBook({
           <div
             className="absolute inset-0 rounded-l-md overflow-hidden bg-[#181614] border border-white/20 p-5 flex flex-col justify-between text-left"
             style={{
+              width: `${W}px`,
+              height: `${H}px`,
               transform: `rotateY(180deg) translateZ(${halfD}px)`,
+              WebkitTransform: `rotateY(180deg) translateZ(${halfD}px)`,
               backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
               backgroundColor: spineStyle.palette.accent || '#141210',
             }}
           >
@@ -267,8 +295,12 @@ function Rotatable3DBook({
             className="absolute top-0 bottom-0 overflow-hidden flex flex-col justify-between items-center py-3.5 select-none"
             style={{
               width: `${D}px`,
+              height: `${H}px`,
               left: `${-halfD}px`,
               transform: `rotateY(-90deg) translateZ(${halfW - halfD}px)`,
+              WebkitTransform: `rotateY(-90deg) translateZ(${halfW - halfD}px)`,
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
               backgroundColor: spineStyle.palette.bg,
               boxShadow: 'inset 2px 0 5px rgba(255,255,255,0.3), inset -2px 0 5px rgba(0,0,0,0.5)',
             }}
@@ -306,8 +338,10 @@ function Rotatable3DBook({
             className="absolute top-0 bottom-0 overflow-hidden"
             style={{
               width: `${D}px`,
+              height: `${H}px`,
               right: `${-halfD}px`,
               transform: `rotateY(90deg) translateZ(${halfW - halfD}px)`,
+              WebkitTransform: `rotateY(90deg) translateZ(${halfW - halfD}px)`,
               background: 'linear-gradient(90deg, #DDD6C7 0%, #FAF8F4 50%, #DDD6C7 100%)',
               boxShadow: 'inset 0 0 10px rgba(0,0,0,0.15)',
             }}
@@ -327,9 +361,11 @@ function Rotatable3DBook({
           <div
             className="absolute left-0 right-0 overflow-hidden"
             style={{
+              width: `${W}px`,
               height: `${D}px`,
               top: `${-halfD}px`,
               transform: `rotateX(90deg) translateZ(${halfH - halfD}px)`,
+              WebkitTransform: `rotateX(90deg) translateZ(${halfH - halfD}px)`,
               background: 'linear-gradient(0deg, #DDD6C7 0%, #FAF8F4 50%, #DDD6C7 100%)',
             }}
           >
@@ -347,9 +383,11 @@ function Rotatable3DBook({
           <div
             className="absolute left-0 right-0 overflow-hidden"
             style={{
+              width: `${W}px`,
               height: `${D}px`,
               bottom: `${-halfD}px`,
               transform: `rotateX(-90deg) translateZ(${halfH - halfD}px)`,
+              WebkitTransform: `rotateX(-90deg) translateZ(${halfH - halfD}px)`,
               background: 'linear-gradient(0deg, #DDD6C7 0%, #FAF8F4 50%, #DDD6C7 100%)',
             }}
           >
@@ -489,6 +527,14 @@ export function CriterionDetailModal({
     }
   }, [book.id, book.description, book.page_count, book.cover_url])
 
+  // Scroll to top whenever modal opens or book changes
+  const modalScrollRef = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    if (modalScrollRef.current) {
+      modalScrollRef.current.scrollTop = 0
+    }
+  }, [book.id])
+
   // Keyboard navigation: Escape closes, Left/Right arrows navigate
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -532,7 +578,10 @@ export function CriterionDetailModal({
     : `https://www.goodreads.com/search?q=${encodeURIComponent(`${book.title} ${book.author_name || ''}`)}`
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain">
+    <div
+      ref={modalScrollRef}
+      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain"
+    >
       {/* Dark Blurred Backdrop: Clicking puts the book back on the shelf */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -543,8 +592,8 @@ export function CriterionDetailModal({
         onClick={onClose}
       />
 
-      {/* Content Scroll Wrapper (items-start on mobile prevents flexbox negative-space clipping) */}
-      <div className="relative min-h-full w-full flex flex-col items-center justify-start lg:justify-center p-3 sm:p-6 py-8 pointer-events-none">
+      {/* Content Scroll Wrapper (pt-14 leaves clearance for mobile notch/dynamic island) */}
+      <div className="relative min-h-full w-full flex flex-col items-center justify-start lg:justify-center p-3 sm:p-6 pt-14 pb-16 pointer-events-none">
 
       {/* Floating Left Chevron Navigation Button */}
       {prevBook && (
@@ -553,7 +602,7 @@ export function CriterionDetailModal({
             e.stopPropagation()
             onSelectBook(prevBook)
           }}
-          className="fixed left-3 lg:left-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/20 shadow-2xl flex items-center justify-center transition hover:scale-110"
+          className="fixed left-3 lg:left-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/20 shadow-2xl flex items-center justify-center transition hover:scale-110 pointer-events-auto"
           title={`Previous: ${prevBook.title}`}
           aria-label="Previous volume"
         >
@@ -570,7 +619,7 @@ export function CriterionDetailModal({
             e.stopPropagation()
             onSelectBook(nextBook)
           }}
-          className="fixed right-3 lg:right-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/20 shadow-2xl flex items-center justify-center transition hover:scale-110"
+          className="fixed right-3 lg:right-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/20 shadow-2xl flex items-center justify-center transition hover:scale-110 pointer-events-auto"
           title={`Next: ${nextBook.title}`}
           aria-label="Next volume"
         >
@@ -583,7 +632,7 @@ export function CriterionDetailModal({
       {/* Top Right Close Button */}
       <button
         onClick={onClose}
-        className="fixed top-5 right-5 z-50 w-9 h-9 rounded-full bg-black/70 hover:bg-black text-white/70 hover:text-white border border-white/20 flex items-center justify-center transition shadow-xl"
+        className="fixed top-5 right-5 z-50 w-9 h-9 rounded-full bg-black/70 hover:bg-black text-white/70 hover:text-white border border-white/20 flex items-center justify-center transition shadow-xl pointer-events-auto"
         aria-label="Close"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -602,7 +651,7 @@ export function CriterionDetailModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 15 }}
         transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-        className="relative z-10 w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-center gap-6 pointer-events-auto"
+        className="relative z-10 w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-center justify-start lg:justify-center gap-6 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* =======================================================
@@ -734,7 +783,7 @@ export function CriterionDetailModal({
         {/* =======================================================
             COLUMN 2 (CENTER): ROTATABLE 3D BOOK
             ======================================================= */}
-        <div className="w-full lg:w-[380px] flex items-center justify-center order-1 lg:order-2">
+        <div className="w-full lg:w-[380px] flex flex-col items-center justify-center shrink-0 order-1 lg:order-2 my-2 lg:my-0">
           <Rotatable3DBook
             book={book}
             spineStyle={spineStyle}

@@ -229,6 +229,7 @@ export default function MeetupPage() {
                           alt={book.title}
                           className="w-full h-full object-cover"
                           loading="lazy"
+                          referrerPolicy="no-referrer"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none'
                           }}
