@@ -230,6 +230,8 @@ class CanonicalBook(Base, UUIDMixin, TimestampMixin):
     openlibrary_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     google_books_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    media_type: Mapped[str] = mapped_column(String(32), nullable=False, default="book")
+    external_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
 
     # Relationships
     author: Mapped[Optional[Author]] = relationship("Author", back_populates="canonical_books")
@@ -377,6 +379,8 @@ class Discussion(Base, UUIDMixin, TimestampMixin):
     rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     sentiment: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     confidence_score: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
+    media_type: Mapped[str] = mapped_column(String(32), nullable=False, default="book")
+    external_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
     source_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("sources.id"), nullable=True, index=True,
     )

@@ -67,8 +67,18 @@ export function VirtualLibraryRoom() {
       try {
         setLoading(true)
         setError(null)
-        const data = await fetchBooks({ limit: 3000 })
-        setBooks(data)
+        const data = await fetchBooks({
+          limit: 3000,
+          onlyDiscussed: true,
+          excludeGeneral: true,
+        })
+        const discussedBooks = (data || []).filter((b) => {
+          const hasDiscussions = Boolean(b.discussion_count && b.discussion_count > 0) || Boolean(b.meetups && b.meetups.length > 0)
+          const isNotGeneral = !b.is_general_discussion
+          const isNotTangent = (b as any).media_type !== 'tangent' && !b.title?.toLowerCase().includes('(tangent)')
+          return hasDiscussions && isNotGeneral && isNotTangent
+        })
+        setBooks(discussedBooks)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load library collection')
       } finally {
@@ -314,12 +324,12 @@ export function VirtualLibraryRoom() {
               <LightingToggle mode={lightingMode} onModeChange={setLightingMode} />
             </div>
 
-            {/* Standard Catalog Grid Link */}
+            {/* Standard Catalog List Link */}
             <Link
-              href="/library"
+              href="/library-room#list"
               className="px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-white/70 hover:text-white transition-all font-sans shrink-0 hidden lg:inline-block"
             >
-              Grid View
+              List View
             </Link>
           </div>
         </div>

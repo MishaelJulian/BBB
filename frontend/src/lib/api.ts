@@ -5,7 +5,9 @@
  * It replaces the previous better-sqlite3 direct database access.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== 'undefined' ? '/api' : 'http://localhost:8000')
 
 // ============================================
 // Types
@@ -28,11 +30,20 @@ export interface Book {
   normalized_title: string
   author_id: string | null
   author_name: string | null
+  cover_url?: string | null
+  thumbnail_url?: string | null
+  description?: string | null
+  goodreads_id?: string | null
+  publication_year?: number | null
+  rating?: number | null
+  page_count?: number | null
+  media_type?: string | null
   discussion_count: number
   first_discussed_date: string | null
   last_discussed_date: string | null
   meetups: MeetupReference[]
   members: MemberReference[]
+  is_general_discussion?: boolean
 }
 
 export interface MeetupReference {
@@ -67,6 +78,8 @@ export interface BookReference {
   title: string
   author: string | null
   member: string | null
+  cover_url?: string | null
+  thumbnail_url?: string | null
   is_discussion_mention: boolean
 }
 
@@ -79,7 +92,7 @@ export interface BookReference {
  */
 export async function fetchStats(): Promise<ArchiveStats> {
   const res = await fetch(`${API_BASE}/stats`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (!res.ok) {
@@ -100,6 +113,8 @@ export async function fetchBooks(options?: {
   sortOrder?: string
   limit?: number
   offset?: number
+  onlyDiscussed?: boolean
+  excludeGeneral?: boolean
 }): Promise<Book[]> {
   const params = new URLSearchParams()
 
@@ -110,9 +125,11 @@ export async function fetchBooks(options?: {
   if (options?.sortOrder) params.set('sort_order', options.sortOrder)
   if (options?.limit) params.set('limit', options.limit.toString())
   if (options?.offset) params.set('offset', options.offset.toString())
+  if (options?.onlyDiscussed) params.set('only_discussed', 'true')
+  if (options?.excludeGeneral) params.set('exclude_general', 'true')
 
   const res = await fetch(`${API_BASE}/books?${params.toString()}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (!res.ok) {
@@ -127,7 +144,7 @@ export async function fetchBooks(options?: {
  */
 export async function fetchBook(id: string): Promise<Book | null> {
   const res = await fetch(`${API_BASE}/books/${id}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (res.status === 404) {
@@ -154,7 +171,7 @@ export async function fetchMeetups(options?: {
   if (options?.year) params.set('year', options.year.toString())
 
   const res = await fetch(`${API_BASE}/meetups?${params.toString()}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (!res.ok) {
@@ -169,7 +186,7 @@ export async function fetchMeetups(options?: {
  */
 export async function fetchMeetup(id: string): Promise<Meetup | null> {
   const res = await fetch(`${API_BASE}/meetups/${id}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (res.status === 404) {
@@ -222,6 +239,26 @@ export async function fetchLatestMeetups(limit: number = 3): Promise<Meetup[]> {
   return meetups.slice(0, limit)
 }
 
+/**
+ * Fetch book synopsis from backend (with Goodreads / Apple Books dynamic lookup)
+ */
+export async function fetchBookSynopsis(bookId: string): Promise<{ 
+  description: string | null
+  page_count?: number | null
+  rating?: number | null
+  source?: string 
+}> {
+  try {
+    const res = await fetch(`${API_BASE}/books/${bookId}/synopsis`)
+    if (res.ok) {
+      return res.json()
+    }
+  } catch (err) {
+    console.warn('Failed to fetch book synopsis:', err)
+  }
+  return { description: null }
+}
+
 // ============================================
 // Member & Author Types & Fetchers
 // ============================================
@@ -233,6 +270,7 @@ export interface MemberSummary {
   meetup_count: number
   first_active_date: string | null
   last_active_date: string | null
+  covers?: string[]
 }
 
 export interface MemberBookRecord {
@@ -240,6 +278,8 @@ export interface MemberBookRecord {
   title: string
   author_id: string | null
   author_name: string | null
+  cover_url?: string | null
+  thumbnail_url?: string | null
   meetups: {
     meetup_number: number
     date: string | null
@@ -281,7 +321,7 @@ export async function fetchMembers(options?: {
   if (options?.sortBy) params.set('sort_by', options.sortBy)
 
   const res = await fetch(`${API_BASE}/members?${params.toString()}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (!res.ok) {
@@ -296,7 +336,7 @@ export async function fetchMembers(options?: {
  */
 export async function fetchMember(id: string): Promise<MemberDetail | null> {
   const res = await fetch(`${API_BASE}/members/${id}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (res.status === 404) {
@@ -315,7 +355,7 @@ export async function fetchMember(id: string): Promise<MemberDetail | null> {
  */
 export async function fetchAuthor(id: string): Promise<AuthorDetail | null> {
   const res = await fetch(`${API_BASE}/authors/${id}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (res.status === 404) {

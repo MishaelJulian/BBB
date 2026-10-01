@@ -6,6 +6,9 @@ export interface MemberSuggestion {
   id?: string
   name: string
   discussions_count?: number
+  books_count?: number
+  already_read?: boolean
+  already_read_meetups?: number[]
 }
 
 interface MemberAutocompleteInputProps {
@@ -16,6 +19,7 @@ interface MemberAutocompleteInputProps {
   apiBase?: string
   className?: string
   autoFocus?: boolean
+  bookId?: string
 }
 
 // Helper to get initials for member avatar
@@ -52,6 +56,7 @@ export function MemberAutocompleteInput({
   apiBase = 'http://localhost:8000',
   className = '',
   autoFocus = false,
+  bookId,
 }: MemberAutocompleteInputProps) {
   const [inputValue, setInputValue] = React.useState('')
   const [suggestions, setSuggestions] = React.useState<MemberSuggestion[]>([])
@@ -116,9 +121,10 @@ export function MemberAutocompleteInput({
 
       setLoading(true)
       try {
-        const url = query.trim()
-          ? `${apiBase}/admin/members/suggest?q=${encodeURIComponent(query.trim())}`
-          : `${apiBase}/admin/members/suggest`
+        const params = new URLSearchParams()
+        if (query.trim()) params.set('q', query.trim())
+        if (bookId) params.set('book_id', bookId)
+        const url = `${apiBase}/admin/members/suggest?${params.toString()}`
 
         const res = await fetch(url, { signal: controller.signal })
         if (!res.ok) throw new Error('Search failed')
@@ -135,7 +141,7 @@ export function MemberAutocompleteInput({
         setLoading(false)
       }
     },
-    [apiBase]
+    [apiBase, bookId]
   )
 
   // Debounced search on input change
@@ -357,9 +363,20 @@ export function MemberAutocompleteInput({
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {item.discussions_count !== undefined && item.discussions_count > 0 ? (
+                  {item.already_read && (
+                    <span 
+                      className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold flex items-center gap-1"
+                      title={item.already_read_meetups && item.already_read_meetups.length > 0 ? `Already discussed this book in Meetup #${item.already_read_meetups.join(', #')}` : 'Already read this book'}
+                    >
+                      <span>✓ Read</span>
+                      {item.already_read_meetups && item.already_read_meetups.length > 0 && (
+                        <span>(#{item.already_read_meetups.join(', #')})</span>
+                      )}
+                    </span>
+                  )}
+                  {(item.books_count !== undefined ? item.books_count : item.discussions_count) !== undefined && (item.books_count ?? item.discussions_count ?? 0) > 0 ? (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-100 text-amber-800 font-medium">
-                      {item.discussions_count} {item.discussions_count === 1 ? 'book' : 'books'}
+                      {item.books_count ?? item.discussions_count} {(item.books_count ?? item.discussions_count) === 1 ? 'book' : 'books'}
                     </span>
                   ) : (
                     <span className="text-[10px] text-neutral-400 font-mono">

@@ -31,6 +31,8 @@ export interface Book {
   last_discussed_date: string | null
   meetups: MeetupReference[]
   members: MemberReference[]
+  media_type?: string | null
+  is_general_discussion?: boolean
 }
 
 export interface MeetupReference {
@@ -77,7 +79,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || ''
  */
 export async function getArchiveStats(): Promise<ArchiveStats> {
   const res = await fetch(`${API_BASE}/api/stats`, {
-    next: { revalidate: 3600 }, // Cache for 1 hour
+    cache: 'no-store',
   })
 
   if (!res.ok) {
@@ -98,6 +100,8 @@ export async function getBooks(options?: {
   sortOrder?: string
   limit?: number
   offset?: number
+  onlyDiscussed?: boolean
+  excludeGeneral?: boolean
 }): Promise<Book[]> {
   const params = new URLSearchParams()
 
@@ -108,9 +112,11 @@ export async function getBooks(options?: {
   if (options?.sortOrder) params.set('sortOrder', options.sortOrder)
   if (options?.limit) params.set('limit', options.limit.toString())
   if (options?.offset) params.set('offset', options.offset.toString())
+  if (options?.onlyDiscussed) params.set('only_discussed', 'true')
+  if (options?.excludeGeneral) params.set('exclude_general', 'true')
 
   const res = await fetch(`${API_BASE}/api/books?${params.toString()}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (!res.ok) {
@@ -125,7 +131,7 @@ export async function getBooks(options?: {
  */
 export async function getBook(id: string): Promise<Book | null> {
   const res = await fetch(`${API_BASE}/api/books/${id}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (res.status === 404) {
@@ -152,7 +158,7 @@ export async function getMeetups(options?: {
   if (options?.year) params.set('year', options.year.toString())
 
   const res = await fetch(`${API_BASE}/api/meetups?${params.toString()}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (!res.ok) {
@@ -167,7 +173,7 @@ export async function getMeetups(options?: {
  */
 export async function getMeetup(id: string): Promise<Meetup | null> {
   const res = await fetch(`${API_BASE}/api/meetups/${id}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
 
   if (res.status === 404) {
@@ -191,7 +197,7 @@ export async function search(query: string): Promise<{
   const params = new URLSearchParams({ q: query })
 
   const res = await fetch(`${API_BASE}/api/search?${params.toString()}`, {
-    next: { revalidate: 60 }, // Cache for 1 minute
+    cache: 'no-store',
   })
 
   if (!res.ok) {

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { BookAutocompleteInput, BookSuggestion } from '@/components/admin/BookAutocompleteInput'
+import { BookAutocompleteInput, BookSuggestion, MediaTypeOption } from '@/components/admin/BookAutocompleteInput'
 import { MemberAutocompleteInput } from '@/components/admin/MemberAutocompleteInput'
 
 interface BookItem {
@@ -13,6 +13,8 @@ interface BookItem {
   member: string | null
   notes: string | null
   is_general_discussion?: boolean
+  media_type?: string
+  url?: string | null
   cover_url?: string | null
   thumbnail_url?: string | null
   rating?: number | null
@@ -62,21 +64,25 @@ export default function AdminDatabasePage() {
   const [editVenue, setEditVenue] = React.useState('')
   const [editTitle, setEditTitle] = React.useState('')
 
-  // Add Book Modal state
+  // Add Book / Media Modal state
   const [isAddBookOpen, setIsAddBookOpen] = React.useState(false)
+  const [newMediaType, setNewMediaType] = React.useState<MediaTypeOption>('book')
   const [newBookTitle, setNewBookTitle] = React.useState('')
   const [newBookAuthor, setNewBookAuthor] = React.useState('')
   const [newBookMember, setNewBookMember] = React.useState('')
   const [newBookNotes, setNewBookNotes] = React.useState('')
+  const [newBookUrl, setNewBookUrl] = React.useState('')
   const [newBookMeta, setNewBookMeta] = React.useState<BookSuggestion | null>(null)
   const [newIsGeneralDiscussion, setNewIsGeneralDiscussion] = React.useState(false)
 
-  // Edit Book Modal state
+  // Edit Book / Media Modal state
   const [editingBook, setEditingBook] = React.useState<BookItem | null>(null)
+  const [editMediaType, setEditMediaType] = React.useState<MediaTypeOption>('book')
   const [editBookTitle, setEditBookTitle] = React.useState('')
   const [editBookAuthor, setEditBookAuthor] = React.useState('')
   const [editBookMember, setEditBookMember] = React.useState('')
   const [editBookNotes, setEditBookNotes] = React.useState('')
+  const [editBookUrl, setEditBookUrl] = React.useState('')
   const [editBookMeta, setEditBookMeta] = React.useState<BookSuggestion | null>(null)
   const [editIsGeneralDiscussion, setEditIsGeneralDiscussion] = React.useState(false)
 
@@ -172,14 +178,23 @@ export default function AdminDatabasePage() {
   // Handle autocomplete selection for Add Book
   const handleSelectAddBook = (book: BookSuggestion) => {
     setNewBookTitle(book.title)
-    if (book.author) setNewBookAuthor(book.author)
+    if (book.author || book.creator) setNewBookAuthor(book.author || book.creator || '')
+    if (book.url) setNewBookUrl(book.url)
+    if (book.media_type) {
+      setNewMediaType(book.media_type as MediaTypeOption)
+      if (book.media_type !== 'book') {
+        setNewIsGeneralDiscussion(true)
+      }
+    }
     setNewBookMeta(book)
   }
 
   // Handle autocomplete selection for Edit Book
   const handleSelectEditBook = (book: BookSuggestion) => {
     setEditBookTitle(book.title)
-    if (book.author) setEditBookAuthor(book.author)
+    if (book.author || book.creator) setEditBookAuthor(book.author || book.creator || '')
+    if (book.url) setEditBookUrl(book.url)
+    if (book.media_type) setEditMediaType(book.media_type as MediaTypeOption)
     setEditBookMeta(book)
   }
 
@@ -210,7 +225,7 @@ export default function AdminDatabasePage() {
     if (!currentMeetup || !newBookTitle.trim()) return
 
     if (existingDuplicateBook) {
-      showToast(`⚠️ "${existingDuplicateBook.title}" is already in this meetup's book list!`)
+      showToast(`⚠️ "${existingDuplicateBook.title}" is already in this meetup's list!`)
       return
     }
 
@@ -230,24 +245,28 @@ export default function AdminDatabasePage() {
           goodreads_id: newBookMeta?.goodreads_id || undefined,
           description: newBookMeta?.description || undefined,
           is_general_discussion: newIsGeneralDiscussion,
+          media_type: newMediaType,
+          url: newBookUrl.trim() || newBookMeta?.url || undefined,
         }),
       })
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}))
-        throw new Error(errJson.detail || 'Failed to add book')
+        throw new Error(errJson.detail || 'Failed to add item')
       }
       showToast(`✓ Added "${newBookTitle}" to Meetup #${currentMeetup.number}`)
       setNewBookTitle('')
       setNewBookAuthor('')
       setNewBookMember('')
       setNewBookNotes('')
+      setNewBookUrl('')
       setNewBookMeta(null)
+      setNewMediaType('book')
       setNewIsGeneralDiscussion(false)
       setIsAddBookOpen(false)
       loadData()
     } catch (err: any) {
       console.error(err)
-      showToast(err.message || 'Failed to add book')
+      showToast(err.message || 'Failed to add item')
     }
   }
 
@@ -322,10 +341,12 @@ export default function AdminDatabasePage() {
   // Open Edit Book Modal
   const handleOpenEditBook = (book: BookItem) => {
     setEditingBook(book)
+    setEditMediaType((book.media_type as MediaTypeOption) || 'book')
     setEditBookTitle(book.title)
     setEditBookAuthor(book.author || '')
     setEditBookMember(book.member || '')
     setEditBookNotes(book.notes || '')
+    setEditBookUrl(book.url || '')
     setEditBookMeta(null)
     setEditIsGeneralDiscussion(Boolean(book.is_general_discussion || (book.notes && book.notes.toLowerCase().includes('general'))))
   }
@@ -349,16 +370,18 @@ export default function AdminDatabasePage() {
           publication_year: editBookMeta?.publication_year || undefined,
           goodreads_id: editBookMeta?.goodreads_id || undefined,
           is_general_discussion: editIsGeneralDiscussion,
+          media_type: editMediaType,
+          url: editBookUrl.trim() || editBookMeta?.url || undefined,
         }),
       })
-      if (!res.ok) throw new Error('Failed to update book')
+      if (!res.ok) throw new Error('Failed to update item')
       showToast(`✓ Updated "${editBookTitle}" in SQLite database`)
       setEditingBook(null)
       setEditBookMeta(null)
       loadData()
     } catch (err) {
       console.error(err)
-      showToast('Failed to update book')
+      showToast('Failed to update item')
     }
   }
 
@@ -758,8 +781,8 @@ export default function AdminDatabasePage() {
                         <thead className="sticky top-0 bg-white border-b border-[#E5E0DB] text-neutral-500 font-mono uppercase text-[10px] z-10">
                           <tr>
                             <th className="pb-2.5 pl-2 font-semibold">#</th>
-                            <th className="pb-2.5 font-semibold">Book Title</th>
-                            <th className="pb-2.5 font-semibold">Author</th>
+                            <th className="pb-2.5 font-semibold">Item Title & Media</th>
+                            <th className="pb-2.5 font-semibold">Author / Creator</th>
                             <th className="pb-2.5 font-semibold">Discussed By</th>
                             <th className="pb-2.5 font-semibold">Discussion Type</th>
                             <th className="pb-2.5 pr-2 text-right font-semibold">Actions</th>
@@ -772,12 +795,17 @@ export default function AdminDatabasePage() {
                               (idx === 0 || !currentMeetup.books[idx - 1].is_general_discussion)
                             const generalCount = currentMeetup.books.filter((b) => b.is_general_discussion).length
 
+                            const isFilm = book.media_type === 'movie' || book.media_type === 'show'
+                            const isYouTube = book.media_type === 'youtube'
+                            const isPodcast = book.media_type === 'podcast'
+                            const isTangent = book.media_type === 'tangent'
+
                             return (
                               <React.Fragment key={book.discussion_id}>
                                 {isFirstGeneral && (
                                   <tr className="bg-amber-50/80 border-y border-amber-200">
                                     <td colSpan={6} className="py-2.5 px-3 text-[11px] font-mono font-bold text-amber-900 tracking-wide">
-                                      💬 GENERAL DISCUSSION BOOKS ({generalCount}) — Kept down at bottom of meetup list
+                                      💬 GENERAL DISCUSSION & TANGENTS ({generalCount}) — Kept down at bottom of meetup list
                                     </td>
                                   </tr>
                                 )}
@@ -795,9 +823,9 @@ export default function AdminDatabasePage() {
                                       ) : (
                                         <div
                                           className="w-7 h-10 bg-neutral-100 rounded border border-dashed border-neutral-300 flex items-center justify-center text-neutral-400 text-xs shrink-0"
-                                          title="Missing Goodreads cover"
+                                          title={book.media_type || 'Media item'}
                                         >
-                                          📖
+                                          {isFilm ? '🎬' : isYouTube ? '▶️' : isPodcast ? '🎙️' : isTangent ? '🌐' : '📖'}
                                         </div>
                                       )}
                                       <div className="min-w-0">
@@ -805,6 +833,39 @@ export default function AdminDatabasePage() {
                                           <span className="font-serif font-medium text-neutral-900 leading-snug">
                                             {book.title}
                                           </span>
+                                          {isFilm && (
+                                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                              🎬 Film/TV
+                                            </span>
+                                          )}
+                                          {isYouTube && (
+                                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-rose-100 text-rose-800 border border-rose-200">
+                                              ▶️ YouTube
+                                            </span>
+                                          )}
+                                          {isPodcast && (
+                                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-sky-100 text-sky-800 border border-sky-200">
+                                              🎙️ Podcast
+                                            </span>
+                                          )}
+                                          {isTangent && (
+                                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-teal-100 text-teal-800 border border-teal-200">
+                                              🌐 Tangent
+                                            </span>
+                                          )}
+                                          {book.url && (
+                                            <a
+                                              href={book.url}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="text-[9px] font-mono text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-1 py-0.2 rounded font-medium inline-flex items-center gap-0.5"
+                                              title={book.url}
+                                              onClick={(e) => e.stopPropagation()}
+                                            >
+                                              <span>Link</span>
+                                              <span>↗</span>
+                                            </a>
+                                          )}
                                           {book.rating && (
                                             <span className="text-[10px] font-mono text-amber-800 bg-amber-50 border border-amber-200 px-1 rounded font-bold">
                                               ★ {book.rating.toFixed(2)}
@@ -813,7 +874,7 @@ export default function AdminDatabasePage() {
                                         </div>
                                         {book.publication_year && (
                                           <span className="text-[10px] text-neutral-400 font-sans block">
-                                            Published {book.publication_year}
+                                            {isFilm ? 'Released' : 'Published'} {book.publication_year}
                                           </span>
                                         )}
                                       </div>
@@ -985,49 +1046,52 @@ export default function AdminDatabasePage() {
         </div>
       )}
 
-      {/* MODAL 2: Add Book to Meetup */}
+      {/* MODAL 2: Add Book / Media to Meetup */}
       {isAddBookOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsAddBookOpen(false)} />
-          <div className="relative z-10 w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-[#DDD6C7]">
+          <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl p-6 shadow-2xl border border-[#DDD6C7] max-h-[92vh] overflow-y-auto">
             <h3 className="font-display font-bold text-lg text-neutral-900 mb-1">
-              Add Book to Meetup #{currentMeetup?.number}
+              Add Item to Meetup #{currentMeetup?.number}
             </h3>
             <p className="text-xs text-neutral-500 mb-4">
-              Add a book discussion to this meetup's permanent archive record.
+              Add a book, movie, YouTube channel, podcast, or tangent to this meetup&apos;s record.
             </p>
 
             <form onSubmit={handleAddBook} className="space-y-4 text-xs">
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-neutral-700 font-semibold">Book Title *</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-neutral-700 font-semibold">
+                    {newMediaType === 'movie' ? 'Movie / TV Show Title *' : newMediaType === 'youtube' ? 'Video / Channel Title *' : newMediaType === 'podcast' ? 'Podcast Title *' : newMediaType === 'tangent' ? 'Topic / Platform Title *' : 'Book Title *'}
+                  </label>
                   <span className="text-[10px] font-mono text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                    ⚡ Live Goodreads Autocomplete
+                    ⚡ Multi-Source Search
                   </span>
                 </div>
                 <BookAutocompleteInput
                   value={newBookTitle}
                   onChange={setNewBookTitle}
                   onSelectBook={handleSelectAddBook}
-                  placeholder="Type title or author (e.g. Misery by Stephen King)..."
+                  mediaType={newMediaType}
+                  onMediaTypeChange={setNewMediaType}
                   required
                   autoFocus
                   apiBase={API_BASE}
                 />
               </div>
 
-              {/* Selected book preview pill */}
+              {/* Selected preview pill */}
               {newBookMeta && (
                 <div className="flex items-center gap-2.5 p-2 bg-amber-50/70 border border-amber-200/80 rounded-xl">
                   {newBookMeta.thumbnail_url || newBookMeta.cover_url ? (
                     <img
                       src={newBookMeta.thumbnail_url || newBookMeta.cover_url || ''}
                       alt={newBookMeta.title}
-                      className="w-7 h-10 object-cover rounded shadow-xs border border-amber-300"
+                      className="w-8 h-10 object-cover rounded shadow-xs border border-amber-300 shrink-0"
                     />
                   ) : (
-                    <div className="w-7 h-10 bg-amber-200/60 rounded flex items-center justify-center text-amber-800 text-xs font-bold">
-                      📖
+                    <div className="w-8 h-10 bg-amber-200/60 rounded flex items-center justify-center text-amber-800 text-xs font-bold shrink-0">
+                      {newMediaType === 'movie' ? '🎬' : newMediaType === 'youtube' ? '▶️' : newMediaType === 'podcast' ? '🎙️' : newMediaType === 'tangent' ? '🌐' : '📖'}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -1035,9 +1099,10 @@ export default function AdminDatabasePage() {
                       {newBookMeta.title}
                     </p>
                     <p className="text-[10px] text-amber-800 truncate">
-                      {newBookMeta.author ? `by ${newBookMeta.author}` : ''}
+                      {newBookMeta.author || newBookMeta.creator ? `by ${newBookMeta.author || newBookMeta.creator}` : ''}
                       {newBookMeta.rating ? ` · ★ ${newBookMeta.rating.toFixed(2)}` : ''}
                       {newBookMeta.publication_year ? ` · ${newBookMeta.publication_year}` : ''}
+                      {newBookMeta.source_label ? ` · [${newBookMeta.source_label}]` : ''}
                     </p>
                   </div>
                   <button
@@ -1051,6 +1116,58 @@ export default function AdminDatabasePage() {
                 </div>
               )}
 
+              {/* Resource / External Web Link */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-neutral-700 font-semibold">
+                    Resource / Web Link (YouTube, IMDb, Website)
+                  </label>
+                  {newBookUrl && (
+                    <a
+                      href={newBookUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] text-amber-700 hover:text-amber-900 underline flex items-center gap-0.5"
+                    >
+                      Test Link ↗
+                    </a>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newBookUrl}
+                    onChange={(e) => setNewBookUrl(e.target.value)}
+                    placeholder="https://youtube.com/@channel or https://..."
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600 text-xs"
+                  />
+                  {newBookUrl.trim() && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          showToast('⚡ Resolving link metadata...')
+                          const res = await fetch(`${API_BASE}/api/media/resolve-url?url=${encodeURIComponent(newBookUrl.trim())}`)
+                          if (res.ok) {
+                            const data = await res.json()
+                            if (data.title && !newBookTitle) setNewBookTitle(data.title)
+                            if ((data.author || data.creator) && !newBookAuthor) setNewBookAuthor(data.author || data.creator)
+                            if (data.media_type) setNewMediaType(data.media_type)
+                            setNewBookMeta(data)
+                            showToast('✓ Link resolved successfully')
+                          }
+                        } catch (e) {
+                          showToast('Failed to resolve URL')
+                        }
+                      }}
+                      className="px-3 py-2.5 rounded-xl bg-neutral-900 text-white font-semibold text-xs whitespace-nowrap hover:bg-neutral-800 transition-colors shrink-0"
+                    >
+                      Auto-Fill
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Duplicate Book Warning Alert Banner */}
               {existingDuplicateBook && (
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 flex flex-col gap-2.5 animate-in fade-in duration-200">
@@ -1058,10 +1175,10 @@ export default function AdminDatabasePage() {
                     <span className="text-base leading-none mt-0.5">⚠️</span>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-xs text-amber-900">
-                        Book already in this meetup&apos;s list!
+                        Item already in this meetup&apos;s list!
                       </p>
                       <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
-                        &quot;<b className="text-amber-950 font-bold">{existingDuplicateBook.title}</b>&quot; is already in Meetup #{currentMeetup?.number}&apos;s book list
+                        &quot;<b className="text-amber-950 font-bold">{existingDuplicateBook.title}</b>&quot; is already in Meetup #{currentMeetup?.number}&apos;s list
                         {existingDuplicateBook.member ? (
                           <> (Discussed by: <b className="font-semibold text-neutral-900">{existingDuplicateBook.member}</b>)</>
                         ) : (
@@ -1080,7 +1197,7 @@ export default function AdminDatabasePage() {
                       }}
                       className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white font-semibold text-[11px] transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
-                      <span>✏️ Edit Existing Book & Add Reader</span>
+                      <span>✏️ Edit Existing Item & Add Reader</span>
                     </button>
                     <span className="text-[10px] text-amber-800/80 font-mono">
                       to avoid duplicate entries
@@ -1090,19 +1207,21 @@ export default function AdminDatabasePage() {
               )}
 
               <div>
-                <label className="block text-neutral-700 font-semibold mb-1">Author Name</label>
+                <label className="block text-neutral-700 font-semibold mb-1">
+                  {newMediaType === 'movie' ? 'Director / Studio / Network' : newMediaType === 'youtube' ? 'Channel / Creator' : newMediaType === 'podcast' ? 'Host / Network' : newMediaType === 'tangent' ? 'Creator / Platform' : 'Author Name'}
+                </label>
                 <input
                   type="text"
                   value={newBookAuthor}
                   onChange={(e) => setNewBookAuthor(e.target.value)}
-                  placeholder="e.g. Stephen King, Kazuo Ishiguro"
+                  placeholder={newMediaType === 'movie' ? 'e.g. Bernardo Bertolucci' : newMediaType === 'youtube' ? 'e.g. 3Blue1Brown' : newMediaType === 'podcast' ? 'e.g. Andrew Huberman' : newMediaType === 'tangent' ? 'e.g. The Teaching Company' : 'e.g. Stephen King'}
                   className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-neutral-700 font-semibold">Discussed By (Readers)</label>
+                  <label className="block text-neutral-700 font-semibold">Discussed By (Readers / Discussants)</label>
                   <span className="text-[10px] font-mono text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                     👤 BBB Club Readers
                   </span>
@@ -1110,18 +1229,19 @@ export default function AdminDatabasePage() {
                 <MemberAutocompleteInput
                   value={newBookMember}
                   onChange={setNewBookMember}
-                  placeholder="Type reader name (e.g. Mishael, Smriti, Shivankar)..."
+                  placeholder="Type discussant name (e.g. Mishael, Abhiram)..."
                   apiBase={API_BASE}
+                  bookId={newBookMeta?.id || existingDuplicateBook?.book_id || undefined}
                 />
               </div>
 
               <div>
-                <label className="block text-neutral-700 font-semibold mb-1">Discussion Notes</label>
+                <label className="block text-neutral-700 font-semibold mb-1">Discussion Notes / Tangent Context</label>
                 <input
                   type="text"
                   value={newBookNotes}
                   onChange={(e) => setNewBookNotes(e.target.value)}
-                  placeholder={newIsGeneralDiscussion ? 'General Discussion' : 'e.g. General Discussion, Community Haul'}
+                  placeholder={newIsGeneralDiscussion ? 'General Discussion / Tangent' : 'e.g. Tangents, Community Discussion'}
                   className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
                 />
               </div>
@@ -1131,10 +1251,10 @@ export default function AdminDatabasePage() {
                 <div className="pr-3">
                   <div className="flex items-center gap-1.5 font-semibold text-neutral-800 text-xs">
                     <span>💬</span>
-                    <span>General Discussion</span>
+                    <span>General Discussion / Tangent</span>
                   </div>
                   <span className="text-[11px] text-neutral-500 block mt-0.5">
-                    Toggle on if this book was part of general discussion (places it at the bottom of the list).
+                    Toggle on to group under Tangents & General Discussion (at the bottom of meetup list).
                   </span>
                 </div>
                 <button
@@ -1165,9 +1285,9 @@ export default function AdminDatabasePage() {
                       ? 'bg-amber-100 text-amber-800 border border-amber-300 cursor-not-allowed opacity-90'
                       : 'bg-[#14130F] hover:bg-neutral-800 text-white cursor-pointer'
                   }`}
-                  title={existingDuplicateBook ? 'This book is already in the list' : 'Add book to meetup'}
+                  title={existingDuplicateBook ? 'This item is already in the list' : 'Add item to meetup'}
                 >
-                  {existingDuplicateBook ? '⚠️ Book Already in List' : 'Add to Meetup'}
+                  {existingDuplicateBook ? '⚠️ Item Already in List' : 'Add to Meetup'}
                 </button>
               </div>
             </form>
@@ -1175,49 +1295,52 @@ export default function AdminDatabasePage() {
         </div>
       )}
 
-      {/* MODAL 3: Edit Existing Book */}
+      {/* MODAL 3: Edit Existing Book / Media Item */}
       {editingBook && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setEditingBook(null)} />
-          <div className="relative z-10 w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-[#DDD6C7]">
+          <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl p-6 shadow-2xl border border-[#DDD6C7] max-h-[92vh] overflow-y-auto">
             <h3 className="font-display font-bold text-lg text-neutral-900 mb-1">
-              Edit Book Details
+              Edit Discussion Item
             </h3>
             <p className="text-xs text-neutral-500 mb-4">
-              Update book title, author, reader attribution, and discussion notes.
+              Update item title, media type, author/creator, web link, and discussion notes.
             </p>
 
             <form onSubmit={handleSaveBook} className="space-y-4 text-xs">
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-neutral-700 font-semibold">Book Title *</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-neutral-700 font-semibold">
+                    {editMediaType === 'movie' ? 'Movie / TV Show Title *' : editMediaType === 'youtube' ? 'Video / Channel Title *' : editMediaType === 'podcast' ? 'Podcast Title *' : editMediaType === 'tangent' ? 'Topic / Platform Title *' : 'Book Title *'}
+                  </label>
                   <span className="text-[10px] font-mono text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                    ⚡ Live Goodreads Autocomplete
+                    ⚡ Multi-Source Search
                   </span>
                 </div>
                 <BookAutocompleteInput
                   value={editBookTitle}
                   onChange={setEditBookTitle}
                   onSelectBook={handleSelectEditBook}
-                  placeholder="e.g. Misery"
+                  mediaType={editMediaType}
+                  onMediaTypeChange={setEditMediaType}
                   required
                   autoFocus
                   apiBase={API_BASE}
                 />
               </div>
 
-              {/* Selected book preview pill */}
+              {/* Selected preview pill */}
               {editBookMeta && (
                 <div className="flex items-center gap-2.5 p-2 bg-amber-50/70 border border-amber-200/80 rounded-xl">
                   {editBookMeta.thumbnail_url || editBookMeta.cover_url ? (
                     <img
                       src={editBookMeta.thumbnail_url || editBookMeta.cover_url || ''}
                       alt={editBookMeta.title}
-                      className="w-7 h-10 object-cover rounded shadow-xs border border-amber-300"
+                      className="w-8 h-10 object-cover rounded shadow-xs border border-amber-300 shrink-0"
                     />
                   ) : (
-                    <div className="w-7 h-10 bg-amber-200/60 rounded flex items-center justify-center text-amber-800 text-xs font-bold">
-                      📖
+                    <div className="w-8 h-10 bg-amber-200/60 rounded flex items-center justify-center text-amber-800 text-xs font-bold shrink-0">
+                      {editMediaType === 'movie' ? '🎬' : editMediaType === 'youtube' ? '▶️' : editMediaType === 'podcast' ? '🎙️' : editMediaType === 'tangent' ? '🌐' : '📖'}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -1225,9 +1348,10 @@ export default function AdminDatabasePage() {
                       {editBookMeta.title}
                     </p>
                     <p className="text-[10px] text-amber-800 truncate">
-                      {editBookMeta.author ? `by ${editBookMeta.author}` : ''}
+                      {editBookMeta.author || editBookMeta.creator ? `by ${editBookMeta.author || editBookMeta.creator}` : ''}
                       {editBookMeta.rating ? ` · ★ ${editBookMeta.rating.toFixed(2)}` : ''}
                       {editBookMeta.publication_year ? ` · ${editBookMeta.publication_year}` : ''}
+                      {editBookMeta.source_label ? ` · [${editBookMeta.source_label}]` : ''}
                     </p>
                   </div>
                   <button
@@ -1241,13 +1365,67 @@ export default function AdminDatabasePage() {
                 </div>
               )}
 
+              {/* Resource / External Web Link */}
               <div>
-                <label className="block text-neutral-700 font-semibold mb-1">Author Name</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-neutral-700 font-semibold">
+                    Resource / Web Link (YouTube, IMDb, Website)
+                  </label>
+                  {editBookUrl && (
+                    <a
+                      href={editBookUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] text-amber-700 hover:text-amber-900 underline flex items-center gap-0.5"
+                    >
+                      Test Link ↗
+                    </a>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={editBookUrl}
+                    onChange={(e) => setEditBookUrl(e.target.value)}
+                    placeholder="https://youtube.com/@channel or https://..."
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600 text-xs"
+                  />
+                  {editBookUrl.trim() && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          showToast('⚡ Resolving link metadata...')
+                          const res = await fetch(`${API_BASE}/api/media/resolve-url?url=${encodeURIComponent(editBookUrl.trim())}`)
+                          if (res.ok) {
+                            const data = await res.json()
+                            if (data.title && !editBookTitle) setEditBookTitle(data.title)
+                            if ((data.author || data.creator) && !editBookAuthor) setEditBookAuthor(data.author || data.creator)
+                            if (data.media_type) setEditMediaType(data.media_type)
+                            setEditBookMeta(data)
+                            showToast('✓ Link resolved successfully')
+                          }
+                        } catch (e) {
+                          showToast('Failed to resolve URL')
+                        }
+                      }}
+                      className="px-3 py-2.5 rounded-xl bg-neutral-900 text-white font-semibold text-xs whitespace-nowrap hover:bg-neutral-800 transition-colors shrink-0"
+                    >
+                      Auto-Fill
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-neutral-700 font-semibold mb-1">
+                  {editMediaType === 'movie' ? 'Director / Studio / Network' : editMediaType === 'youtube' ? 'Channel / Creator' : editMediaType === 'podcast' ? 'Host / Network' : editMediaType === 'tangent' ? 'Creator / Platform' : 'Author Name'}
+                </label>
                 <input
                   type="text"
                   value={editBookAuthor}
                   onChange={(e) => setEditBookAuthor(e.target.value)}
-                  placeholder="e.g. Kazuo Ishiguro"
+                  placeholder={editMediaType === 'movie' ? 'e.g. Bernardo Bertolucci' : editMediaType === 'youtube' ? 'e.g. 3Blue1Brown' : editMediaType === 'podcast' ? 'e.g. Andrew Huberman' : editMediaType === 'tangent' ? 'e.g. The Teaching Company' : 'e.g. Kazuo Ishiguro'}
                   className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
                 />
               </div>
@@ -1255,7 +1433,7 @@ export default function AdminDatabasePage() {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-neutral-700 font-semibold">
-                    Discussed By (Readers)
+                    Discussed By (Readers / Discussants)
                   </label>
                   <span className="text-[10px] font-mono text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                     👤 BBB Club Readers
@@ -1264,23 +1442,24 @@ export default function AdminDatabasePage() {
                 <MemberAutocompleteInput
                   value={editBookMember}
                   onChange={setEditBookMember}
-                  placeholder="Type reader name (e.g. Mishael, Smriti, Shivankar)..."
+                  placeholder="Type discussant name (e.g. Mishael, Abhiram)..."
                   apiBase={API_BASE}
+                  bookId={editBookMeta?.id || editingBook?.book_id || undefined}
                 />
                 <p className="text-[10px] text-neutral-400 mt-1">
-                  The book club reader who presented or discussed this book at the meetup.
+                  The book club reader who presented or discussed this item at the meetup.
                 </p>
               </div>
 
               <div>
                 <label className="block text-neutral-700 font-semibold mb-1">
-                  Discussion Notes
+                  Discussion Notes / Tangent Context
                 </label>
                 <input
                   type="text"
                   value={editBookNotes}
                   onChange={(e) => setEditBookNotes(e.target.value)}
-                  placeholder={editIsGeneralDiscussion ? 'General Discussion' : 'e.g. General Discussion, Community Haul'}
+                  placeholder={editIsGeneralDiscussion ? 'General Discussion / Tangent' : 'e.g. Tangents, Community Discussion'}
                   className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
                 />
               </div>
@@ -1290,10 +1469,10 @@ export default function AdminDatabasePage() {
                 <div className="pr-3">
                   <div className="flex items-center gap-1.5 font-semibold text-neutral-800 text-xs">
                     <span>💬</span>
-                    <span>General Discussion</span>
+                    <span>General Discussion / Tangent</span>
                   </div>
                   <span className="text-[11px] text-neutral-500 block mt-0.5">
-                    Toggle on if this book was part of general discussion (places it at the bottom of the list).
+                    Toggle on to group under Tangents & General Discussion (at the bottom of meetup list).
                   </span>
                 </div>
                 <button
@@ -1318,9 +1497,9 @@ export default function AdminDatabasePage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm"
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm cursor-pointer"
                 >
-                  Save Book
+                  Save Changes
                 </button>
               </div>
             </form>

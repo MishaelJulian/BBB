@@ -211,47 +211,72 @@ export default function MeetupPage() {
               Books Discussed
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {regularBooks.map((book) => (
-                <div
-                  key={book.id}
-                  className="flex items-start gap-3 p-3 rounded-lg border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/40 transition-all group"
-                >
+              {regularBooks.map((book) => {
+                const coverSrc = book.cover_url || book.thumbnail_url
+                return (
                   <div
-                    className="w-10 h-14 rounded-sm shrink-0 shadow-sm flex items-center justify-center relative overflow-hidden"
-                    style={{ backgroundColor: getBookColor(book.title) }}
+                    key={book.id}
+                    className="flex items-start gap-3.5 p-3.5 rounded-xl border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/40 transition-all group shadow-xs hover:shadow-sm"
                   >
-                    <span className="text-[6px] font-mono text-white/50 rotate-90 truncate max-w-[45px]">
-                      {book.title.slice(0, 3).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
+                    {/* Book Cover Artwork */}
                     <Link
                       href={`/books/${book.id}`}
-                      className="font-medium text-ink truncate group-hover:text-amber-900 transition-colors block"
+                      className="w-14 sm:w-16 aspect-[2/3] rounded-md shrink-0 shadow-sm overflow-hidden relative border border-border/80 bg-neutral-900 group-hover:scale-[1.03] transition-transform"
                     >
-                      {book.title}
-                    </Link>
-                    {book.author && (
-                      <div className="text-xs text-muted truncate">
-                        {book.author}
-                      </div>
-                    )}
-                    {book.member && (
-                      <div className="text-[11px] text-muted-light">
-                        Read by {book.member}
-                      </div>
-                    )}
-                    <div className="pt-1.5 mt-1 border-t border-border/40 flex justify-end">
-                      <Link
-                        href={`/library-room?select=${book.id}`}
-                        className="text-[10px] font-mono text-amber-900/80 dark:text-amber-300 hover:text-amber-800 hover:underline flex items-center gap-1"
+                      {coverSrc ? (
+                        <img
+                          src={coverSrc}
+                          alt={book.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className={`absolute inset-0 p-1 flex flex-col justify-between text-center ${
+                          coverSrc ? '-z-10' : 'z-0'
+                        }`}
+                        style={{ backgroundColor: getBookColor(book.title) }}
                       >
-                        Locate in Library →
+                        <div className="w-3 h-px mx-auto bg-white/40" />
+                        <span className="text-[7.5px] font-serif font-bold text-white line-clamp-3 leading-tight">
+                          {book.title}
+                        </span>
+                        <div className="w-3 h-px mx-auto bg-white/40" />
+                      </div>
+                    </Link>
+
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        href={`/books/${book.id}`}
+                        className="font-display font-semibold text-ink group-hover:text-amber-900 transition-colors line-clamp-2 text-sm leading-snug mb-1 block"
+                      >
+                        {book.title}
                       </Link>
+                      {book.author && (
+                        <div className="text-xs text-muted truncate">
+                          {book.author}
+                        </div>
+                      )}
+                      {book.member && (
+                        <div className="text-[11px] text-muted-light mt-0.5">
+                          Read by {book.member}
+                        </div>
+                      )}
+                      <div className="pt-2 mt-2 border-t border-border/40 flex items-center justify-between">
+                        <Link
+                          href={`/library-room?select=${book.id}`}
+                          className="text-[10px] font-mono text-amber-900/80 dark:text-amber-300 hover:text-amber-800 hover:underline flex items-center gap-1"
+                        >
+                          Locate in Library →
+                        </Link>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </Container>
         </Section>
@@ -270,28 +295,50 @@ export default function MeetupPage() {
                 Books mentioned during the general discussion session
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {discussionMentions.map((book) => (
-                  <Link
-                    key={book.id}
-                    href={`/books/${book.id}`}
-                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-paper-dark transition-colors"
-                  >
-                    <div
-                      className="w-10 h-14 rounded-sm shrink-0 shadow-sm opacity-70"
-                      style={{ backgroundColor: getBookColor(book.title) }}
-                    />
-                    <div className="min-w-0">
-                      <div className="font-medium text-ink truncate">
-                        {book.title}
-                      </div>
-                      {book.author && (
-                        <div className="text-sm text-muted truncate">
-                          {book.author}
+                {discussionMentions.map((book) => {
+                  const coverSrc = book.cover_url || book.thumbnail_url
+                  return (
+                    <Link
+                      key={book.id}
+                      href={`/books/${book.id}`}
+                      className="flex items-center gap-3.5 p-3 rounded-xl border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/40 transition-all group"
+                    >
+                      <div className="w-12 aspect-[2/3] rounded shrink-0 shadow-sm overflow-hidden relative border border-border/80 bg-neutral-900">
+                        {coverSrc ? (
+                          <img
+                            src={coverSrc}
+                            alt={book.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={`absolute inset-0 p-1 flex flex-col justify-between text-center ${
+                            coverSrc ? '-z-10' : 'z-0'
+                          }`}
+                          style={{ backgroundColor: getBookColor(book.title) }}
+                        >
+                          <span className="text-[6.5px] font-serif font-bold text-white line-clamp-3 leading-tight my-auto">
+                            {book.title}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  </Link>
-                ))}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-display font-medium text-ink group-hover:text-amber-900 transition-colors line-clamp-1 text-sm">
+                          {book.title}
+                        </div>
+                        {book.author && (
+                          <div className="text-xs text-muted truncate mt-0.5">
+                            {book.author}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  )
+                })}
               </div>
             </Container>
           </Section>

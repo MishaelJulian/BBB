@@ -1,3 +1,4 @@
+
 # Book Club Archivist - Database Schema Specification
 
 The canonical storage layer uses SQLAlchemy 2.0 ORM with primary key UUIDs for all entities.

@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/Button'
 
 const navItems = [
   { href: '/library-room', label: 'The Library Room' },
-  { href: '/library', label: 'Library' },
   { href: '/meetups', label: 'Meetups' },
+  { href: '/members', label: 'Readers Archive' },
   { href: '/admin', label: 'Database Admin' },
 ]
 

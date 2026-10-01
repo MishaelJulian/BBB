@@ -73,8 +73,8 @@ export default function BookPage() {
         <Container size="narrow">
           {/* Breadcrumb */}
           <nav className="mb-8 text-sm text-muted">
-            <Link href="/library" className="hover:text-ink transition-colors">
-              Library
+            <Link href="/library-room" className="hover:text-ink transition-colors">
+              The Library Room
             </Link>
             <span className="mx-2">/</span>
             <span className="text-ink">{book.title}</span>
@@ -84,38 +84,50 @@ export default function BookPage() {
             {/* Book Cover */}
             <div className="w-full md:w-64 shrink-0">
               <div
-                className="aspect-[2/3] rounded-sm shadow-book-hover overflow-hidden relative"
+                className="aspect-[2/3] rounded-md shadow-book-hover overflow-hidden relative border border-border/80 bg-neutral-900"
                 style={{ backgroundColor: coverColor }}
               >
-                {/* Cloth texture */}
+                {book.cover_url || book.thumbnail_url ? (
+                  <img
+                    src={book.cover_url || book.thumbnail_url || ''}
+                    alt={book.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
+                ) : null}
+
+                {/* Cloth texture fallback */}
                 <div
-                  className="absolute inset-0 opacity-10"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3h1v1H1V3zm2-2h1v1H3V1z' fill='%23000000' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-                  }}
-                />
-                <div className="absolute inset-0 flex flex-col items-center justify-between p-6 text-center">
-                  {/* Top line */}
-                  <div className="w-12 h-px bg-white/30" />
-
-                  {/* Content */}
-                  <div className="flex-1 flex flex-col items-center justify-center">
-                    <h1 className="font-display font-bold text-xl md:text-2xl text-white leading-tight mb-2">
-                      {book.title}
-                    </h1>
-                    {book.author_name && (
-                      <p className="text-sm text-white/70 tracking-wider uppercase">
-                        {book.author_name}
-                      </p>
-                    )}
+                  className={`absolute inset-0 ${
+                    book.cover_url || book.thumbnail_url ? '-z-10' : 'z-0'
+                  }`}
+                  style={{ backgroundColor: coverColor }}
+                >
+                  <div
+                    className="absolute inset-0 opacity-15"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3h1v1H1V3zm2-2h1v1H3V1z' fill='%23000000' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+                    }}
+                  />
+                  <div className="absolute inset-0 flex flex-col items-center justify-between p-6 text-center">
+                    <div className="w-12 h-px bg-white/30" />
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                      <h1 className="font-display font-bold text-xl md:text-2xl text-white leading-tight mb-2">
+                        {book.title}
+                      </h1>
+                      {book.author_name && (
+                        <p className="text-sm text-white/70 tracking-wider uppercase">
+                          {book.author_name}
+                        </p>
+                      )}
+                    </div>
+                    <div className="w-12 h-px bg-white/30" />
                   </div>
-
-                  {/* Bottom line */}
-                  <div className="w-12 h-px bg-white/30" />
+                  <div className="absolute top-0 left-0 right-0 h-px bg-white/10" />
+                  <div className="absolute bottom-0 left-0 right-0 h-px bg-black/20" />
                 </div>
-                {/* Edge highlights */}
-                <div className="absolute top-0 left-0 right-0 h-px bg-white/10" />
-                <div className="absolute bottom-0 left-0 right-0 h-px bg-black/20" />
               </div>
             </div>
 

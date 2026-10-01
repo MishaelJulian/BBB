@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
+from collections import defaultdict
 from datetime import date, datetime
 from pydantic import BaseModel
 import urllib.request
@@ -40,15 +41,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Configure CORS for Next.js frontend (allowing any local development port e.g. 3000, 3001)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-        "http://localhost:3002",
-        "http://127.0.0.1:3002",
-    ],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_origin_regex=r"^https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -120,18 +113,129 @@ def book_to_dict(book: CanonicalBook, db) -> dict:
                 "name": author_obj.full_name,
             }
 
+    # Check general discussion
+    discussions = db.query(Discussion).filter(Discussion.canonical_book_id == book.id).all()
+    is_general = any(
+        ((d.topic and "general" in d.topic.lower()) or (d.notes and "general" in d.notes.lower()))
+        for d in discussions
+    )
+
     return {
         "id": book.id,
         "title": book.title,
         "normalized_title": book.normalized_title,
         "author_id": book.author_id,
         "author_name": author["name"] if author else None,
+        "cover_url": book.cover_url,
+        "thumbnail_url": book.thumbnail_url or book.cover_url,
+        "description": book.description,
+        "goodreads_id": book.goodreads_id,
+        "publication_year": book.publication_year,
+        "rating": book.rating,
+        "page_count": book.page_count,
         "discussion_count": discussion_count,
         "first_discussed_date": min((m["date"] for m in meetups if m["date"]), default=None),
         "last_discussed_date": max((m["date"] for m in meetups if m["date"]), default=None),
         "meetups": meetups,
         "members": members,
+        "is_general_discussion": is_general,
     }
+
+
+def batch_books_to_dict(books: list, db) -> list:
+    """Convert a list of CanonicalBook models to API response dicts efficiently in batch."""
+    if not books:
+        return []
+    
+    book_ids = [b.id for b in books]
+    
+    # 1. Fetch authors in batch
+    author_ids = [b.author_id for b in books if b.author_id]
+    author_map = {}
+    if author_ids:
+        authors = db.query(Author).filter(Author.id.in_(author_ids)).all()
+        author_map = {a.id: a.full_name for a in authors}
+        
+    # 2. Fetch discussions joined with member and meetup info in ONE query
+    disc_rows = db.query(
+        Discussion.canonical_book_id,
+        Discussion.topic,
+        Discussion.notes,
+        Member.id.label("member_id"),
+        Member.display_name.label("member_name"),
+        Meetup.id.label("meetup_id"),
+        Meetup.meetup_number,
+        Meetup.date.label("meetup_date"),
+        Venue.name.label("venue_name"),
+        Discussion.media_type.label("disc_media_type")
+    ).outerjoin(Member, Discussion.member_id == Member.id)\
+     .outerjoin(Meetup, Discussion.meetup_id == Meetup.id)\
+     .outerjoin(Venue, Meetup.venue_id == Venue.id)\
+     .filter(Discussion.canonical_book_id.in_(book_ids)).all()
+     
+    book_discs_count = defaultdict(int)
+    book_members = defaultdict(list)
+    book_meetups = defaultdict(list)
+    book_dates = defaultdict(list)
+    book_proper_count = defaultdict(int)
+    book_general_count = defaultdict(int)
+    seen_members = defaultdict(set)
+    seen_meetups = defaultdict(set)
+    
+    for row in disc_rows:
+        b_id, topic, notes, mem_id, mem_name, m_id, m_num, m_date, v_name, disc_media = row
+        is_disc_general = (
+            (topic and ("general" in topic.lower() or "tangent" in topic.lower())) or
+            (notes and ("general" in notes.lower() or "tangent" in notes.lower())) or
+            (disc_media == "tangent")
+        )
+        if is_disc_general:
+            book_general_count[b_id] += 1
+        else:
+            book_proper_count[b_id] += 1
+            book_discs_count[b_id] += 1
+            if mem_id and mem_id not in seen_members[b_id]:
+                seen_members[b_id].add(mem_id)
+                book_members[b_id].append({"id": mem_id, "display_name": mem_name or "Reader"})
+            if m_id and m_id not in seen_meetups[b_id]:
+                seen_meetups[b_id].add(m_id)
+                d_str = m_date.isoformat() if m_date else None
+                book_meetups[b_id].append({
+                    "id": m_id,
+                    "number": m_num,
+                    "date": d_str,
+                    "venue": v_name
+                })
+                if d_str:
+                    book_dates[b_id].append(d_str)
+            
+    results = []
+    for b in books:
+        dates = book_dates[b.id]
+        b_media = getattr(b, "media_type", "book") or "book"
+        is_gen = (b_media == "tangent") or (book_proper_count[b.id] == 0 and book_general_count[b.id] > 0)
+        results.append({
+            "id": b.id,
+            "title": b.title,
+            "normalized_title": b.normalized_title,
+            "author_id": b.author_id,
+            "author_name": author_map.get(b.author_id),
+            "cover_url": b.cover_url,
+            "thumbnail_url": b.thumbnail_url or b.cover_url,
+            "description": b.description,
+            "goodreads_id": b.goodreads_id,
+            "publication_year": b.publication_year,
+            "rating": b.rating,
+            "page_count": b.page_count,
+            "media_type": b_media,
+            "discussion_count": book_proper_count[b.id] if book_proper_count[b.id] > 0 else book_general_count[b.id],
+            "first_discussed_date": min(dates) if dates else None,
+            "last_discussed_date": max(dates) if dates else None,
+            "meetups": book_meetups[b.id],
+            "members": book_members[b.id],
+            "is_general_discussion": is_gen,
+        })
+    return results
 
 
 def meetup_to_dict(meetup: Meetup, db) -> dict:
@@ -193,6 +297,8 @@ def meetup_to_dict(meetup: Meetup, db) -> dict:
             "title": book.title,
             "author": author,
             "member": member_str,
+            "cover_url": book.cover_url,
+            "thumbnail_url": book.thumbnail_url,
             "is_discussion_mention": is_gen,
             "is_general_discussion": is_gen,
         })
@@ -244,6 +350,7 @@ def get_stats():
 
 
 @app.get("/books")
+@app.get("/api/books")
 def get_books(
     search: Optional[str] = None,
     author: Optional[str] = None,
@@ -252,11 +359,35 @@ def get_books(
     sort_order: str = "asc",
     limit: Optional[int] = None,
     offset: Optional[int] = None,
+    only_discussed: Optional[bool] = False,
+    exclude_general: Optional[bool] = False,
 ):
     """Get all books with optional filtering."""
     db = SessionLocal()
     try:
         query = db.query(CanonicalBook)
+
+        # Filter: only discussed books and/or exclude general discussions & tangents
+        if only_discussed or exclude_general:
+            proper_discs = (
+                db.query(Discussion.canonical_book_id)
+                .filter(
+                    Discussion.canonical_book_id.isnot(None),
+                    Discussion.media_type == "book",
+                    (Discussion.topic == None) | (~Discussion.topic.ilike("%general%") & ~Discussion.topic.ilike("%tangent%")),
+                    (Discussion.notes == None) | (~Discussion.notes.ilike("%general%") & ~Discussion.notes.ilike("%tangent%"))
+                )
+            )
+            query = query.filter(
+                CanonicalBook.id.in_(proper_discs),
+                CanonicalBook.media_type == "book"
+            )
+        elif only_discussed:
+            query = query.filter(
+                CanonicalBook.id.in_(
+                    db.query(Discussion.canonical_book_id).filter(Discussion.canonical_book_id.isnot(None))
+                )
+            )
 
         # Join with Author for author filtering
         if author:
@@ -299,12 +430,13 @@ def get_books(
             query = query.limit(limit)
 
         books = query.all()
-        return [book_to_dict(book, db) for book in books]
+        return batch_books_to_dict(books, db)
     finally:
         db.close()
 
 
 @app.get("/books/{book_id}")
+@app.get("/api/books/{book_id}")
 def get_book(book_id: str):
     """Get a single book by ID."""
     db = SessionLocal()
@@ -313,6 +445,126 @@ def get_book(book_id: str):
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
         return book_to_dict(book, db)
+    finally:
+        db.close()
+
+
+def fetch_book_metadata_from_web(title: str, author: str = "", goodreads_id: str = None) -> dict:
+    """Fetch book synopsis, page count, and rating from Goodreads JSON-LD or Apple Books."""
+    result = {"description": None, "page_count": None, "rating": None}
+    # 1. Try Goodreads if goodreads_id is present
+    if goodreads_id:
+        try:
+            url = f"https://www.goodreads.com/book/show/{goodreads_id}"
+            req = urllib.request.Request(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                }
+            )
+            with urllib.request.urlopen(req, timeout=3.5) as resp:
+                html = resp.read().decode("utf-8", errors="ignore")
+                m = re.search(r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL)
+                if m:
+                    data = json.loads(m.group(1))
+                    if isinstance(data, dict):
+                        if data.get("description"):
+                            result["description"] = re.sub(r'<[^>]+>', ' ', data["description"]).strip()
+                        if data.get("numberOfPages"):
+                            try:
+                                result["page_count"] = int(data["numberOfPages"])
+                            except Exception:
+                                pass
+                        if data.get("aggregateRating") and isinstance(data["aggregateRating"], dict):
+                            try:
+                                result["rating"] = float(data["aggregateRating"].get("ratingValue"))
+                            except Exception:
+                                pass
+                        if result["description"]:
+                            return result
+                m2 = re.search(r'data-testid="description"[^>]*>(.*?)</div>', html, re.DOTALL)
+                if m2:
+                    result["description"] = re.sub(r'<[^>]+>', ' ', m2.group(1)).strip()
+                    return result
+        except Exception:
+            pass
+
+    # 2. Try Apple Books API
+    try:
+        q = urllib.parse.quote(f"{title} {author}".strip())
+        url = f"https://itunes.apple.com/search?term={q}&entity=ebook&limit=1"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=3.0) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            results = data.get("results", [])
+            if results and results[0].get("description"):
+                raw_desc = results[0]["description"]
+                result["description"] = re.sub(r'<[^>]+>', ' ', raw_desc).strip()
+                if results[0].get("averageUserRating") and not result["rating"]:
+                    result["rating"] = float(results[0]["averageUserRating"])
+                return result
+    except Exception:
+        pass
+
+    return result
+
+
+def fetch_book_synopsis_from_web(title: str, author: str = "", goodreads_id: str = None) -> Optional[str]:
+    """Compatibility wrapper returning synopsis string."""
+    meta = fetch_book_metadata_from_web(title, author, goodreads_id)
+    return meta.get("description")
+
+
+@app.get("/books/{book_id}/synopsis")
+def get_book_synopsis_endpoint(book_id: str):
+    """Get book synopsis, page count, and rating, fetching from Goodreads if missing in database."""
+    db = SessionLocal()
+    try:
+        book = db.query(CanonicalBook).filter(CanonicalBook.id == book_id).first()
+        if not book:
+            raise HTTPException(status_code=404, detail="Book not found")
+            
+        has_full_info = (
+            book.description and len(book.description.strip()) > 20 and
+            book.page_count and book.page_count > 0 and
+            book.rating is not None
+        )
+        
+        if not has_full_info:
+            author_name = ""
+            if book.author_id:
+                author_obj = db.query(Author).filter(Author.id == book.author_id).first()
+                if author_obj:
+                    author_name = author_obj.full_name
+                    
+            meta = fetch_book_metadata_from_web(book.title, author_name, book.goodreads_id)
+            updated = False
+            if meta.get("description") and (not book.description or len(book.description.strip()) <= 20):
+                book.description = meta["description"]
+                updated = True
+            if meta.get("page_count") and (not book.page_count or book.page_count <= 0):
+                book.page_count = meta["page_count"]
+                updated = True
+            if meta.get("rating") is not None and book.rating is None:
+                book.rating = meta["rating"]
+                updated = True
+            if updated:
+                db.commit()
+                
+        fallback_desc = book.description
+        if not fallback_desc or len(fallback_desc.strip()) <= 20:
+            meetups = db.query(Meetup.meetup_number).join(Discussion, Discussion.meetup_id == Meetup.id)\
+                .filter(Discussion.canonical_book_id == book.id).distinct().all()
+            meetup_nums = [f"#{m[0]}" for m in meetups if m[0]]
+            meetup_str = f" at {', '.join(meetup_nums)}" if meetup_nums else ""
+            fallback_desc = f"Featured and discussed by the Bangalore Book Club community{meetup_str}."
+
+        return {
+            "description": fallback_desc,
+            "page_count": book.page_count,
+            "rating": book.rating,
+            "source": "goodreads" if book.goodreads_id else "archive"
+        }
     finally:
         db.close()
 
@@ -436,6 +688,15 @@ def get_members(
                     if meetup and meetup.date:
                         dates.append(meetup.date.isoformat())
 
+            # Query sample book covers for reader preview
+            sample_covers = []
+            for b_id in list(book_ids)[:8]:
+                cb = db.query(CanonicalBook).filter(CanonicalBook.id == b_id).first()
+                if cb and (cb.cover_url or cb.thumbnail_url):
+                    sample_covers.append(cb.cover_url or cb.thumbnail_url)
+                if len(sample_covers) >= 4:
+                    break
+
             results.append({
                 "id": m.id,
                 "display_name": m.display_name,
@@ -443,6 +704,7 @@ def get_members(
                 "meetup_count": len(meetup_ids),
                 "first_active_date": min(dates, default=None),
                 "last_active_date": max(dates, default=None),
+                "covers": sample_covers,
             })
 
         if sort_by == "name":
@@ -508,6 +770,8 @@ def get_member(member_id: str):
                             "title": book.title,
                             "author_id": book.author_id,
                             "author_name": author_name,
+                            "cover_url": book.cover_url,
+                            "thumbnail_url": book.thumbnail_url,
                             "meetups": [],
                         }
 
@@ -621,6 +885,8 @@ class BookUpdateRequest(BaseModel):
     goodreads_id: Optional[str] = None
     description: Optional[str] = None
     is_general_discussion: Optional[bool] = None
+    media_type: Optional[str] = "book"
+    url: Optional[str] = None
 
 class AddBookToMeetupRequest(BaseModel):
     title: str
@@ -634,6 +900,8 @@ class AddBookToMeetupRequest(BaseModel):
     goodreads_id: Optional[str] = None
     description: Optional[str] = None
     is_general_discussion: Optional[bool] = False
+    media_type: Optional[str] = "book"
+    url: Optional[str] = None
 
 class ToggleGeneralDiscussionRequest(BaseModel):
     is_general_discussion: bool
@@ -696,6 +964,8 @@ def get_admin_meetups():
                     "member": member_str,
                     "notes": note_val,
                     "is_general_discussion": is_gen,
+                    "media_type": getattr(first_disc, "media_type", None) or getattr(book, "media_type", "book") or "book",
+                    "url": getattr(first_disc, "external_url", None) or getattr(book, "external_url", None),
                     "cover_url": book.cover_url or book.thumbnail_url,
                     "thumbnail_url": book.thumbnail_url or book.cover_url,
                     "rating": book.rating,
@@ -976,6 +1246,11 @@ def update_admin_book(book_id: str, req: BookUpdateRequest):
                         notes_clean = req.notes.strip()
                         d.notes = notes_clean if notes_clean else None
 
+                    if req.media_type is not None:
+                        d.media_type = req.media_type
+                    if req.url is not None:
+                        d.external_url = req.url
+
                     if req.is_general_discussion is not None:
                         if req.is_general_discussion:
                             d.topic = "General Discussion"
@@ -986,6 +1261,20 @@ def update_admin_book(book_id: str, req: BookUpdateRequest):
                                 d.topic = None
                             if d.notes and "general" in d.notes.lower():
                                 d.notes = None
+
+        if req.media_type is not None:
+            book.media_type = req.media_type
+        if req.url is not None:
+            book.external_url = req.url
+        if req.cover_url:
+            book.cover_url = req.cover_url
+            book.thumbnail_url = req.thumbnail_url or req.cover_url
+        if req.publication_year is not None:
+            book.publication_year = req.publication_year
+        if req.rating is not None:
+            book.rating = req.rating
+        if req.goodreads_id is not None:
+            book.goodreads_id = req.goodreads_id
 
         db.commit()
         return {"success": True, "message": f"Book '{book.title}' updated successfully"}
@@ -1084,6 +1373,9 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
         # Find or create canonical book
         title_clean = req.title.strip()
         book = db.query(CanonicalBook).filter(CanonicalBook.normalized_title == title_clean.lower()).first()
+        m_type = req.media_type or "book"
+        ext_url = req.url.strip() if req.url and req.url.strip() else None
+
         if not book:
             book = CanonicalBook(
                 title=title_clean,
@@ -1095,6 +1387,8 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
                 rating=req.rating,
                 goodreads_id=req.goodreads_id,
                 description=req.description,
+                media_type=m_type,
+                external_url=ext_url,
             )
             db.add(book)
             db.flush()
@@ -1107,7 +1401,7 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
             if existing_meetup_disc:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Book '{book.title}' is already in Meetup #{meetup_number}'s book list. Edit the existing book to update details or add readers."
+                    detail=f"Item '{book.title}' is already in Meetup #{meetup_number}'s list. Edit the existing item to update details or add discussants."
                 )
 
             # Enrich existing book with incoming metadata if missing
@@ -1124,6 +1418,10 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
                 book.description = req.description
             if author_id and not book.author_id:
                 book.author_id = author_id
+            if m_type != "book" and (not book.media_type or book.media_type == "book"):
+                book.media_type = m_type
+            if ext_url and not book.external_url:
+                book.external_url = ext_url
 
         # Find or create member(s)
         cleaned_names = []
@@ -1136,9 +1434,10 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
                         cleaned_names.append(tc)
 
         # Create discussion link(s)
-        topic = "General Discussion" if req.is_general_discussion else None
+        is_gen = req.is_general_discussion or (m_type != "book")
+        topic = "General Discussion" if is_gen else None
         notes_val = req.notes.strip() if req.notes and req.notes.strip() else None
-        if req.is_general_discussion and not notes_val:
+        if is_gen and not notes_val:
             notes_val = "General Discussion"
 
         if not cleaned_names:
@@ -1154,6 +1453,8 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
                     member_id=None,
                     topic=topic,
                     notes=notes_val,
+                    media_type=m_type,
+                    external_url=ext_url,
                 )
                 db.add(disc)
         else:
@@ -1177,6 +1478,8 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
                         member_id=member_obj.id,
                         topic=topic,
                         notes=notes_val,
+                        media_type=m_type,
+                        external_url=ext_url,
                     )
                     db.add(disc)
 
@@ -1292,21 +1595,282 @@ def search_external_books(q: str) -> list:
     return results
 
 
-@app.get("/admin/books/suggest")
-@app.get("/api/books/suggest")
-def suggest_books(q: str = Query(..., min_length=2, description="Search term for book title/author")):
+def resolve_media_url(url: str) -> dict:
     """
-    Live autocomplete suggestion endpoint.
-    Combines canonical books from the local BBB SQLite database with live Goodreads
-    results (and Apple Books fallback) for instant Amazon-style drop-down autocompletion.
+    Auto-detects and extracts metadata from pasted URLs:
+    - YouTube videos / playlists (via YouTube oEmbed)
+    - YouTube channels (via channel page / handle extraction)
+    - IMDb / Letterboxd / Goodreads / Wikipedia / general websites (via OpenGraph & HTML tags)
+    """
+    clean_url = url.strip()
+    if not clean_url:
+        return {}
+
+    if not clean_url.startswith("http://") and not clean_url.startswith("https://"):
+        clean_url = "https://" + clean_url
+
+    # 1. YouTube video, shorts, or playlist via official free oEmbed
+    if "youtube.com/watch" in clean_url or "youtu.be/" in clean_url or "youtube.com/shorts/" in clean_url:
+        try:
+            oembed_url = f"https://www.youtube.com/oembed?url={urllib.parse.quote(clean_url)}&format=json"
+            req = urllib.request.Request(oembed_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=3.5) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return {
+                    "media_type": "youtube",
+                    "title": data.get("title") or "YouTube Video",
+                    "author": data.get("author_name"),
+                    "creator": data.get("author_name"),
+                    "thumbnail_url": data.get("thumbnail_url"),
+                    "cover_url": data.get("thumbnail_url"),
+                    "url": clean_url,
+                    "source": "youtube_oembed",
+                    "source_label": "YouTube Video"
+                }
+        except Exception:
+            pass
+
+    # 2. General OpenGraph & HTML scraper (YouTube channel, IMDb, Goodreads, Wondrium, Substack, etc.)
+    try:
+        req = urllib.request.Request(
+            clean_url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=4.0) as resp:
+            raw_html = resp.read()[:800000].decode("utf-8", errors="ignore")
+
+        # Title
+        title_m = re.search(r'<meta[^>]+property=[\'"]og:title[\'"][^>]+content=[\'"](.*?)[\'"]', raw_html, re.I)
+        if not title_m:
+            title_m = re.search(r'<meta[^>]+content=[\'"](.*?)[\'"][^>]+property=[\'"]og:title[\'"]', raw_html, re.I)
+        if not title_m:
+            title_m = re.search(r'<title[^>]*>(.*?)</title>', raw_html, re.I)
+
+        title = title_m.group(1).strip() if title_m else ""
+        title = re.sub(r'\s*-\s*YouTube$', '', title, flags=re.I)
+        title = re.sub(r'&amp;', '&', title)
+        title = re.sub(r'&#39;', "'", title)
+        title = re.sub(r'&quot;', '"', title)
+
+        # Image
+        img_m = re.search(r'<meta[^>]+property=[\'"]og:image[\'"][^>]+content=[\'"](.*?)[\'"]', raw_html, re.I)
+        if not img_m:
+            img_m = re.search(r'<meta[^>]+content=[\'"](.*?)[\'"][^>]+property=[\'"]og:image[\'"]', raw_html, re.I)
+        image = img_m.group(1).strip() if img_m else None
+
+        # Description
+        desc_m = re.search(r'<meta[^>]+property=[\'"]og:description[\'"][^>]+content=[\'"](.*?)[\'"]', raw_html, re.I)
+        if not desc_m:
+            desc_m = re.search(r'<meta[^>]+content=[\'"](.*?)[\'"][^>]+property=[\'"]og:description[\'"]', raw_html, re.I)
+        desc = desc_m.group(1).strip() if desc_m else None
+
+        # Site Name
+        site_m = re.search(r'<meta[^>]+property=[\'"]og:site_name[\'"][^>]+content=[\'"](.*?)[\'"]', raw_html, re.I)
+        site_name = site_m.group(1).strip() if site_m else None
+
+        # Detect media type
+        media_type = "tangent"
+        creator = site_name
+
+        if "youtube.com" in clean_url or "youtu.be" in clean_url:
+            media_type = "youtube"
+            creator = title if "@" in clean_url else "YouTube"
+        elif "imdb.com" in clean_url or "letterboxd.com" in clean_url:
+            media_type = "movie"
+            creator = site_name or "Cinema"
+        elif "goodreads.com" in clean_url:
+            media_type = "book"
+        elif "spotify.com" in clean_url or "podcasts.apple.com" in clean_url:
+            media_type = "podcast"
+            creator = site_name or "Podcast"
+        else:
+            domain = urllib.parse.urlparse(clean_url).netloc.replace("www.", "")
+            creator = site_name or domain
+
+        return {
+            "media_type": media_type,
+            "title": title or urllib.parse.urlparse(clean_url).netloc.replace("www.", ""),
+            "author": creator,
+            "creator": creator,
+            "thumbnail_url": image,
+            "cover_url": image,
+            "description": desc,
+            "url": clean_url,
+            "source": "opengraph",
+            "source_label": site_name or "Web Resource"
+        }
+    except Exception:
+        domain = urllib.parse.urlparse(clean_url).netloc.replace("www.", "")
+        m_type = "youtube" if "youtube" in domain else "tangent"
+        return {
+            "media_type": m_type,
+            "title": clean_url,
+            "author": domain,
+            "creator": domain,
+            "thumbnail_url": None,
+            "cover_url": None,
+            "url": clean_url,
+            "source": "url",
+            "source_label": domain
+        }
+
+
+def search_external_media(q: str, media_type: str = "book") -> list:
+    """
+    Multi-source media search engine:
+    - book: Goodreads autocomplete + Apple Books
+    - movie / show: DuckDuckGo Instant Answer + TVMaze
+    - podcast: Apple Podcasts API
+    - youtube / tangent: URL auto-resolver or fallback suggestion
     """
     q_clean = q.strip()
-    cache_key = q_clean.lower()
+    if not q_clean:
+        return []
+
+    # If query is a URL, resolve directly regardless of tab
+    if q_clean.startswith("http://") or q_clean.startswith("https://") or "youtube.com" in q_clean or "youtu.be" in q_clean:
+        resolved = resolve_media_url(q_clean)
+        return [resolved] if resolved else []
+
+    if media_type in ("movie", "show", "cinema", "tv"):
+        results = []
+        # 1. DuckDuckGo film search
+        try:
+            ddg_url = f"https://api.duckduckgo.com/?q={urllib.parse.quote(q_clean + ' film')}&format=json"
+            req = urllib.request.Request(ddg_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=3.0) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                heading = data.get("Heading")
+                abstract = data.get("AbstractText", "")
+                image = data.get("Image")
+                if heading:
+                    img_url = f"https://duckduckgo.com{image}" if image and image.startswith("/") else image
+                    year = None
+                    ym = re.search(r'\b(19\d\d|20\d\d)\b', abstract)
+                    if ym:
+                        year = int(ym.group(1))
+                    clean_title = re.sub(r'\s*\((film|movie|TV series)\)', '', heading, flags=re.I).strip()
+                    results.append({
+                        "title": clean_title,
+                        "author": "Film",
+                        "creator": "Film",
+                        "publication_year": year,
+                        "cover_url": img_url,
+                        "thumbnail_url": img_url,
+                        "description": abstract[:250] if abstract else None,
+                        "media_type": "movie",
+                        "source": "duckduckgo",
+                        "source_label": "Film / Cinema"
+                    })
+        except Exception:
+            pass
+
+        # 2. TVMaze series search
+        try:
+            tv_url = f"https://api.tvmaze.com/search/shows?q={urllib.parse.quote(q_clean)}"
+            req = urllib.request.Request(tv_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=3.0) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                for item in data[:4]:
+                    s = item.get("show", {})
+                    network = (s.get("network") or s.get("webChannel") or {}).get("name") or "TV Series"
+                    img = (s.get("image") or {}).get("medium")
+                    year = None
+                    if s.get("premiered"):
+                        try:
+                            year = int(s["premiered"][:4])
+                        except ValueError:
+                            pass
+                    results.append({
+                        "title": s.get("name"),
+                        "author": network,
+                        "creator": network,
+                        "publication_year": year,
+                        "cover_url": img,
+                        "thumbnail_url": img,
+                        "description": re.sub(r'<[^>]+>', '', s.get("summary", ""))[:250] if s.get("summary") else None,
+                        "media_type": "show",
+                        "source": "tvmaze",
+                        "source_label": "TV Series"
+                    })
+        except Exception:
+            pass
+
+        return results
+
+    elif media_type == "podcast":
+        results = []
+        try:
+            pod_url = f"https://itunes.apple.com/search?term={urllib.parse.quote(q_clean)}&media=podcast&limit=6"
+            req = urllib.request.Request(pod_url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=3.0) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                for r in data.get("results", []):
+                    img = r.get("artworkUrl600") or r.get("artworkUrl100")
+                    results.append({
+                        "title": r.get("collectionName"),
+                        "author": r.get("artistName"),
+                        "creator": r.get("artistName"),
+                        "cover_url": img,
+                        "thumbnail_url": img,
+                        "url": r.get("trackViewUrl") or r.get("feedUrl"),
+                        "media_type": "podcast",
+                        "source": "apple_podcasts",
+                        "source_label": "Apple Podcasts"
+                    })
+        except Exception:
+            pass
+        return results
+
+    elif media_type == "youtube":
+        return [{
+            "title": q_clean,
+            "author": "YouTube Channel / Creator",
+            "creator": "YouTube",
+            "media_type": "youtube",
+            "source": "custom",
+            "source_label": "YouTube"
+        }]
+
+    # Default to book
+    return search_external_books(q_clean)
+
+
+@app.get("/admin/media/resolve-url")
+@app.get("/api/media/resolve-url")
+def api_resolve_media_url(url: str = Query(..., min_length=3, description="URL to inspect")):
+    """Inspect and resolve live metadata (title, thumbnail, creator, type) for any pasted URL."""
+    return resolve_media_url(url)
+
+
+@app.get("/admin/books/suggest")
+@app.get("/api/books/suggest")
+@app.get("/admin/media/suggest")
+@app.get("/api/media/suggest")
+def suggest_books(
+    q: str = Query(..., min_length=2, description="Search term for book title/author or media"),
+    media_type: str = Query("book", description="Media type: book, movie, show, podcast, youtube, tangent")
+):
+    """
+    Live autocomplete suggestion endpoint.
+    Combines local SQLite database with Goodreads, TVMaze, DuckDuckGo Film, and Apple Podcasts.
+    """
+    q_clean = q.strip()
+    cache_key = f"{media_type}:{q_clean.lower()}"
     now = time.time()
     if cache_key in _SUGGESTION_CACHE:
         timestamp, cached_data = _SUGGESTION_CACHE[cache_key]
         if now - timestamp < 600:
             return cached_data
+
+    # If non-book media requested, dispatch to external media search
+    if media_type != "book":
+        results = search_external_media(q_clean, media_type)
+        _SUGGESTION_CACHE[cache_key] = (now, results)
+        return results
 
     db = SessionLocal()
     suggestions = []
@@ -1335,11 +1899,13 @@ def suggest_books(q: str = Query(..., min_length=2, description="Search term for
                 "id": b.id,
                 "title": b.title,
                 "author": author_name,
+                "creator": author_name,
                 "cover_url": b.cover_url or b.thumbnail_url,
                 "thumbnail_url": b.thumbnail_url or b.cover_url,
                 "publication_year": b.publication_year,
                 "rating": b.rating,
                 "goodreads_id": b.goodreads_id,
+                "media_type": getattr(b, "media_type", "book") or "book",
                 "in_archive": True,
                 "source": "archive",
                 "source_label": "In BBB Archive",
@@ -1352,6 +1918,7 @@ def suggest_books(q: str = Query(..., min_length=2, description="Search term for
             if norm_key not in seen_keys:
                 seen_keys.add(norm_key)
                 ext["in_archive"] = False
+                ext["media_type"] = "book"
                 suggestions.append(ext)
                 if len(suggestions) >= 8:
                     break
@@ -1366,16 +1933,23 @@ def suggest_books(q: str = Query(..., min_length=2, description="Search term for
 
 @app.get("/admin/members/suggest")
 @app.get("/api/members/suggest")
-def suggest_members(q: Optional[str] = Query(None, description="Search term for member/reader name")):
+def suggest_members(
+    q: Optional[str] = Query(None, description="Search term for member/reader name"),
+    book_id: Optional[str] = Query(None, description="Optional canonical book ID to check if reader has already read it")
+):
     """
     Live autocomplete suggestion endpoint for BBB book club readers/members.
-    Analyzes the database, surfaces active discussants first, and returns filtered list.
+    Counts unique books discussed by each member (distinct canonical books),
+    so discussing the same book across multiple meetups does NOT artificially inflate book count.
     """
     db = SessionLocal()
     try:
         from sqlalchemy import func
         disc_subquery = (
-            db.query(Discussion.member_id, func.count(Discussion.id).label("disc_count"))
+            db.query(
+                Discussion.member_id,
+                func.count(func.distinct(Discussion.canonical_book_id)).label("disc_count")
+            )
             .filter(Discussion.member_id != None)
             .group_by(Discussion.member_id)
             .subquery()
@@ -1412,7 +1986,7 @@ def suggest_members(q: Optional[str] = Query(None, description="Search term for 
             )
             members_data = members_data[:15]
         else:
-            # When q is empty, return top 15 readers by discussion count
+            # When q is empty, return top 15 readers by distinct book count
             members_data = (
                 query.order_by(disc_subquery.c.disc_count.desc().nullslast(), Member.display_name.asc())
                 .limit(15)
@@ -1421,10 +1995,27 @@ def suggest_members(q: Optional[str] = Query(None, description="Search term for 
 
         results = []
         for member, count in members_data:
+            already_read = False
+            already_read_meetups = []
+            if book_id:
+                past_discs = (
+                    db.query(Meetup.meetup_number)
+                    .join(Discussion, Discussion.meetup_id == Meetup.id)
+                    .filter(Discussion.member_id == member.id, Discussion.canonical_book_id == book_id)
+                    .distinct()
+                    .all()
+                )
+                if past_discs:
+                    already_read = True
+                    already_read_meetups = sorted([m[0] for m in past_discs if m[0] is not None])
+
             results.append({
                 "id": member.id,
                 "name": member.display_name,
-                "discussions_count": count,
+                "discussions_count": count or 0,
+                "books_count": count or 0,
+                "already_read": already_read,
+                "already_read_meetups": already_read_meetups,
             })
         return results
     finally:

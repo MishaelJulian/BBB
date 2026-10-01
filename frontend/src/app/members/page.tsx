@@ -123,14 +123,41 @@ export default function MembersPage() {
                       {member.display_name}
                     </h3>
 
-                    <div className="flex items-center gap-3 text-xs text-muted font-mono mb-4">
+                    <div className="flex items-center gap-3 text-xs text-muted font-mono mb-2">
                       <span>{member.book_count} {member.book_count === 1 ? 'book' : 'books'}</span>
                       <span>·</span>
                       <span>{member.meetup_count} {member.meetup_count === 1 ? 'meetup' : 'meetups'}</span>
                     </div>
 
+                    {/* Book Cover Thumbnails Preview */}
+                    {member.covers && member.covers.length > 0 && (
+                      <div className="flex items-center gap-1.5 my-2.5 overflow-hidden py-0.5">
+                        {member.covers.map((cUrl, idx) => (
+                          <div
+                            key={idx}
+                            className="w-8 aspect-[2/3] rounded-[2px] shadow-xs overflow-hidden border border-border/70 shrink-0 bg-neutral-900 group-hover:scale-105 transition-transform"
+                          >
+                            <img
+                              src={cUrl}
+                              alt="Book cover preview"
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                              }}
+                            />
+                          </div>
+                        ))}
+                        {member.book_count > member.covers.length && (
+                          <span className="text-[10px] font-mono text-muted/60 pl-1">
+                            +{member.book_count - member.covers.length}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {member.first_active_date && (
-                      <div className="text-[11px] text-muted/70 italic border-t border-border/50 pt-3">
+                      <div className="text-[11px] text-muted/70 italic border-t border-border/50 pt-2.5">
                         Active {formatDate(member.first_active_date)}
                         {member.last_active_date && member.last_active_date !== member.first_active_date && (
                           <> – {formatDate(member.last_active_date)}</>

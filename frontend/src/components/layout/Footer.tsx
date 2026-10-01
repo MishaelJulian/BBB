@@ -2,11 +2,10 @@ import Link from 'next/link'
 import { Divider } from '@/components/ui/Divider'
 
 const footerLinks = [
-  { href: '/library', label: 'Library' },
+  { href: '/library-room', label: 'The Library Room' },
   { href: '/meetups', label: 'Meetups' },
-  { href: '/timeline', label: 'Timeline' },
-  { href: '/collections', label: 'Collections' },
-  { href: '/about', label: 'About' },
+  { href: '/members', label: 'Readers Archive' },
+  { href: '/admin', label: 'Database Admin' },
 ]
 
 export function Footer() {

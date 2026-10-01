@@ -106,6 +106,7 @@ export default function MeetupsPage() {
                   venue={meetup.venue || 'Unknown'}
                   bookCount={meetup.book_count}
                   memberCount={meetup.member_count}
+                  books={meetup.books}
                 />
               ))}
             </div>

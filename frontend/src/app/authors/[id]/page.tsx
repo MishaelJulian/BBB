@@ -74,8 +74,8 @@ export default function AuthorRecordPage() {
               Library Room
             </Link>
             <span>/</span>
-            <Link href="/library" className="hover:text-ink transition-colors">
-              Archive
+            <Link href="/library-room#list" className="hover:text-ink transition-colors">
+              Archive List
             </Link>
             <span>/</span>
             <span className="text-ink font-medium">{author.full_name}</span>
@@ -147,15 +147,35 @@ export default function AuthorRecordPage() {
                   key={book.id}
                   className="flex items-start gap-4 p-4 rounded-lg border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/40 transition-all group"
                 >
-                  <div
-                    className="w-10 h-16 rounded-sm shrink-0 shadow-sm flex items-center justify-center relative overflow-hidden"
-                    style={{ backgroundColor: coverColor }}
+                  {/* Book Cover Artwork */}
+                  <Link
+                    href={`/books/${book.id}`}
+                    className="w-14 sm:w-16 aspect-[2/3] rounded-md shrink-0 shadow-sm overflow-hidden relative border border-border/80 bg-neutral-900 group-hover:scale-[1.03] transition-transform"
                   >
-                    <div className="absolute inset-0 opacity-15 bg-black" />
-                    <span className="text-[7px] font-mono text-white/70 rotate-90 truncate max-w-[50px]">
-                      {book.title.slice(0, 10)}
-                    </span>
-                  </div>
+                    {book.cover_url || book.thumbnail_url ? (
+                      <img
+                        src={book.cover_url || book.thumbnail_url || ''}
+                        alt={book.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className={`absolute inset-0 p-1 flex flex-col justify-between text-center ${
+                        book.cover_url || book.thumbnail_url ? '-z-10' : 'z-0'
+                      }`}
+                      style={{ backgroundColor: coverColor }}
+                    >
+                      <div className="w-3 h-px mx-auto bg-white/40" />
+                      <span className="text-[7.5px] font-serif font-bold text-white line-clamp-3 leading-tight">
+                        {book.title}
+                      </span>
+                      <div className="w-3 h-px mx-auto bg-white/40" />
+                    </div>
+                  </Link>
 
                   <div className="flex-1 min-w-0">
                     <Link
