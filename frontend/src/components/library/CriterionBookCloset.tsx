@@ -677,8 +677,9 @@ export function CriterionBookCloset() {
   const [selectedBook, setSelectedBook] = React.useState<Book | null>(null)
   const [hoveredBook, setHoveredBook] = React.useState<Book | null>(null)
 
-  // Green circular reticle cursor position
-  const [cursorPos, setCursorPos] = React.useState({ x: 0, y: 0 })
+  // Desktop Green circular reticle cursor motion values (Zero React re-renders)
+  const cursorX = useMotionValue(-100)
+  const cursorY = useMotionValue(-100)
 
   // Floating controls & filters
   const [searchQuery, setSearchQuery] = React.useState('')
@@ -720,7 +721,8 @@ export function CriterionBookCloset() {
 
   React.useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768)
+      const mobile = window.innerWidth < 768
+      setIsMobile(mobile)
       setWindowWidth(window.innerWidth)
     }
     handleResize()
@@ -781,9 +783,12 @@ export function CriterionBookCloset() {
     const newPitch = Math.max(-14, Math.min(14, touchStartRef.current.startPitch - dy * 0.1))
     touchYawMotion.set(newYaw)
     touchPitchMotion.set(newPitch)
+  }
 
-    if (newYaw > 18) setCurrentWallIndex(0)
-    else if (newYaw < -18) setCurrentWallIndex(2)
+  const handleTouchEnd = () => {
+    const yaw = touchYawMotion.get()
+    if (yaw > 18) setCurrentWallIndex(0)
+    else if (yaw < -18) setCurrentWallIndex(2)
     else setCurrentWallIndex(1)
   }
 
@@ -949,8 +954,10 @@ export function CriterionBookCloset() {
   }
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (isMobile) return
     const { clientX, clientY } = e
-    setCursorPos({ x: clientX, y: clientY })
+    cursorX.set(clientX)
+    cursorY.set(clientY)
     if (selectedBook) return
     const { innerWidth, innerHeight } = window
     mouseX.set(clientX / innerWidth - 0.5)
@@ -1126,20 +1133,21 @@ export function CriterionBookCloset() {
         )}
       </AnimatePresence>
 
-      {/* GREEN RETICLE CURSOR (Criterion Closet Style from Recording 00:14) */}
-      {viewMode === 'closet' && !selectedBook && (
-        <div
-          className="fixed pointer-events-none z-50 transition-transform duration-75 ease-out"
+      {/* GREEN RETICLE CURSOR (Desktop only, driven by MotionValues with zero React re-renders) */}
+      {viewMode === 'closet' && !selectedBook && !isMobile && (
+        <motion.div
+          className="fixed pointer-events-none z-50 hidden md:block"
           style={{
-            left: cursorPos.x,
-            top: cursorPos.y,
-            transform: 'translate(-50%, -50%)',
+            x: cursorX,
+            y: cursorY,
+            translateX: '-50%',
+            translateY: '-50%',
           }}
         >
           <div className="w-5 h-5 rounded-full border-2 border-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)] flex items-center justify-center">
             <div className="w-1 h-1 rounded-full bg-emerald-300" />
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* =======================================================
@@ -1397,12 +1405,13 @@ export function CriterionBookCloset() {
         <main
           className="relative w-full h-[calc(100vh-64px)] overflow-hidden flex items-center justify-center select-none"
           style={{
-            perspective: isMobile ? '820px' : '1150px',
-            filter: selectedBook ? 'blur(16px) brightness(0.25) contrast(0.95)' : 'none',
-            pointerEvents: selectedBook ? 'none' : 'auto',
+            perspective: isMobile ? '950px' : '1150px',
+            touchAction: 'pan-x pan-y',
+            overscrollBehavior: 'none',
           }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           {/* Ambient Lighting & Room Vignette */}
           <div
@@ -1540,9 +1549,9 @@ export function CriterionBookCloset() {
                 transformStyle: 'preserve-3d',
                 rotateY: camRotateY,
                 rotateX: camRotateX,
-                translateZ: isMobile ? -540 : -320,
-                translateY: isMobile ? 10 : -20,
-                scale: isMobile ? Math.min(1, Math.max(0.50, windowWidth / 680)) : 1,
+                translateZ: isMobile ? -310 : -320,
+                translateY: isMobile ? -10 : -20,
+                scale: isMobile ? 0.90 : 1,
               }}
             >
               {/* FLOOR PLANE (Polished library dark walnut parquet) */}

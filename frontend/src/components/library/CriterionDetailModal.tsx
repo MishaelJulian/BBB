@@ -656,7 +656,7 @@ export function CriterionDetailModal({
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-mono tracking-widest uppercase text-white/40">RATING</span>
                   <span className="font-mono text-amber-400 font-bold">
-                    ★ {(rating || book.rating)!.toFixed(2)} / 5.0
+                    ★ {Number(rating || book.rating).toFixed(1)} / 5.0
                   </span>
                 </div>
               )}

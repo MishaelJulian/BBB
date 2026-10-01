@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { SiteShell } from '@/components/layout/SiteShell'
@@ -7,6 +7,13 @@ const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
 })
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#070709',
+}
 
 export const metadata: Metadata = {
   title: {
