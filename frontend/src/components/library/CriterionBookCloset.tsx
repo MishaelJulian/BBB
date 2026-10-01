@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import { fetchBooks, type Book } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { CriterionDetailModal } from './CriterionDetailModal'
+import { CriterionListDetailModal } from './CriterionListDetailModal'
 
 // ============================================
 // 1. Archival Folio Palettes & Spine Styles
@@ -713,16 +714,78 @@ export function CriterionBookCloset() {
     return Array.from(map.values()).sort((a, b) => b.number - a.number)
   }, [books])
 
-  // Camera yaw & pitch for 3D Walk-in Corner Closet
+  // Mobile responsiveness & viewport tracking
+  const [isMobile, setIsMobile] = React.useState(false)
+  const [windowWidth, setWindowWidth] = React.useState(1200)
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+      setWindowWidth(window.innerWidth)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Camera yaw & pitch for 3D Walk-in Corner Closet (Desktop Mouse + Mobile Touch Drag)
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
   const springConfig = { stiffness: 45, damping: 20, mass: 1 }
   const smoothX = useSpring(mouseX, springConfig)
   const smoothY = useSpring(mouseY, springConfig)
 
-  // Camera swivel: yaw between -18° and +18°, pitch between -10° and +10°
-  const camRotateY = useTransform(smoothX, [-0.5, 0.5], [-18, 18])
-  const camRotateX = useTransform(smoothY, [-0.5, 0.5], [10, -10])
+  // Touch Drag Motion Values for Mobile 3D Room Navigation
+  const touchYawMotion = useMotionValue(0)
+  const touchPitchMotion = useMotionValue(0)
+  const smoothTouchYaw = useSpring(touchYawMotion, { stiffness: 50, damping: 18 })
+  const smoothTouchPitch = useSpring(touchPitchMotion, { stiffness: 50, damping: 18 })
+  const touchStartRef = React.useRef({ x: 0, y: 0, startYaw: 0, startPitch: 0 })
+  const [currentWallIndex, setCurrentWallIndex] = React.useState<0 | 1 | 2>(1) // 0: Left (+38°), 1: Main (0°), 2: Right (-38°)
+
+  // Unified camera rotation combining desktop mouse parallax and mobile touch pan
+  const camRotateY = useTransform(
+    [smoothX, smoothTouchYaw],
+    ([mx, ty]: any[]) => ((mx as number) * 36) + (ty as number)
+  )
+  const camRotateX = useTransform(
+    [smoothY, smoothTouchPitch],
+    ([my, tp]: any[]) => (-(my as number) * 20) + (tp as number)
+  )
+
+  const snapToWall = (wallIdx: 0 | 1 | 2) => {
+    setCurrentWallIndex(wallIdx)
+    const targetYaws = [38, 0, -38] // Left wall +38°, Center 0°, Right -38°
+    touchYawMotion.set(targetYaws[wallIdx])
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (selectedBook || e.touches.length !== 1) return
+    const touch = e.touches[0]
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      startYaw: touchYawMotion.get(),
+      startPitch: touchPitchMotion.get(),
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (selectedBook || e.touches.length !== 1) return
+    const touch = e.touches[0]
+    const dx = touch.clientX - touchStartRef.current.x
+    const dy = touch.clientY - touchStartRef.current.y
+
+    // Swipe right pans towards Left Wing (+), swipe left pans towards Right Wing (-)
+    const newYaw = Math.max(-48, Math.min(48, touchStartRef.current.startYaw + dx * 0.22))
+    const newPitch = Math.max(-14, Math.min(14, touchStartRef.current.startPitch - dy * 0.1))
+    touchYawMotion.set(newYaw)
+    touchPitchMotion.set(newPitch)
+
+    if (newYaw > 18) setCurrentWallIndex(0)
+    else if (newYaw < -18) setCurrentWallIndex(2)
+    else setCurrentWallIndex(1)
+  }
 
   // Sync hash #closet / #list
   React.useEffect(() => {
@@ -1334,10 +1397,12 @@ export function CriterionBookCloset() {
         <main
           className="relative w-full h-[calc(100vh-64px)] overflow-hidden flex items-center justify-center select-none"
           style={{
-            perspective: '1150px',
+            perspective: isMobile ? '820px' : '1150px',
             filter: selectedBook ? 'blur(16px) brightness(0.25) contrast(0.95)' : 'none',
             pointerEvents: selectedBook ? 'none' : 'auto',
           }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
         >
           {/* Ambient Lighting & Room Vignette */}
           <div
@@ -1351,24 +1416,24 @@ export function CriterionBookCloset() {
           />
 
           {/* SHELF SECTION NAVIGATION CONTROLS (Paging across 3-wall rooms) */}
-          <div className="fixed top-16 z-30 inset-x-0 mx-auto w-fit flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 rounded-full bg-black/85 border border-white/20 shadow-2xl backdrop-blur-xl text-xs font-mono">
+          <div className="fixed top-16 z-30 inset-x-0 mx-auto w-fit max-w-[94vw] flex items-center justify-center gap-1.5 sm:gap-3 px-2.5 sm:px-4 py-1.5 rounded-full bg-black/85 border border-white/20 shadow-2xl backdrop-blur-xl text-[10px] sm:text-xs font-mono">
             {/* Prev Shelves Button */}
             <button
               onClick={() => setShelfSection((s) => Math.max(0, s - 1))}
               disabled={safeSection === 0}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 text-white font-semibold transition"
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 text-white font-semibold transition"
               title="Previous Shelves (Left Arrow or [)"
             >
               <span>◀</span>
-              <span className="hidden sm:inline">Prev Shelves</span>
+              <span className="hidden sm:inline">Prev</span>
             </button>
 
             {/* Shelf & Meetup Range Badge */}
-            <div className="flex items-center gap-2 px-2 text-center">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-1 text-center">
               <span className="font-bold text-amber-300">
                 Shelves {currentShelfStartNumber}–{currentShelfStartNumber + 2}
               </span>
-              <span className="text-white/40">of {totalSections * 3}</span>
+              <span className="text-white/40 hidden xs:inline">of {totalSections * 3}</span>
               {sectionInfo.maxMeetup !== null && (
                 <span className="hidden md:inline px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] border border-amber-500/30">
                   {sectionInfo.maxMeetup === sectionInfo.minMeetup
@@ -1376,48 +1441,79 @@ export function CriterionBookCloset() {
                     : `Meetups #${sectionInfo.maxMeetup}–#${sectionInfo.minMeetup}`}
                 </span>
               )}
-              <span className="text-white/50 text-[10px] hidden sm:inline">
-                ({sectionInfo.totalInCurrent} vols)
-              </span>
             </div>
 
             {/* Next Shelves Button */}
             <button
               onClick={() => setShelfSection((s) => Math.min(totalSections - 1, s + 1))}
               disabled={safeSection >= totalSections - 1}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 text-white font-semibold transition"
+              className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 text-white font-semibold transition"
               title="Next Shelves (Right Arrow or ])"
             >
-              <span className="hidden sm:inline">Next Shelves</span>
+              <span className="hidden sm:inline">Next</span>
               <span>▶</span>
             </button>
 
             {/* Direct Shelf Section Jump Dropdown */}
             {totalSections > 1 && (
-              <div className="relative border-l border-white/20 pl-2">
+              <div className="relative border-l border-white/20 pl-1.5 sm:pl-2">
                 <select
                   value={safeSection}
                   onChange={(e) => setShelfSection(Number(e.target.value))}
-                  className="bg-transparent text-amber-300 font-mono text-[11px] appearance-none cursor-pointer focus:outline-none pr-4"
+                  className="bg-transparent text-amber-300 font-mono text-[10px] sm:text-[11px] appearance-none cursor-pointer focus:outline-none pr-3 sm:pr-4"
                 >
                   {Array.from({ length: totalSections }).map((_, idx) => {
                     const startShelf = idx * 3 + 1
                     const endShelf = startShelf + 2
                     return (
                       <option key={idx} value={idx} className="bg-[#14100D] text-white">
-                        Shelves {startShelf}–{endShelf} {idx === 0 ? '(Latest)' : ''}
+                        {startShelf}–{endShelf} {idx === 0 ? '(Latest)' : ''}
                       </option>
                     )
                   })}
                 </select>
-                <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[8px] text-amber-300">▼</span>
+                <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[7px] text-amber-300">▼</span>
               </div>
             )}
           </div>
 
+          {/* Wall Perspective Quick Switcher (Touch Friendly & Responsive) */}
+          <div className="fixed top-28 z-30 inset-x-0 mx-auto w-fit max-w-[94vw] flex items-center gap-1 p-1 rounded-full bg-black/85 border border-white/20 shadow-2xl backdrop-blur-xl text-[10px] sm:text-xs font-mono">
+            <button
+              onClick={() => snapToWall(0)}
+              className={`px-2.5 sm:px-3.5 py-1 rounded-full transition-all ${
+                currentWallIndex === 0
+                  ? 'bg-amber-400 text-black font-bold shadow-md'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              ◂ Left Wing ({currentShelfStartNumber})
+            </button>
+            <button
+              onClick={() => snapToWall(1)}
+              className={`px-2.5 sm:px-3.5 py-1 rounded-full transition-all ${
+                currentWallIndex === 1
+                  ? 'bg-amber-400 text-black font-bold shadow-md'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Main ({currentShelfStartNumber + 1})
+            </button>
+            <button
+              onClick={() => snapToWall(2)}
+              className={`px-2.5 sm:px-3.5 py-1 rounded-full transition-all ${
+                currentWallIndex === 2
+                  ? 'bg-amber-400 text-black font-bold shadow-md'
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              Right Wing ({currentShelfStartNumber + 2}) ▸
+            </button>
+          </div>
+
           {/* Active Meetup Shelving Badge (if single meetup filter selected) */}
           {selectedMeetup !== null && (
-            <div className="fixed top-28 z-30 inset-x-0 mx-auto w-fit flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-amber-500 text-black font-mono text-xs font-bold shadow-2xl backdrop-blur-xl">
+            <div className="fixed top-40 z-30 inset-x-0 mx-auto w-fit flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-amber-500 text-black font-mono text-xs font-bold shadow-2xl backdrop-blur-xl">
               <span>Shelving Meetup #{selectedMeetup} ({filteredBooks.length} volumes)</span>
               <button
                 onClick={() => setSelectedMeetup(null)}
@@ -1437,15 +1533,16 @@ export function CriterionBookCloset() {
               </p>
             </div>
           ) : (
-            /* 3D CAMERA RIG (Swivels with mouse parallax) */
+            /* 3D CAMERA RIG (Swivels with mouse parallax on desktop & touch drag on mobile) */
             <motion.div
               className="absolute top-1/2 left-1/2 w-0 h-0"
               style={{
                 transformStyle: 'preserve-3d',
                 rotateY: camRotateY,
                 rotateX: camRotateX,
-                translateZ: -320,
-                translateY: -20,
+                translateZ: isMobile ? -540 : -320,
+                translateY: isMobile ? 10 : -20,
+                scale: isMobile ? Math.min(1, Math.max(0.50, windowWidth / 680)) : 1,
               }}
             >
               {/* FLOOR PLANE (Polished library dark walnut parquet) */}
@@ -1655,116 +1752,157 @@ export function CriterionBookCloset() {
       )}
 
       {/* =======================================================
-          3. VIEW MODE B: LIST VIEW / THE CRITERION WALL (Recording 00:00)
+          3. VIEW MODE B: LIST VIEW / THE CRITERION WALL (Exact Criterion Layout)
           ======================================================= */}
       {viewMode === 'list' && (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-          {/* Sub-bar (Showing X of Y volumes) */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-6 border-b border-[#DDD6C7] gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-mono uppercase tracking-widest text-neutral-500">
-                Showing {filteredBooks.length.toLocaleString()} of {books.length.toLocaleString()} Volumes
-              </span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <button
-                  onClick={() => {
-                    setDiscussionFilter('all')
-                    setSelectedLetter(null)
-                    setSelectedMeetup(null)
-                    setSearchQuery('')
-                  }}
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-semibold transition-colors ${
-                    discussionFilter === 'all' && selectedLetter === null && selectedMeetup === null && searchQuery === ''
-                      ? 'bg-[#14130F] text-white shadow-sm'
-                      : 'bg-white border border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
-                  }`}
-                >
-                  All Books
-                </button>
-                <button
-                  onClick={() => setDiscussionFilter('popular')}
-                  className={`px-2.5 py-1 rounded-full border text-[10px] font-semibold transition-colors ${
-                    discussionFilter === 'popular'
-                      ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                      : 'bg-white border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
-                  }`}
-                >
-                  ★ Favorites
-                </button>
-                <button
-                  onClick={() => setSortBy('latest')}
-                  className={`px-2.5 py-1 rounded-full border text-[10px] font-semibold flex items-center gap-1 transition-colors ${
-                    sortBy === 'latest'
-                      ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                      : 'bg-white border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
-                  }`}
-                  title="Sort by latest meetups & discussions first"
-                >
-                  <span>⚡ Latest to Oldest</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setSortBy('latest')
-                    setShuffleSeed((s) => s + 1)
-                  }}
-                  className={`px-2.5 py-1 rounded-full border text-[10px] font-semibold flex items-center gap-1 transition-colors ${
-                    sortBy === 'random'
-                      ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                      : 'bg-white border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
-                  }`}
-                  title="Randomly shuffle the archive volumes"
-                >
-                  <span>🔀 Randomize</span>
-                </button>
-
-                {/* Quick Meetup Selector Dropdown */}
-                <div className="relative inline-block">
-                  <select
-                    value={selectedMeetup ?? ''}
-                    onChange={(e) => setSelectedMeetup(e.target.value ? Number(e.target.value) : null)}
-                    className={`pl-2.5 pr-6 py-1 rounded-full text-[10px] font-semibold border appearance-none cursor-pointer focus:outline-none transition-colors ${
-                      selectedMeetup !== null
-                        ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
-                        : 'bg-white border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
-                    }`}
-                  >
-                    <option value="" className="text-neutral-800 bg-white">All Meetups ({availableMeetups.length})</option>
-                    {availableMeetups.map((m) => (
-                      <option key={m.number} value={m.number} className="text-neutral-800 bg-white">
-                        Meetup #{m.number} ({m.count} {m.count === 1 ? 'book' : 'books'})
-                      </option>
-                    ))}
-                  </select>
-                  <span className={`pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[8px] ${
-                    selectedMeetup !== null ? 'text-white' : 'text-neutral-500'
-                  }`}>▼</span>
-                </div>
-
-                {selectedMeetup !== null && (
-                  <button
-                    onClick={() => setSelectedMeetup(null)}
-                    className="px-2 py-0.5 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-700 text-[10px] font-mono flex items-center gap-1"
-                    title="Clear meetup filter"
-                  >
-                    <span>M#{selectedMeetup}</span>
-                    <span className="font-bold">✕</span>
-                  </button>
-                )}
-              </div>
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 text-[#14130F]">
+          {/* Top Search & Filter Bar (Matching Screenshot 2026-10-01 201506.png) */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pb-4">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Title, author or spine #…"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl text-xs bg-white border border-[#DDD6C7] text-[#14130F] placeholder-neutral-400 focus:outline-none focus:border-black shadow-sm"
+              />
+              <svg className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
 
+            {/* Filter Dropdowns on Right (Meetup, Discussions, Sort) */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Meetup Dropdown */}
+              <div className="relative">
+                <select
+                  value={selectedMeetup ?? ''}
+                  onChange={(e) => setSelectedMeetup(e.target.value ? Number(e.target.value) : null)}
+                  className={`pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-none transition-colors shadow-sm ${
+                    selectedMeetup !== null
+                      ? 'bg-amber-600 text-white border-amber-600'
+                      : 'bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400'
+                  }`}
+                >
+                  <option value="" className="text-neutral-800 bg-white">All Meetups</option>
+                  {availableMeetups.map((m) => (
+                    <option key={m.number} value={m.number} className="text-neutral-800 bg-white">
+                      Meetup #{m.number} ({m.count} {m.count === 1 ? 'book' : 'books'})
+                    </option>
+                  ))}
+                </select>
+                <span className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] ${
+                  selectedMeetup !== null ? 'text-white' : 'text-neutral-500'
+                }`}>▼</span>
+              </div>
+
+              {/* Discussions Filter Dropdown */}
+              <div className="relative">
+                <select
+                  value={discussionFilter}
+                  onChange={(e) => setDiscussionFilter(e.target.value as any)}
+                  className={`pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-none transition-colors shadow-sm ${
+                    discussionFilter !== 'all'
+                      ? 'bg-amber-600 text-white border-amber-600'
+                      : 'bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400'
+                  }`}
+                >
+                  <option value="all" className="text-neutral-800 bg-white">All Discussions</option>
+                  <option value="popular" className="text-neutral-800 bg-white">★ 3+ Discussions</option>
+                  <option value="two-plus" className="text-neutral-800 bg-white">2+ Discussions</option>
+                  <option value="single" className="text-neutral-800 bg-white">1 Discussion</option>
+                </select>
+                <span className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] ${
+                  discussionFilter !== 'all' ? 'text-white' : 'text-neutral-500'
+                }`}>▼</span>
+              </div>
+
+              {/* Sort Dropdown (Spine #, Latest, Title, Random) */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => {
+                    setSortBy(e.target.value as any)
+                    if (e.target.value === 'random') setShuffleSeed((s) => s + 1)
+                  }}
+                  className="pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-none transition-colors bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400 shadow-sm"
+                >
+                  <option value="latest">Sort: Latest to Oldest</option>
+                  <option value="spine-asc">Sort: Spine # (Ascending)</option>
+                  <option value="spine-desc">Sort: Spine # (Descending)</option>
+                  <option value="title-asc">Sort: Title (A–Z)</option>
+                  <option value="discussions-desc">Sort: Most Discussed</option>
+                  <option value="random">Sort: Random Shuffle</option>
+                </select>
+                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-neutral-500">▼</span>
+              </div>
+            </div>
+          </div>
+
+          {/* YOUR LISTS Section (Screenshot 2026-10-01 201506.png) */}
+          <div className="pt-2 pb-4">
+            <span className="text-[10px] font-mono tracking-widest uppercase text-neutral-400 font-bold block mb-2">
+              YOUR LISTS
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  setDiscussionFilter('all')
+                  setSelectedLetter(null)
+                  setSelectedMeetup(null)
+                  setSearchQuery('')
+                }}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  discussionFilter === 'all' && selectedLetter === null && selectedMeetup === null && searchQuery === ''
+                    ? 'bg-[#14130F] text-white shadow-sm'
+                    : 'bg-white border border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
+                }`}
+              >
+                All books
+              </button>
+
+              <button
+                onClick={() => setIsPicksTrayOpen(true)}
+                className="px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100 transition-all flex items-center gap-1.5"
+              >
+                <span>★ Closet Picks</span>
+                <span className="w-4 h-4 rounded-full bg-amber-400 text-black text-[10px] font-bold flex items-center justify-center">
+                  {userPicks.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setDiscussionFilter(discussionFilter === 'popular' ? 'all' : 'popular')}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  discussionFilter === 'popular'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'bg-white border border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
+                }`}
+              >
+                ★ Community Favorites
+              </button>
+            </div>
+          </div>
+
+          {/* Sub-bar: Showing X of Y Volumes */}
+          <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#DDD6C7]">
+            <span className="text-xs text-neutral-500 font-sans">
+              Showing <strong className="text-neutral-900 font-semibold">{filteredBooks.length.toLocaleString()}</strong> of {books.length.toLocaleString()}
+            </span>
+
             <div className="flex items-center gap-4 text-xs font-medium">
-              <Link href="/meetups" className="underline text-neutral-700 hover:text-black">
+              <Link href="/meetups" className="underline text-neutral-600 hover:text-black">
                 Meetups Archive →
               </Link>
-              <Link href="/members" className="underline text-neutral-700 hover:text-black">
+              <Link href="/members" className="underline text-neutral-600 hover:text-black">
                 Readers Directory →
               </Link>
             </div>
           </div>
 
-          {/* Wall Grid Cards (Matching Criterion Closet Website: Real Covers with SPINE Badges) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-4 sm:gap-5">
+          {/* Wall Grid Cards (Matching Screenshot 2026-10-01 201506.png) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
             {filteredBooks.map((book) => {
               const style = getBookSpineStyle(book.title, book.id)
               const isSaved = userPicks.some((b) => b.id === book.id)
@@ -1778,10 +1916,10 @@ export function CriterionBookCloset() {
                 <div
                   key={book.id}
                   onClick={() => setSelectedBook(book)}
-                  className="group flex flex-col cursor-pointer text-left select-none transition-all hover:-translate-y-1"
+                  className="group flex flex-col cursor-pointer text-left select-none transition-all duration-200 hover:-translate-y-1.5"
                 >
                   {/* Card Front Cover with Criterion Spine Badge */}
-                  <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden shadow-md group-hover:shadow-xl transition-all border border-[#DDD6C7] bg-[#1E1B18]">
+                  <div className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden shadow-md group-hover:shadow-2xl transition-all duration-300 border border-[#DDD6C7] bg-[#1E1B18]">
                     {hasCover ? (
                       <img
                         src={coverSrc}
@@ -1796,7 +1934,7 @@ export function CriterionBookCloset() {
 
                     {/* Fallback Artwork if no cover or image fails to load */}
                     <div
-                      className={`absolute inset-0 p-3 flex flex-col justify-between text-center ${
+                      className={`absolute inset-0 p-3.5 flex flex-col justify-between text-center ${
                         hasCover ? '-z-10' : 'z-0'
                       }`}
                       style={{ backgroundColor: style.palette.bg }}
@@ -1804,7 +1942,7 @@ export function CriterionBookCloset() {
                       <div className="w-5 h-px mx-auto opacity-50" style={{ backgroundColor: style.palette.foil }} />
                       <div>
                         <h4
-                          className="font-serif font-bold text-xs leading-snug line-clamp-3 text-white"
+                          className="font-serif font-bold text-xs sm:text-sm leading-snug line-clamp-3 text-white"
                           style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
                         >
                           {book.title}
@@ -1818,14 +1956,14 @@ export function CriterionBookCloset() {
                       <div className="w-5 h-px mx-auto opacity-50" style={{ backgroundColor: style.palette.foil }} />
                     </div>
 
-                    {/* Top-Left Rounded Black Pill Badge: SPINE X (Exact match to Criterion Screenshot 2) */}
-                    <div className="absolute top-2 left-2 z-10 bg-black/85 text-white text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full backdrop-blur-md shadow-md border border-white/20">
+                    {/* Top-Left Rounded Black Pill Badge: SPINE X (Screenshot 2026-10-01 201506.png) */}
+                    <div className="absolute top-2.5 left-2.5 z-10 bg-black/85 text-white text-[9px] sm:text-[9.5px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full backdrop-blur-md shadow-md border border-white/20">
                       SPINE {style.numericSpine}
                     </div>
 
                     {/* Saved In Picks Indicator */}
                     {isSaved && (
-                      <div className="absolute top-2 right-2 z-10 w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]" />
+                      <div className="absolute top-2.5 right-2.5 z-10 w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.95)]" />
                     )}
 
                     {/* Hover sheen */}
@@ -1833,13 +1971,13 @@ export function CriterionBookCloset() {
                   </div>
 
                   {/* Caption underneath: Title in bold serif, Subtitle and Meetup tags */}
-                  <div className="mt-2 px-0.5">
-                    <span className="font-serif font-bold text-xs sm:text-sm leading-tight text-[#14130F] line-clamp-1 group-hover:underline block">
+                  <div className="mt-2.5 px-0.5">
+                    <h3 className="font-serif font-bold text-xs sm:text-sm leading-snug text-[#14130F] line-clamp-1 group-hover:underline block">
                       {book.title}
-                    </span>
-                    <span className="text-[11px] text-neutral-500 truncate block mt-0.5">
-                      {pubYear ? `${pubYear} · ` : ''}{book.author_name || 'Bangalore'}
-                    </span>
+                    </h3>
+                    <p className="text-[11px] sm:text-xs text-neutral-500 truncate block mt-0.5">
+                      {pubYear ? `${pubYear} · ` : ''}{book.author_name || 'Bangalore Book Club'}
+                    </p>
                     {book.meetups && book.meetups.length > 0 && (
                       <div className="mt-1 flex items-center gap-1 flex-wrap">
                         {book.meetups.slice(0, 2).map((m) => (
@@ -2077,19 +2215,33 @@ export function CriterionBookCloset() {
       </AnimatePresence>
 
       {/* =======================================================
-          5. CRITERION CLOSET DETAIL MODAL (Matching Screenshots 2 & 3)
+          5. DETAIL MODAL:
+          - List View: CriterionListDetailModal (Exact match with Screenshots 1 & 2)
+          - Closet View: CriterionDetailModal (3D Stage with 360° Rotatable Book)
           ======================================================= */}
       <AnimatePresence>
         {selectedBook && (
-          <CriterionDetailModal
-            book={selectedBook}
-            allBooks={filteredBooks}
-            userPicks={userPicks}
-            onTogglePick={handleTogglePick}
-            onClose={() => setSelectedBook(null)}
-            onSelectBook={(b) => setSelectedBook(b)}
-            onShowToast={showToast}
-          />
+          viewMode === 'list' ? (
+            <CriterionListDetailModal
+              book={selectedBook}
+              allBooks={filteredBooks}
+              userPicks={userPicks}
+              onTogglePick={handleTogglePick}
+              onClose={() => setSelectedBook(null)}
+              onSelectBook={(b) => setSelectedBook(b)}
+              onShowToast={showToast}
+            />
+          ) : (
+            <CriterionDetailModal
+              book={selectedBook}
+              allBooks={filteredBooks}
+              userPicks={userPicks}
+              onTogglePick={handleTogglePick}
+              onClose={() => setSelectedBook(null)}
+              onSelectBook={(b) => setSelectedBook(b)}
+              onShowToast={showToast}
+            />
+          )
         )}
       </AnimatePresence>
 
