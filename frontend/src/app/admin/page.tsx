@@ -4,6 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { BookAutocompleteInput, BookSuggestion, MediaTypeOption } from '@/components/admin/BookAutocompleteInput'
 import { MemberAutocompleteInput } from '@/components/admin/MemberAutocompleteInput'
+import { getApiBase } from '@/lib/api'
 
 interface BookItem {
   discussion_id: string
@@ -33,8 +34,6 @@ interface MeetupAdminItem {
   books_count: number
   books: BookItem[]
 }
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 // Helper to normalize titles for duplicate detection
 function normalizeBookTitle(title: string): string {
@@ -98,11 +97,29 @@ export default function AdminDatabasePage() {
     setTimeout(() => setToast(null), 3000)
   }
 
+  // Resilient fetch helper: tries direct backend port first, falls back to Next.js reverse-proxy
+  const apiFetch = React.useCallback(async (path: string, init?: RequestInit): Promise<Response> => {
+    const base = getApiBase()
+    const cleanPath = path.startsWith('/') ? path : `/${path}`
+    try {
+      const res = await fetch(`${base}${cleanPath}`, init)
+      if (res.ok) return res
+    } catch {}
+
+    // Fallback through Next.js rewrite proxy (/api/admin/... or /api/...)
+    const proxyPath = cleanPath.startsWith('/admin')
+      ? `/api${cleanPath}`
+      : cleanPath.startsWith('/api')
+      ? cleanPath
+      : `/api${cleanPath}`
+    return fetch(proxyPath, init)
+  }, [])
+
   // Load all meetups with full book discussions
   const loadData = async () => {
     try {
       setLoading(true)
-      const res = await fetch(`${API_BASE}/admin/meetups`)
+      const res = await apiFetch('/admin/meetups')
       if (!res.ok) throw new Error('Failed to fetch meetups')
       const data: MeetupAdminItem[] = await res.json()
       setMeetups(data)
@@ -156,7 +173,7 @@ export default function AdminDatabasePage() {
     e.preventDefault()
     if (!currentMeetup) return
     try {
-      const res = await fetch(`${API_BASE}/admin/meetups/${currentMeetup.number}`, {
+      const res = await apiFetch(`/admin/meetups/${currentMeetup.number}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -230,7 +247,7 @@ export default function AdminDatabasePage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/admin/meetups/${currentMeetup.number}/books`, {
+      const res = await apiFetch(`/admin/meetups/${currentMeetup.number}/books`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -276,7 +293,7 @@ export default function AdminDatabasePage() {
       return
     }
     try {
-      const res = await fetch(`${API_BASE}/admin/discussions/${book.discussion_id}`, {
+      const res = await apiFetch(`/admin/discussions/${book.discussion_id}`, {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error('Failed to delete book entry')
@@ -320,7 +337,7 @@ export default function AdminDatabasePage() {
     )
 
     try {
-      const res = await fetch(`${API_BASE}/admin/discussions/${book.discussion_id}/general`, {
+      const res = await apiFetch(`/admin/discussions/${book.discussion_id}/general`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_general_discussion: nextState }),
@@ -356,7 +373,7 @@ export default function AdminDatabasePage() {
     e.preventDefault()
     if (!editingBook || !editBookTitle.trim()) return
     try {
-      const res = await fetch(`${API_BASE}/admin/books/${editingBook.book_id}`, {
+      const res = await apiFetch(`/admin/books/${editingBook.book_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -391,7 +408,7 @@ export default function AdminDatabasePage() {
     setIsEnrichingMeetup(true)
     showToast(`⚡ Querying Goodreads API for Meetup #${currentMeetup.number} books...`)
     try {
-      const res = await fetch(`${API_BASE}/admin/meetups/${currentMeetup.number}/enrich-goodreads`, {
+      const res = await apiFetch(`/admin/meetups/${currentMeetup.number}/enrich-goodreads`, {
         method: 'POST',
       })
       if (!res.ok) throw new Error('Enrichment failed')
@@ -411,7 +428,7 @@ export default function AdminDatabasePage() {
     setEnrichingBookId(book.book_id)
     showToast(`⚡ Querying Goodreads for "${book.title}"...`)
     try {
-      const res = await fetch(`${API_BASE}/admin/books/${book.book_id}/enrich-goodreads`, {
+      const res = await apiFetch(`/admin/books/${book.book_id}/enrich-goodreads`, {
         method: 'POST',
       })
       if (!res.ok) throw new Error('Book enrichment failed')
@@ -436,7 +453,7 @@ export default function AdminDatabasePage() {
     setIsGeneratingPdf(true)
     showToast(`📑 Generating Canva-style zine PDF for Meetup #${currentMeetup.number}...`)
     try {
-      const res = await fetch(`${API_BASE}/admin/meetups/${currentMeetup.number}/generate-pdf`, {
+      const res = await apiFetch(`/admin/meetups/${currentMeetup.number}/generate-pdf`, {
         method: 'POST',
       })
       if (!res.ok) {
@@ -463,7 +480,7 @@ export default function AdminDatabasePage() {
     try {
       const formData = new FormData()
       formData.append('file', selectedPhotoFile)
-      const res = await fetch(`${API_BASE}/admin/meetups/${currentMeetup.number}/photo`, {
+      const res = await apiFetch(`/admin/meetups/${currentMeetup.number}/photo`, {
         method: 'POST',
         body: formData,
       })
@@ -489,7 +506,7 @@ export default function AdminDatabasePage() {
     if (!currentMeetup) return
     if (!confirm(`Are you sure you want to remove the group photo for Meetup #${currentMeetup.number}?`)) return
     try {
-      const res = await fetch(`${API_BASE}/admin/meetups/${currentMeetup.number}/photo`, {
+      const res = await apiFetch(`/admin/meetups/${currentMeetup.number}/photo`, {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error('Failed to remove photo')
@@ -705,7 +722,7 @@ export default function AdminDatabasePage() {
                       <button
                         onClick={() => {
                           setSelectedPhotoFile(null)
-                          setPhotoPreviewUrl(currentMeetup.photo_url ? `${API_BASE}${currentMeetup.photo_url}` : null)
+                          setPhotoPreviewUrl(currentMeetup.photo_url ? `${getApiBase()}${currentMeetup.photo_url}` : null)
                           setIsPhotoModalOpen(true)
                         }}
                         className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer ${
@@ -739,7 +756,7 @@ export default function AdminDatabasePage() {
                       </button>
 
                       <a
-                        href={`${API_BASE}/admin/meetups/${currentMeetup.number}/pdf`}
+                        href={`${getApiBase()}/admin/meetups/${currentMeetup.number}/pdf`}
                         target="_blank"
                         rel="noreferrer"
                         className="px-2.5 py-1.5 rounded-xl border border-neutral-800 bg-[#14130F] hover:bg-neutral-800 text-white text-xs font-semibold transition-colors shadow-xs flex items-center gap-1.5"
@@ -1076,7 +1093,7 @@ export default function AdminDatabasePage() {
                   onMediaTypeChange={setNewMediaType}
                   required
                   autoFocus
-                  apiBase={API_BASE}
+                  apiBase={getApiBase()}
                 />
               </div>
 
@@ -1147,7 +1164,7 @@ export default function AdminDatabasePage() {
                       onClick={async () => {
                         try {
                           showToast('⚡ Resolving link metadata...')
-                          const res = await fetch(`${API_BASE}/api/media/resolve-url?url=${encodeURIComponent(newBookUrl.trim())}`)
+                          const res = await apiFetch(`/api/media/resolve-url?url=${encodeURIComponent(newBookUrl.trim())}`)
                           if (res.ok) {
                             const data = await res.json()
                             if (data.title && !newBookTitle) setNewBookTitle(data.title)
@@ -1230,7 +1247,7 @@ export default function AdminDatabasePage() {
                   value={newBookMember}
                   onChange={setNewBookMember}
                   placeholder="Type discussant name (e.g. Mishael, Abhiram)..."
-                  apiBase={API_BASE}
+                  apiBase={getApiBase()}
                   bookId={newBookMeta?.id || existingDuplicateBook?.book_id || undefined}
                 />
               </div>
@@ -1325,7 +1342,7 @@ export default function AdminDatabasePage() {
                   onMediaTypeChange={setEditMediaType}
                   required
                   autoFocus
-                  apiBase={API_BASE}
+                  apiBase={getApiBase()}
                 />
               </div>
 
@@ -1396,7 +1413,7 @@ export default function AdminDatabasePage() {
                       onClick={async () => {
                         try {
                           showToast('⚡ Resolving link metadata...')
-                          const res = await fetch(`${API_BASE}/api/media/resolve-url?url=${encodeURIComponent(editBookUrl.trim())}`)
+                          const res = await apiFetch(`/api/media/resolve-url?url=${encodeURIComponent(editBookUrl.trim())}`)
                           if (res.ok) {
                             const data = await res.json()
                             if (data.title && !editBookTitle) setEditBookTitle(data.title)
@@ -1443,7 +1460,7 @@ export default function AdminDatabasePage() {
                   value={editBookMember}
                   onChange={setEditBookMember}
                   placeholder="Type discussant name (e.g. Mishael, Abhiram)..."
-                  apiBase={API_BASE}
+                  apiBase={getApiBase()}
                   bookId={editBookMeta?.id || editingBook?.book_id || undefined}
                 />
                 <p className="text-[10px] text-neutral-400 mt-1">

@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { getApiBase } from '@/lib/api'
 
 export interface BookSuggestion {
   id?: string
@@ -56,9 +57,10 @@ export function BookAutocompleteInput({
   placeholder,
   required = false,
   autoFocus = false,
-  apiBase = 'http://localhost:8000',
+  apiBase,
   className = '',
 }: BookAutocompleteInputProps) {
+  const resolvedApiBase = apiBase || getApiBase()
   const [currentMediaType, setCurrentMediaType] = React.useState<MediaTypeOption>(mediaType)
   const [suggestions, setSuggestions] = React.useState<BookSuggestion[]>([])
   const [isOpen, setIsOpen] = React.useState(false)
@@ -135,7 +137,7 @@ export function BookAutocompleteInput({
       const timeoutId = setTimeout(async () => {
         try {
           const res = await fetch(
-            `${apiBase}/api/media/resolve-url?url=${encodeURIComponent(query)}`,
+            `${resolvedApiBase}/api/media/resolve-url?url=${encodeURIComponent(query)}`,
             { signal: controller.signal }
           )
           if (!res.ok) throw new Error('URL resolution failed')
@@ -171,7 +173,7 @@ export function BookAutocompleteInput({
     const timeoutId = setTimeout(async () => {
       try {
         const res = await fetch(
-          `${apiBase}/api/media/suggest?q=${encodeURIComponent(query)}&media_type=${currentMediaType}`,
+          `${resolvedApiBase}/api/media/suggest?q=${encodeURIComponent(query)}&media_type=${currentMediaType}`,
           { signal: controller.signal }
         )
         if (!res.ok) throw new Error('Search failed')
@@ -193,7 +195,7 @@ export function BookAutocompleteInput({
       clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [value, currentMediaType, hasInteracted, apiBase])
+  }, [value, currentMediaType, hasInteracted, resolvedApiBase])
 
   const handleSelect = (item: BookSuggestion) => {
     onChange(item.title)

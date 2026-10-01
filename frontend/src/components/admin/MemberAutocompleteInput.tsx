@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { getApiBase } from '@/lib/api'
 
 export interface MemberSuggestion {
   id?: string
@@ -53,11 +54,12 @@ export function MemberAutocompleteInput({
   onChange,
   onSelectMember,
   placeholder = 'Type reader name (e.g. Mishael, Avinash, Abhiram)...',
-  apiBase = 'http://localhost:8000',
+  apiBase,
   className = '',
   autoFocus = false,
   bookId,
 }: MemberAutocompleteInputProps) {
+  const resolvedApiBase = apiBase || getApiBase()
   const [inputValue, setInputValue] = React.useState('')
   const [suggestions, setSuggestions] = React.useState<MemberSuggestion[]>([])
   const [isOpen, setIsOpen] = React.useState(false)
@@ -124,7 +126,7 @@ export function MemberAutocompleteInput({
         const params = new URLSearchParams()
         if (query.trim()) params.set('q', query.trim())
         if (bookId) params.set('book_id', bookId)
-        const url = `${apiBase}/admin/members/suggest?${params.toString()}`
+        const url = `${resolvedApiBase}/admin/members/suggest?${params.toString()}`
 
         const res = await fetch(url, { signal: controller.signal })
         if (!res.ok) throw new Error('Search failed')
@@ -141,7 +143,7 @@ export function MemberAutocompleteInput({
         setLoading(false)
       }
     },
-    [apiBase, bookId]
+    [resolvedApiBase, bookId]
   )
 
   // Debounced search on input change

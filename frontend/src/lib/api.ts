@@ -5,7 +5,19 @@
  * It replaces the previous better-sqlite3 direct database access.
  */
 
-const API_BASE =
+export function getApiBase(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL
+  }
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname
+    const protocol = window.location.protocol
+    return `${protocol}//${host}:8000`
+  }
+  return 'http://localhost:8000'
+}
+
+export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   (typeof window !== 'undefined' ? '/api' : 'http://localhost:8000')
 

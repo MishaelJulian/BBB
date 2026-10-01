@@ -10,8 +10,16 @@ const nextConfig: NextConfig = {
     const backendUrl = process.env.BACKEND_INTERNAL_URL || 'http://localhost:8000'
     return [
       {
+        source: '/api/admin/:path*',
+        destination: `${backendUrl}/admin/:path*`,
+      },
+      {
         source: '/api/:path*',
         destination: `${backendUrl}/:path*`,
+      },
+      {
+        source: '/static/:path*',
+        destination: `${backendUrl}/static/:path*`,
       },
     ]
   },
