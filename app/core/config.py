@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # Log level
     LOG_LEVEL: str = "INFO"
 
+    # Browser origins allowed to call the API directly (comma-separated), on top of
+    # localhost and private-LAN addresses used in development.
+    CORS_ORIGINS: str = ""
+
     def model_post_init(self, __context) -> None:
         """Ensure required directories exist."""
         self.DATA_DIR.mkdir(parents=True, exist_ok=True)

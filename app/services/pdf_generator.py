@@ -11,6 +11,8 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
+from app.core.paths import ASSETS_DIR, asset_path
+
 # Register custom fonts extracted from official Canva templates
 FONTS_DIR = os.path.join(os.getcwd(), "assets", "fonts")
 SPECIAL_ELITE_PATH = os.path.join(FONTS_DIR, "SpecialElite-Regular.ttf")
@@ -230,16 +232,22 @@ def generate_meetup_pdf(
     cover_bg = os.path.join(os.getcwd(), "assets", "templates", "bbb99", "page_1_img_1.jpeg")
     closing_bg = os.path.join(os.getcwd(), "assets", "templates", "bbb99", "page_13_img_1.jpeg")
 
-    # Determine group photo
+    # Determine group photo: first existing candidate, each confined to assets/.
     group_photo = None
-    if custom_photo_path and os.path.exists(custom_photo_path):
-        group_photo = custom_photo_path
-    elif meetup.photo_url and os.path.exists(meetup.photo_url.lstrip("/")):
-        group_photo = meetup.photo_url.lstrip("/")
-    elif os.path.exists(os.path.join(os.getcwd(), "assets", "uploads", f"meetup_{meetup_number}_photo.jpg")):
-        group_photo = os.path.join(os.getcwd(), "assets", "uploads", f"meetup_{meetup_number}_photo.jpg")
-    elif os.path.exists(os.path.join(os.getcwd(), "assets", "templates", "bbb99", "page_12_img_1.jpeg")):
-        group_photo = os.path.join(os.getcwd(), "assets", "templates", "bbb99", "page_12_img_1.jpeg")
+    candidates = [
+        os.path.relpath(custom_photo_path, ASSETS_DIR) if custom_photo_path else None,
+        meetup.photo_url.lstrip("/").removeprefix("assets/") if meetup.photo_url else None,
+        os.path.join("uploads", f"meetup_{meetup_number}_photo.jpg"),
+        os.path.join("templates", "bbb99", "page_12_img_1.jpeg"),
+    ]
+    for candidate in filter(None, candidates):
+        try:
+            path = asset_path(candidate)
+        except ValueError:
+            continue
+        if os.path.exists(path):
+            group_photo = path
+            break
 
     # =========================================================================
     # PAGE 1: COVER PAGE
@@ -437,7 +445,7 @@ def generate_meetup_pdf(
     # =========================================================================
     # GROUP PICTURE PAGE
     # =========================================================================
-    if group_photo and os.path.exists(group_photo):
+    if group_photo:  # already confined to assets/ and checked to exist
         draw_parchment_background()
 
         # Header

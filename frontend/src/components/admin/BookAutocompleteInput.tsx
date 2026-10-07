@@ -109,8 +109,7 @@ export function BookAutocompleteInput({
       trimmed.startsWith('http://') ||
       trimmed.startsWith('https://') ||
       trimmed.startsWith('www.') ||
-      trimmed.includes('youtube.com/') ||
-      trimmed.includes('youtu.be/')
+      /^(m\.)?(youtube\.com|youtu\.be)\//i.test(trimmed)
     )
   }
 

@@ -26,6 +26,8 @@ import os
 from sqlalchemy import func
 
 from app.core.database import get_engine, SessionLocal
+from app.core.config import settings
+from app.core.paths import ASSETS_DIR, asset_path
 from app.database.models import (
     CanonicalBook, ImportedBook, Meetup, Venue, Author, Member, Discussion, Resource
 )
@@ -46,8 +48,11 @@ app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 # Configure CORS for Next.js frontend (allowing any local development port e.g. 3000, 3001)
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"^https?://.*",
-    allow_credentials=True,
+    # Dev: localhost + private LAN (the admin page calls :8000 directly from phones on the LAN).
+    # Production origins come from CORS_ORIGINS. No cookies are used, so credentials stay off.
+    allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|10(\.\d{1,3}){3}|192\.168(\.\d{1,3}){2}|172\.(1[6-9]|2\d|3[01])(\.\d{1,3}){2})(:\d+)?$",
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -1055,10 +1060,9 @@ async def upload_meetup_photo(meetup_number: int, file: UploadFile = File(...)):
         if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
             ext = ".jpg"
 
-        upload_dir = os.path.join("assets", "uploads", "meetups")
-        os.makedirs(upload_dir, exist_ok=True)
         dest_filename = f"meetup_{meetup_number}_photo{ext}"
-        dest_path = os.path.join(upload_dir, dest_filename)
+        dest_path = asset_path("uploads", "meetups", dest_filename)
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
         content = await file.read()
         with open(dest_path, "wb") as f:
@@ -1137,9 +1141,9 @@ def download_meetup_pdf_endpoint(meetup_number: int):
         if not meetup:
             raise HTTPException(status_code=404, detail="Meetup not found")
 
-        pdf_path = os.path.join("assets", "generated_pdfs", f"bbb_meetup_{meetup_number}.pdf")
+        pdf_path = asset_path("generated_pdfs", f"bbb_meetup_{meetup_number}.pdf")
         if not os.path.exists(pdf_path):
-            pdf_path = generate_meetup_pdf(meetup_number, db)
+            pdf_path = asset_path(os.path.relpath(generate_meetup_pdf(meetup_number, db), ASSETS_DIR))
             meetup.pdf_url = f"/assets/generated_pdfs/bbb_meetup_{meetup_number}.pdf"
             db.commit()
 
@@ -1633,6 +1637,12 @@ class _PublicOnlyRedirects(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
+def _host_is(url: str, *domains: str) -> bool:
+    """True if the URL's host is one of `domains` or a subdomain of one (not a substring match)."""
+    host = (urllib.parse.urlparse(url).hostname or "").lower()
+    return any(host == d or host.endswith("." + d) for d in domains)
+
+
 # ponytail: resolve-then-fetch leaves a DNS-rebinding window; pin the resolved IP if this endpoint goes public.
 _public_opener = urllib.request.build_opener(_PublicOnlyRedirects)
 
@@ -1652,7 +1662,8 @@ def resolve_media_url(url: str) -> dict:
         clean_url = "https://" + clean_url
 
     # 1. YouTube video, shorts, or playlist via official free oEmbed
-    if "youtube.com/watch" in clean_url or "youtu.be/" in clean_url or "youtube.com/shorts/" in clean_url:
+    yt_path = urllib.parse.urlparse(clean_url).path
+    if _host_is(clean_url, "youtu.be") or (_host_is(clean_url, "youtube.com") and yt_path.startswith(("/watch", "/shorts/"))):
         try:
             oembed_url = f"https://www.youtube.com/oembed?url={urllib.parse.quote(clean_url)}&format=json"
             req = urllib.request.Request(oembed_url, headers={"User-Agent": "Mozilla/5.0"})
@@ -1719,15 +1730,15 @@ def resolve_media_url(url: str) -> dict:
         media_type = "tangent"
         creator = site_name
 
-        if "youtube.com" in clean_url or "youtu.be" in clean_url:
+        if _host_is(clean_url, "youtube.com", "youtu.be"):
             media_type = "youtube"
             creator = title if "@" in clean_url else "YouTube"
-        elif "imdb.com" in clean_url or "letterboxd.com" in clean_url:
+        elif _host_is(clean_url, "imdb.com", "letterboxd.com"):
             media_type = "movie"
             creator = site_name or "Cinema"
-        elif "goodreads.com" in clean_url:
+        elif _host_is(clean_url, "goodreads.com"):
             media_type = "book"
-        elif "spotify.com" in clean_url or "podcasts.apple.com" in clean_url:
+        elif _host_is(clean_url, "spotify.com", "podcasts.apple.com"):
             media_type = "podcast"
             creator = site_name or "Podcast"
         else:
@@ -1748,7 +1759,7 @@ def resolve_media_url(url: str) -> dict:
         }
     except Exception:
         domain = urllib.parse.urlparse(clean_url).netloc.replace("www.", "")
-        m_type = "youtube" if "youtube" in domain else "tangent"
+        m_type = "youtube" if _host_is(clean_url, "youtube.com", "youtu.be") else "tangent"
         return {
             "media_type": m_type,
             "title": clean_url,
@@ -1775,7 +1786,7 @@ def search_external_media(q: str, media_type: str = "book") -> list:
         return []
 
     # If query is a URL, resolve directly regardless of tab
-    if q_clean.startswith("http://") or q_clean.startswith("https://") or "youtube.com" in q_clean or "youtu.be" in q_clean:
+    if q_clean.startswith(("http://", "https://")) or _host_is("https://" + q_clean, "youtube.com", "youtu.be"):
         resolved = resolve_media_url(q_clean)
         return [resolved] if resolved else []
 
