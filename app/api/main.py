@@ -31,12 +31,12 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Ensure static directories exist and mount static files router
-os.makedirs("static/uploads/meetups", exist_ok=True)
-os.makedirs("static/generated_pdfs", exist_ok=True)
-os.makedirs("static/fonts", exist_ok=True)
-os.makedirs("static/templates", exist_ok=True)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Ensure assets directories exist and mount them at /assets
+os.makedirs("assets/uploads/meetups", exist_ok=True)
+os.makedirs("assets/generated_pdfs", exist_ok=True)
+os.makedirs("assets/fonts", exist_ok=True)
+os.makedirs("assets/templates", exist_ok=True)
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 # Configure CORS for Next.js frontend (allowing any local development port e.g. 3000, 3001)
 app.add_middleware(
@@ -1047,7 +1047,7 @@ async def upload_meetup_photo(meetup_number: int, file: UploadFile = File(...)):
         if ext not in [".jpg", ".jpeg", ".png", ".webp"]:
             ext = ".jpg"
 
-        upload_dir = os.path.join("static", "uploads", "meetups")
+        upload_dir = os.path.join("assets", "uploads", "meetups")
         os.makedirs(upload_dir, exist_ok=True)
         dest_filename = f"meetup_{meetup_number}_photo{ext}"
         dest_path = os.path.join(upload_dir, dest_filename)
@@ -1056,7 +1056,7 @@ async def upload_meetup_photo(meetup_number: int, file: UploadFile = File(...)):
         with open(dest_path, "wb") as f:
             f.write(content)
 
-        photo_url = f"/static/uploads/meetups/{dest_filename}"
+        photo_url = f"/assets/uploads/meetups/{dest_filename}"
         meetup.photo_url = photo_url
         db.commit()
 
@@ -1102,7 +1102,7 @@ def generate_meetup_pdf_endpoint(meetup_number: int):
             raise HTTPException(status_code=404, detail="Meetup not found")
 
         pdf_path = generate_meetup_pdf(meetup_number, db)
-        pdf_url = f"/static/generated_pdfs/bbb_meetup_{meetup_number}.pdf"
+        pdf_url = f"/assets/generated_pdfs/bbb_meetup_{meetup_number}.pdf"
         meetup.pdf_url = pdf_url
         db.commit()
 
@@ -1129,10 +1129,10 @@ def download_meetup_pdf_endpoint(meetup_number: int):
         if not meetup:
             raise HTTPException(status_code=404, detail="Meetup not found")
 
-        pdf_path = os.path.join("static", "generated_pdfs", f"bbb_meetup_{meetup_number}.pdf")
+        pdf_path = os.path.join("assets", "generated_pdfs", f"bbb_meetup_{meetup_number}.pdf")
         if not os.path.exists(pdf_path):
             pdf_path = generate_meetup_pdf(meetup_number, db)
-            meetup.pdf_url = f"/static/generated_pdfs/bbb_meetup_{meetup_number}.pdf"
+            meetup.pdf_url = f"/assets/generated_pdfs/bbb_meetup_{meetup_number}.pdf"
             db.commit()
 
         return FileResponse(

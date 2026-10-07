@@ -23,20 +23,20 @@ def main():
         print("=== INGESTING MEETUP #99 ===")
 
         # 1. Ensure directories and copy media assets
-        os.makedirs("static/uploads/meetups", exist_ok=True)
-        os.makedirs("static/generated_pdfs", exist_ok=True)
-        os.makedirs("static/cache/covers", exist_ok=True)
+        os.makedirs("assets/uploads/meetups", exist_ok=True)
+        os.makedirs("assets/generated_pdfs", exist_ok=True)
+        os.makedirs("assets/cache/covers", exist_ok=True)
 
         # Copy the genuine group picture for Meetup 99
-        photo_src = "static/templates/bbb99_extracted/p12_0_X4.jpg"
-        photo_dst = "static/uploads/meetups/meetup_99_photo.jpeg"
+        photo_src = "assets/templates/bbb99_extracted/p12_0_X4.jpg"
+        photo_dst = "assets/uploads/meetups/meetup_99_photo.jpeg"
         if os.path.exists(photo_src):
             shutil.copyfile(photo_src, photo_dst)
             print(f"[OK] Copied group picture to {photo_dst}")
 
         # Copy the genuine PDF for Meetup 99
         pdf_src = "BBB 99, Books Discussion List.pdf"
-        pdf_dst = "static/generated_pdfs/bbb_meetup_99.pdf"
+        pdf_dst = "assets/generated_pdfs/bbb_meetup_99.pdf"
         if os.path.exists(pdf_src):
             shutil.copyfile(pdf_src, pdf_dst)
             print(f"[OK] Copied original publication PDF to {pdf_dst}")
@@ -54,8 +54,8 @@ def main():
                 title="BBB Meetup #99",
                 venue_id=venue_id,
                 format="IN_PERSON",
-                photo_url="/static/uploads/meetups/meetup_99_photo.jpeg",
-                pdf_url="/static/generated_pdfs/bbb_meetup_99.pdf",
+                photo_url="/assets/uploads/meetups/meetup_99_photo.jpeg",
+                pdf_url="/assets/generated_pdfs/bbb_meetup_99.pdf",
                 description='Author Interaction with Sowmiya Ashok (author of "The Dig"), followed by member presentations and general discussion.',
             )
             db.add(meetup)
@@ -65,8 +65,8 @@ def main():
             meetup.date = date(2026, 8, 23)
             meetup.title = "BBB Meetup #99"
             meetup.venue_id = venue_id
-            meetup.photo_url = "/static/uploads/meetups/meetup_99_photo.jpeg"
-            meetup.pdf_url = "/static/generated_pdfs/bbb_meetup_99.pdf"
+            meetup.photo_url = "/assets/uploads/meetups/meetup_99_photo.jpeg"
+            meetup.pdf_url = "/assets/generated_pdfs/bbb_meetup_99.pdf"
             meetup.description = 'Author Interaction with Sowmiya Ashok (author of "The Dig"), followed by member presentations and general discussion.'
             db.flush()
             print(f"[OK] Updated existing Meetup #99 (ID: {meetup.id})")
@@ -75,7 +75,7 @@ def main():
         # Format: (title, author, member_name, is_general, notes, custom_cover)
         books_data = [
             # Page 2: Author Interaction
-            ("The Dig", "Sowmiya Ashok", "Sowmiya Ashok", False, "Featured Author Interaction", "static/templates/bbb99_extracted/p2_1_X6.jpg"),
+            ("The Dig", "Sowmiya Ashok", "Sowmiya Ashok", False, "Featured Author Interaction", "assets/templates/bbb99_extracted/p2_1_X6.jpg"),
 
             # Page 3: Sowmiya's Books & Recent Favorites
             ("Bird by Bird", "Anne Lamott", "Sowmiya Ashok", False, "Sowmiya's Recommendations", None),
@@ -181,11 +181,11 @@ def main():
             if not book:
                 cover_url = None
                 if custom_cover and os.path.exists(custom_cover):
-                    # Copy cover to static/cache/covers
+                    # Copy cover to assets/cache/covers
                     ext = os.path.splitext(custom_cover)[1]
                     import hashlib
                     hash_val = hashlib.md5(clean_title.encode('utf-8')).hexdigest()
-                    dst_cover = f"static/cache/covers/{hash_val}{ext}"
+                    dst_cover = f"assets/cache/covers/{hash_val}{ext}"
                     shutil.copyfile(custom_cover, dst_cover)
                     cover_url = f"/{dst_cover}"
 

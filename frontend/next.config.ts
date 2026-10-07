@@ -18,8 +18,8 @@ const nextConfig: NextConfig = {
         destination: `${backendUrl}/:path*`,
       },
       {
-        source: '/static/:path*',
-        destination: `${backendUrl}/static/:path*`,
+        source: '/assets/:path*',
+        destination: `${backendUrl}/assets/:path*`,
       },
     ]
   },
