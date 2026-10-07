@@ -59,8 +59,10 @@ export function Footer() {
               <li>Version 1.0.0</li>
               {stats && (
                 <>
-                  <li>{stats.total_meetups.toLocaleString()} Meetups</li>
-                  <li>{stats.canonical_books.toLocaleString()} Books</li>
+                  <li>
+                    {stats.total_meetups.toLocaleString()} of {stats.meetups_expected.toLocaleString()} Meetups
+                  </li>
+                  <li>{stats.books_discussed.toLocaleString()} Books</li>
                   <li>{stats.members.toLocaleString()} Members</li>
                 </>
               )}

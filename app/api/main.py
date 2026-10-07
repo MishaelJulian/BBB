@@ -20,6 +20,8 @@ import re
 import time
 import os
 
+from sqlalchemy import func
+
 from app.core.database import get_engine, SessionLocal
 from app.database.models import (
     CanonicalBook, ImportedBook, Meetup, Venue, Author, Member, Discussion, Resource
@@ -336,7 +338,10 @@ def get_stats():
     try:
         stats = {
             "total_meetups": db.query(Meetup).count(),
+            # Meetup numbers are sequential, so the latest number = meetups held.
+            "meetups_expected": db.query(func.max(Meetup.meetup_number)).scalar() or 0,
             "canonical_books": db.query(CanonicalBook).count(),
+            "books_discussed": db.query(func.count(func.distinct(Discussion.canonical_book_id))).scalar(),
             "imported_books": db.query(ImportedBook).count(),
             "authors": db.query(Author).count(),
             "members": db.query(Member).count(),

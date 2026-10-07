@@ -27,7 +27,9 @@ export const API_BASE =
 
 export interface ArchiveStats {
   total_meetups: number
+  meetups_expected: number
   canonical_books: number
+  books_discussed: number
   imported_books: number
   authors: number
   members: number
