@@ -22,7 +22,7 @@ import os
 
 from app.core.database import get_engine, SessionLocal
 from app.database.models import (
-    CanonicalBook, Meetup, Venue, Author, Member, Discussion, Resource
+    CanonicalBook, ImportedBook, Meetup, Venue, Author, Member, Discussion, Resource
 )
 
 app = FastAPI(
@@ -337,7 +337,7 @@ def get_stats():
         stats = {
             "total_meetups": db.query(Meetup).count(),
             "canonical_books": db.query(CanonicalBook).count(),
-            "imported_books": db.query(CanonicalBook).count(),  # Using canonical as proxy
+            "imported_books": db.query(ImportedBook).count(),
             "authors": db.query(Author).count(),
             "members": db.query(Member).count(),
             "venues": db.query(Venue).count(),

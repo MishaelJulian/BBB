@@ -610,7 +610,7 @@ export default function AdminDatabasePage() {
           /* 2-Column Master-Detail Layout */
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            {/* Left Column: All 52 Meetups List */}
+            {/* Left Column: All Meetups List */}
             <div className="lg:col-span-4 bg-white rounded-2xl border border-[#E5E0DB] shadow-sm flex flex-col h-[750px] overflow-hidden">
               <div className="p-3.5 border-b border-[#E5E0DB] bg-[#FAF8F5] flex items-center justify-between">
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-600">

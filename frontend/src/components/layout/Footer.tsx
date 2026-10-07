@@ -1,5 +1,9 @@
+'use client'
+
+import * as React from 'react'
 import Link from 'next/link'
 import { Divider } from '@/components/ui/Divider'
+import { fetchStats, type ArchiveStats } from '@/lib/api'
 
 const footerLinks = [
   { href: '/library-room', label: 'The Library Room' },
@@ -9,6 +13,12 @@ const footerLinks = [
 ]
 
 export function Footer() {
+  // Counts come from the live DB via GET /stats; nothing is shown if it fails.
+  const [stats, setStats] = React.useState<ArchiveStats | null>(null)
+  React.useEffect(() => {
+    fetchStats().then(setStats).catch(() => setStats(null))
+  }, [])
+
   return (
     <footer className="bg-paper-dark">
       <Divider />
@@ -47,9 +57,13 @@ export function Footer() {
             <h4 className="text-sm font-medium text-ink mb-4">Archive</h4>
             <ul className="space-y-2 text-sm text-muted">
               <li>Version 1.0.0</li>
-              <li>52 Meetups</li>
-              <li>2,747 Books</li>
-              <li>144 Members</li>
+              {stats && (
+                <>
+                  <li>{stats.total_meetups.toLocaleString()} Meetups</li>
+                  <li>{stats.canonical_books.toLocaleString()} Books</li>
+                  <li>{stats.members.toLocaleString()} Members</li>
+                </>
+              )}
             </ul>
           </div>
         </div>
