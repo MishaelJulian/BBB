@@ -69,11 +69,10 @@ A task that only makes the shelf prettier while real data is broken is not consi
 At the beginning of a session, read:
 
 ```text
-1. MASTER_FOUNDATION_PROMPT.md
-2. BUILD_GUIDE.md
-3. SESSION_LOG.md
-4. relevant source files
-5. relevant task specification
+1. BBB_PRD_TRD.md
+2. SESSION_LOG.md
+3. relevant source files
+4. relevant task specification
 ```
 
 Do not read the entire repository blindly unless performing an explicit audit.
@@ -102,8 +101,7 @@ relevant source
 Read:
 
 ```text
-MASTER_FOUNDATION_PROMPT.md
-BUILD_GUIDE.md
+BBB_PRD_TRD.md
 SESSION_LOG.md
 ```
 

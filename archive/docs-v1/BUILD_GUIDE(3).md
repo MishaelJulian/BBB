@@ -23,8 +23,6 @@ P2 — Book detail / archival history
 P3 — Secondary archive interfaces and polish
 ```
 
-P1 exists to make P0 possible. Do not spend substantial engineering effort on P3 while P0 is incomplete or unreliable.
-
 The Library Room must use **real archival books**, not a fake demo collection.
 
 ## Book interaction model
@@ -58,8 +56,7 @@ The "take a book out and discover its history" interaction is a core product req
 | Layer | Technology |
 |---|---|
 | Backend | Python |
-| API | FastAPI |
-| ORM | SQLAlchemy |
+| API | FastAPI || ORM | SQLAlchemy |
 | Migrations | Alembic |
 | Database | SQLite |
 | Frontend | Next.js 15 |

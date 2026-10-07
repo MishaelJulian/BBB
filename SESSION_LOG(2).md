@@ -441,13 +441,12 @@ Need a controlled agent workflow with persistent project documentation.
 
 ## Decision 002 — Four-document project memory system
 
-**Status:** LOCKED
+**Status:** LOCKED (amended 2026-10-07: `MASTER_FOUNDATION_PROMPT.md` and `BUILD_GUIDE.md` merged into `BBB_PRD_TRD.md`; originals in `archive/docs-v1/`)
 
 The project uses:
 
 ```text
-MASTER_FOUNDATION_PROMPT.md
-BUILD_GUIDE.md
+BBB_PRD_TRD.md
 AGENT_PLAYBOOK.md
 SESSION_LOG.md
 ```
@@ -456,8 +455,7 @@ Purpose:
 
 | File | Role |
 |---|---|
-| MASTER_FOUNDATION_PROMPT.md | What the project is and what must not change |
-| BUILD_GUIDE.md | How the software should be engineered |
+| BBB_PRD_TRD.md | What the project is, what must not change, and how the software should be engineered |
 | AGENT_PLAYBOOK.md | How AI agents should behave |
 | SESSION_LOG.md | Where the project currently is |
 

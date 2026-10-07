@@ -71,12 +71,12 @@ It is the primary way users encounter the archive.
 
 A book on the shelf represents a real archival record.
 
-When the user selects and pulls a book from the shelf, the resulting state should reveal the book's **archival life inside BBB**, including, where the archive has the information:
+When the user selects and pulls a book from the shelf, the resulting state should reveal the book's **archival life inside BBB**, including, where the archive has the information. This resulting state should feel more like a pop up/overview hovering/float over the closet. It doesn't shake but make sure to blur the background i.e the closet since the floating effect is happening. We'll dicuss the strength of the blue, opacity, lighting etc... but right now a standard blur will. Table a discussion for the future whhere we discuss the change in lighting of the floating object. The Card should mention in an UIUX Friendly manner. 
 
-- who read or presented/discussed it,
-- which member(s) were associated with it,
-- when it was read/discussed,
-- which meetup(s) it appeared in,
+- who read or presented/discussed it first,
+- which member(s) were associated with it after or along with the first discussion,
+- when it was read/discussed (This is the Meeting number ex: #93, #64),
+- which meetup(s) it appeared in (Format: MM,YYYY) Don't worry we won't lose details ,
 - discussion information,
 - repeat appearances across meetups,
 - recommendations/current-read context where available,
@@ -120,7 +120,7 @@ The following figures are the currently reported archive snapshot and must be tr
 - **11 standalone archival documents**
 - **Meetup #97** was manually imported
 
-If code inspection or a fresh database query produces different numbers, do not silently overwrite these figures.
+If code inspection or a fresh database query produces different numbers, do not silently overwrite these figures but keep a mark and start investigating based on this set of reported project data.
 
 Record the discrepancy in `SESSION_LOG.md` and identify which source is authoritative.
 
@@ -369,7 +369,7 @@ Every AI agent must obey these rules.
 
 ### Rule 1 — Never hallucinate the repository
 
-If you have not inspected a file, do not claim what it contains.
+If you have not inspected a file while I am asking a question which pretains to the file, do not claim what you think is fact. Instead read the particular word or heuritics based operation  within related fiels and find me what was done, plan to be done, what was stalled, what couldn't be done. 
 
 Use:
 
@@ -439,15 +439,15 @@ When information conflicts, use this order:
 7. Older agent output
 8. Agent assumptions
 
-Conversation memory is useful context but is not proof.
+Conversation memory is useful context but is not proof of what needs to be done or if the tasks that were done recently are immediately aligned with the repository.
 
-The repository is the final authority for what actually exists.
+The repository is the final authority for what actually exists on a permanent basis i.e the main ; the branches are just what we work on. Commits that aren't pushed should be notified but on the basis why they haven't been pushed yet..
 
 ---
 
 # 13. CHANGE POLICY
 
-Before modifying code, classify the change:
+Before modifying code, classify the change and the nature of it. state the files it will read and the files it will write into.:
 
 ### SAFE
 Small isolated bug fix with clear behavior.
