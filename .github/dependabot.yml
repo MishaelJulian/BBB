@@ -1,14 +1,27 @@
 version: 2
 updates:
+  # One grouped PR per ecosystem, every 3 days (03:00 UTC on days 1, 4, 7, ...).
   - package-ecosystem: pip
     directory: /
     schedule:
-      interval: weekly
+      interval: cron
+      cronjob: "0 3 */3 * *"
+    groups:
+      pip:
+        patterns: ["*"]
   - package-ecosystem: npm
     directory: /frontend
     schedule:
-      interval: weekly
+      interval: cron
+      cronjob: "0 3 */3 * *"
+    groups:
+      npm:
+        patterns: ["*"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: cron
+      cronjob: "0 3 */3 * *"
+    groups:
+      github-actions:
+        patterns: ["*"]
