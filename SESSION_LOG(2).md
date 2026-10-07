@@ -658,4 +658,62 @@ P3 — Spatial Bidirectionality (Universal `?select=<book_id>` Deep-Linking, Laz
 
 ---
 
+# GAP: 2026-08-24 → 2026-10-01 — no session records
+
+No session handoff was written for this period. Reconstructed from git history only:
+
+- `a7d3c52` (2026-09-12) — whole system committed in one bulk commit (library room, backend API, archival pipeline, docs).
+- `57314e0`, `78dbb85` (2026-09-12) — README, profile README, DAKSH upgrade guides.
+- `427be12` (2026-09-20) — Admin Workspace, publication PDF generator, meetup media manager.
+- `f8affe7` (2026-09-20) — Meetup #99 ingested from official PDF; #98 photo removed.
+- `a512472` (2026-10-01) — Criterion 3D Closet, universal covers, Meetups 45–48 DB updates, network proxy. This commit dropped `canonical_books` 2,835 → 2,736 and imported books 3,554 → 3,551 (see `docs/book_count&details_issues.md`).
+- `64a2863` … `d7ae2ae` (2026-10-01) — Criterion list-view modal and a series of mobile fixes (camera, reload loops, cover rendering, admin connectivity).
+
+---
+
+# SESSION: 008 — Basics cleanup, security hardening, stats truth, PRD/TRD merge
+
+## Date
+2026-10-07
+
+## Agent
+Coding agent, founder-directed
+
+## Task
+Basics-cleanup plan steps 1–3 (memory init, knowledge graph, change history), then security hardening, honest stats, the book-count audit, and merging the foundation docs into `BBB_PRD_TRD.md`.
+
+## Completed
+- [x] PR #1 merged (`c8f48dd`): `Meetup.date` shadowing fix and missing deps (`d92d32a`); superseded `bbb-library/` scaffold removed (`625b9a2`); `static/` renamed to `assets/`, served at `/assets` (`73ed1b2`); Docker, compose, CI, pre-commit, env examples (`8047565`).
+- [x] Reports now go to `reports/<YYYY-MM-DD>/`; the generator expects meetups #1 to the latest number (`70dba78`). The 2026-07-22 snapshot JSONs were removed; the folder is kept (`0cd563c`).
+- [x] Footer stats come from the live DB through `/stats`, with no hardcoded numbers (`903a107`, `337c209`).
+- [x] Book count and details audit written to `docs/book_count&details_issues.md` (`94ffb6b`). The repair itself is tabled.
+- [x] Dependabot (grouped per ecosystem, every 3 days), dependency review and CodeQL added (`adc9f5c`, `d0256d3`).
+- [x] Security fixes (`2e96c97`, `189da84`): SSRF guard on the URL resolver, admin links restricted to http(s), file paths confined to `assets/`, exact URL host matching, CORS restricted to localhost/LAN plus `CORS_ORIGINS`. CodeQL: 13 of 17 alerts fixed.
+- [x] `MASTER_FOUNDATION_PROMPT(3).md` and `BUILD_GUIDE(3).md` merged into `BBB_PRD_TRD.md`; `docs/references.md` added; originals, plus the unused `frontend/src/data/archive.ts` and `VirtualLibraryRoom.tsx`, moved to `archive/docs-v1/` (`252b3a7`, `0467337`). `AGENT_PLAYBOOK`, this log (Decision 002) and `BBB_RULES` §5 now point to `BBB_PRD_TRD.md` (`c83e2f6`).
+
+## Files Changed
+- `BBB_PRD_TRD.md`, `docs/references.md` — created
+- `archive/docs-v1/` — archived foundation docs and unused frontend files
+- `app/api/main.py`, `app/core/paths.py`, `app/core/config.py`, `app/services/pdf_generator.py` — security fixes, `/stats` fields
+- `app/reports/generator.py`, `app/cli/main.py` — dated report folders
+- `frontend/src/components/layout/Footer.tsx`, `frontend/src/lib/api.ts`, `frontend/src/app/admin/page.tsx`, `frontend/src/components/admin/BookAutocompleteInput.tsx` — live stats, safe links
+- `.github/` — Dependabot, dependency review, CodeQL
+- `tests/test_ssrf_guard.py` — created
+- `AGENT_PLAYBOOK(3).md`, `BBB_RULES.md`, `SESSION_LOG(2).md` — doc references
+
+## Verification
+- Frontend `tsc --noEmit` passes after archiving the two frontend files.
+- API re-checked live: `GET /books?limit=3000`, `/stats` and `/books?sort_by=title&sort_order=asc` return 200.
+- CodeQL re-run: 4 alerts remain open (#1 SSRF, #18–20 XSS-through-DOM), all guarded in code; dismissal awaits founder approval.
+
+## Open
+- API backlog: shelf payload (flow D, measured 82.9 % smaller, not approved), unpaginated `/books`, no gzip, notes not returned, standard API guide, `/health`, empty relation tables, unguarded `reset_db`.
+- Founders' decision: Library Room loading strategy (BBB_PRD_TRD §9.3).
+- Book data repair (tabled; needs confirmation of the inferred meetup numbers).
+- Security: SECURITY.md, upload limits, admin login.
+- Dependabot PRs #17, #18, #19 to review.
+- Cleanup steps 4–7.
+
+---
+
 # END OF SESSION_LOG.md
