@@ -1,0 +1,6 @@
+# (bbb-library removed 2026-10-07; recover: git show a7d3c52:bbb-library/<path>)
+*.pdf
+*.mp4
+*.db
+assets
+graphify-out
