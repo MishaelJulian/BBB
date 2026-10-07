@@ -1,72 +1,154 @@
-from app.database import models
+import pytest
+from datetime import date
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
+
+from app.database.base import Base
+from app.database.models import (
+    Source,
+    Venue,
+    Author,
+    CanonicalBook,
+    ImportedBook,
+    PossibleDuplicate,
+    Meetup,
+    Discussion,
+    Member,
+)
 
 
-def test_create_author_and_book(db_session):
-    author = models.Author(
-        full_name="Fyodor Dostoevsky",
-        normalized_name="fyodor dostoevsky",
-        country="Russia",
+def get_test_session():
+    """Creates a sync SQLite in-memory session for model integrity tests."""
+    engine = create_engine("sqlite:///:memory:", echo=False)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    return Session()
+
+
+def test_source_model_creation_and_fields():
+    session = get_test_session()
+    source = Source(
+        file_path="BBB Meetup-9.txt",
+        source_type="TXT_ARCHIVE",
+        meetup_number=20,
+        start_line=10,
+        end_line=25,
+        raw_text="Sample raw meetup notes text",
     )
-    db_session.add(author)
-    db_session.commit()
+    session.add(source)
+    session.commit()
+    session.refresh(source)
 
-    book = models.Book(
-        title="Crime and Punishment",
-        author_id=author.id,
-        isbn13="9780140449136",
+    assert source.id is not None
+    assert len(source.id) == 36
+    assert source.created_at is not None
+    assert source.file_path == "BBB Meetup-9.txt"
+    assert source.raw_text == "Sample raw meetup notes text"
+
+
+def test_author_uniqueness_constraint():
+    session = get_test_session()
+    a1 = Author(full_name="Virginia Woolf", normalized_name="virginia woolf")
+    session.add(a1)
+    session.commit()
+
+    a2 = Author(full_name="Virginia Woolf Duplicate", normalized_name="virginia woolf")
+    session.add(a2)
+
+    with pytest.raises(IntegrityError):
+        session.commit()
+    session.rollback()
+
+
+def test_venue_and_meetup_relationship():
+    session = get_test_session()
+    venue = Venue(name="Atta Galatta", city="Bengaluru", is_online=False)
+    session.add(venue)
+    session.commit()
+
+    meetup = Meetup(
+        meetup_number=20,
+        date=date(2019, 6, 30),
+        venue_id=venue.id,
+        format="IN_PERSON",
     )
-    db_session.add(book)
-    db_session.commit()
+    session.add(meetup)
+    session.commit()
 
-    fetched_book = db_session.query(models.Book).filter_by(title="Crime and Punishment").first()
-    assert fetched_book is not None
-    assert fetched_book.author.full_name == "Fyodor Dostoevsky"
+    session.refresh(meetup)
+    assert meetup.venue_id == venue.id
 
 
-def test_provenance_and_discussion(db_session):
-    source = models.Source(
-        url="https://example.com/meetup/1",
-        importer_name="website",
+def test_three_layer_book_archive_and_review_queue():
+    session = get_test_session()
+    source = Source(file_path="BBB Meetup-9.txt", raw_text="Pachinko by Min Jin Lee")
+    session.add(source)
+    session.commit()
+
+    canonical = CanonicalBook(
+        title="Pachinko",
+        normalized_title="pachinko",
     )
-    db_session.add(source)
-    db_session.commit()
+    session.add(canonical)
+    session.commit()
 
-    member = models.Member(
-        display_name="Alice Smith",
-        normalized_name="alice smith",
-    )
-    db_session.add(member)
-
-    meetup = models.Meetup(
-        meetup_number=1,
-        title="First Book Club Meeting",
+    imported = ImportedBook(
+        raw_title="Pachinko",
+        normalized_title="pachinko",
         source_id=source.id,
+        canonical_book_id=canonical.id,
     )
-    db_session.add(meetup)
-    db_session.commit()
+    session.add(imported)
+    session.commit()
 
-    discussion = models.Discussion(
-        member_id=member.id,
+    dup = PossibleDuplicate(
+        imported_book_id=imported.id,
+        candidate_canonical_id=canonical.id,
+        match_confidence=0.95,
+        status="PENDING_REVIEW",
+    )
+    session.add(dup)
+    session.commit()
+
+    session.refresh(dup)
+    assert dup.status == "PENDING_REVIEW"
+    assert dup.match_confidence == 0.95
+
+
+def test_discussion_relationship_integrity():
+    session = get_test_session()
+    source = Source(file_path="BBB Meetup-9.txt", raw_text="Discussion on Born a Crime")
+    venue = Venue(name="Bookworm", city="Bengaluru")
+    author = Author(full_name="Trevor Noah", normalized_name="trevor noah")
+    member = Member(display_name="Rahul Kondi", normalized_name="rahul kondi")
+
+    session.add_all([source, venue, author, member])
+    session.commit()
+
+    meetup = Meetup(meetup_number=22, date=date(2019, 8, 22), venue_id=venue.id)
+    book = CanonicalBook(title="Born a Crime", normalized_title="born a crime", author_id=author.id)
+    session.add_all([meetup, book])
+    session.commit()
+
+    discussion = Discussion(
         meetup_id=meetup.id,
-        source_id=source.id,
-        rating=4.5,
-        review="Fantastic discussion!",
-    )
-    db_session.add(discussion)
-    db_session.commit()
-
-    quote = models.Quote(
-        discussion_id=discussion.id,
+        canonical_book_id=book.id,
         member_id=member.id,
-        quote_text="Man grows used to everything, the scoundrel!",
+        notes="High energy review of Born a Crime.",
         source_id=source.id,
     )
-    db_session.add(quote)
-    db_session.commit()
+    session.add(discussion)
+    session.commit()
 
-    assert discussion.source.url == "https://example.com/meetup/1"
-    assert len(discussion.quotes) == 1
-    assert discussion.quotes[0].quote_text.startswith("Man grows used")
+    session.refresh(discussion)
+    assert discussion.meetup_id == meetup.id
+    assert discussion.canonical_book_id == book.id
+    assert discussion.member_id == member.id
+
+
+# Kept from the pre-sprint-1c root suite; still valid against the canonical models.
+from app.database import models  # noqa: E402
 
 
 def test_import_job_logging(db_session):

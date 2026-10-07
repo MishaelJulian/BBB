@@ -12,7 +12,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 # Register custom fonts extracted from official Canva templates
-FONTS_DIR = os.path.join(os.getcwd(), "static", "fonts")
+FONTS_DIR = os.path.join(os.getcwd(), "assets", "fonts")
 SPECIAL_ELITE_PATH = os.path.join(FONTS_DIR, "SpecialElite-Regular.ttf")
 ART_NUVO_PATH = os.path.join(FONTS_DIR, "ArtNuvoStamp.ttf")
 GLACIAL_PATH = os.path.join(FONTS_DIR, "GlacialIndifference-Regular.ttf")
@@ -50,7 +50,7 @@ COLOR_AMBER_RULE = HexColor("#22201D")
 PAGE_WIDTH = 810.0
 PAGE_HEIGHT = 1012.5
 
-COVERS_CACHE_DIR = os.path.join(os.getcwd(), "static", "cache", "covers")
+COVERS_CACHE_DIR = os.path.join(os.getcwd(), "assets", "cache", "covers")
 os.makedirs(COVERS_CACHE_DIR, exist_ok=True)
 
 
@@ -217,9 +217,9 @@ def generate_meetup_pdf(
 
     # Ensure output path
     if not output_path:
-        os.makedirs(os.path.join(os.getcwd(), "static", "generated_pdfs"), exist_ok=True)
+        os.makedirs(os.path.join(os.getcwd(), "assets", "generated_pdfs"), exist_ok=True)
         output_path = os.path.join(
-            os.getcwd(), "static", "generated_pdfs", f"bbb_meetup_{meetup_number}.pdf"
+            os.getcwd(), "assets", "generated_pdfs", f"bbb_meetup_{meetup_number}.pdf"
         )
 
     c = canvas.Canvas(output_path, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
@@ -227,8 +227,8 @@ def generate_meetup_pdf(
     c.setAuthor("Broke Bibliophiles Bangalore")
 
     # Template background images
-    cover_bg = os.path.join(os.getcwd(), "static", "templates", "bbb99", "page_1_img_1.jpeg")
-    closing_bg = os.path.join(os.getcwd(), "static", "templates", "bbb99", "page_13_img_1.jpeg")
+    cover_bg = os.path.join(os.getcwd(), "assets", "templates", "bbb99", "page_1_img_1.jpeg")
+    closing_bg = os.path.join(os.getcwd(), "assets", "templates", "bbb99", "page_13_img_1.jpeg")
 
     # Determine group photo
     group_photo = None
@@ -236,10 +236,10 @@ def generate_meetup_pdf(
         group_photo = custom_photo_path
     elif meetup.photo_url and os.path.exists(meetup.photo_url.lstrip("/")):
         group_photo = meetup.photo_url.lstrip("/")
-    elif os.path.exists(os.path.join(os.getcwd(), "static", "uploads", f"meetup_{meetup_number}_photo.jpg")):
-        group_photo = os.path.join(os.getcwd(), "static", "uploads", f"meetup_{meetup_number}_photo.jpg")
-    elif os.path.exists(os.path.join(os.getcwd(), "static", "templates", "bbb99", "page_12_img_1.jpeg")):
-        group_photo = os.path.join(os.getcwd(), "static", "templates", "bbb99", "page_12_img_1.jpeg")
+    elif os.path.exists(os.path.join(os.getcwd(), "assets", "uploads", f"meetup_{meetup_number}_photo.jpg")):
+        group_photo = os.path.join(os.getcwd(), "assets", "uploads", f"meetup_{meetup_number}_photo.jpg")
+    elif os.path.exists(os.path.join(os.getcwd(), "assets", "templates", "bbb99", "page_12_img_1.jpeg")):
+        group_photo = os.path.join(os.getcwd(), "assets", "templates", "bbb99", "page_12_img_1.jpeg")
 
     # =========================================================================
     # PAGE 1: COVER PAGE

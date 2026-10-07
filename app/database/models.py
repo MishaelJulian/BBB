@@ -1,4 +1,4 @@
-from datetime import date
+import datetime as dt
 from typing import List, Optional
 from sqlalchemy import (
     String,
@@ -323,7 +323,7 @@ class Meetup(Base, UUIDMixin, TimestampMixin):
     meetup_number: Mapped[int] = mapped_column(
         Integer, nullable=False, unique=True, index=True,
     )
-    date: Mapped[Optional[date]] = mapped_column(Date, nullable=True, index=True)
+    date: Mapped[Optional[dt.date]] = mapped_column(Date, nullable=True, index=True)
     title: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     venue_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("venues.id"), nullable=True, index=True,

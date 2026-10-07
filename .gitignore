@@ -70,3 +70,8 @@ scratch/
 Screenshot *.png
 WhatsApp Image *.jpeg
 
+
+# graphify (regenerable); keep the hand-made rebuild script + labels
+graphify-out/*
+!graphify-out/rebuild.py
+!graphify-out/labels.json
