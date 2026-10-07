@@ -1,16 +1,17 @@
 {
   "archive_version": "1.0.0",
-  "generated_at": "2026-07-22",
-  "meetups": 63,
-  "canonical_books": 2257,
-  "authors": 802,
+  "generated_at": "2026-10-07T12:41:14.513066",
+  "total_meetups": 53,
+  "canonical_books": 2736,
+  "imported_books": 3551,
+  "authors": 2045,
   "venues": 4,
-  "resources": 562,
-  "discussions": 3111,
-  "recommendations": 1,
-  "current_reads": 9,
-  "sources": [
-    "BBB Meetup-9.txt",
+  "discussions": 2609,
+  "recommendations": 0,
+  "current_reads": 0,
+  "resources": 542,
+  "possible_duplicates": 0,
+  "source_files": [
     "30_12_2023 15_33.pdf",
     "70 - BBB Meetup 70 - Mar 2024.pdf",
     "71 - BBB  Meetup 71 - Apr 2024.pdf",
@@ -37,10 +38,11 @@
     "BBB DEC 2025 - BOOKS DISCUSSED LIST.pdf",
     "BBB JAN 2026 - BOOKS DISCUSSED LIST.pdf",
     "BBB Meetup - October 2023 (Books Discussed).pdf",
+    "BBB Meetup-9.txt",
     "BBB NOV 2025 - BOOKS DISCUSSED LIST.pdf",
     "BBB OCT 2025 - BOOKS DISCUSSED (1).pdf",
     "BBB SEPT 2025 - BOOKS DISCUSSED.pdf",
-    "Books Discussed — BBB JULY 2025.pdf",
-    "BYOB +BBB - Nov 2023 (25th Nov Meet) - Copy.pdf"
+    "BYOB +BBB - Nov 2023 (25th Nov Meet) - Copy.pdf",
+    "Books Discussed \u2014 BBB JULY 2025.pdf"
   ]
 }

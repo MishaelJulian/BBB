@@ -28,6 +28,8 @@ class ReportGenerator:
 
     def generate_all(self, session: Session, output_dir: Path):
         """Generate all 7 output files."""
+        # All 7 reports go in reports/<YYYY-MM-DD>/ (the generation date); a same-day rerun overwrites, git keeps the history.
+        output_dir = output_dir / datetime.now().strftime("%Y-%m-%d")
         output_dir.mkdir(parents=True, exist_ok=True)
         self._archive_summary(session, output_dir / "archive_summary.md")
         self._ingestion_report(session, output_dir / "ingestion_report.md")
@@ -157,8 +159,9 @@ class ReportGenerator:
         meetups = session.query(Meetup.meetup_number).order_by(Meetup.meetup_number).all()
         existing = set(m[0] for m in meetups if m[0])
 
-        # Expected range: 1-98 (with known gaps)
-        all_expected = set(range(1, 99))
+        # Meetup numbers are sequential: every number from #1 to the latest must exist.
+        latest = max(existing, default=0)
+        all_expected = set(range(1, latest + 1))
         missing = sorted(all_expected - existing)
 
         lines = [
@@ -199,8 +202,8 @@ class ReportGenerator:
             "",
             "## Note",
             "",
-            "BBB has approximately 98 meetups as of July 2026. "
-            "Meetups #55-#69 and #77-#79 are not represented in the source files.",
+            f"BBB has held {latest} meetups (#1-#{latest}); "
+            f"{len(missing)} of them have no record in the archive yet.",
             "",
         ])
 

@@ -119,7 +119,7 @@ def cmd_stats():
 def cmd_import_full(
     data_dir: str = typer.Option(".", "--data-dir", help="Directory containing archive files"),
     reset: bool = typer.Option(False, "--reset", help="Drop and recreate all tables before import"),
-    report_dir: str = typer.Option(".", "--report-dir", help="Directory for output reports"),
+    report_dir: str = typer.Option("reports", "--report-dir", help="Reports root; files go in <dir>/<YYYY-MM-DD>/"),
 ):
     """Full archive import: parse all TXT + PDF sources into canonical database."""
     from app.pipeline.full_import import FullArchivePipeline
@@ -182,7 +182,7 @@ def cmd_import_full(
 
 @app.command("reports")
 def cmd_reports(
-    report_dir: str = typer.Option(".", "--report-dir", help="Directory for output reports"),
+    report_dir: str = typer.Option("reports", "--report-dir", help="Reports root; files go in <dir>/<YYYY-MM-DD>/"),
 ):
     """Generate reports from existing database."""
     from app.reports.generator import ReportGenerator
