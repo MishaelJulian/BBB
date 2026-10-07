@@ -6,6 +6,11 @@ import { BookAutocompleteInput, BookSuggestion, MediaTypeOption } from '@/compon
 import { MemberAutocompleteInput } from '@/components/admin/MemberAutocompleteInput'
 import { getApiBase } from '@/lib/api'
 
+// Only http(s) links are rendered, so a stored javascript:/data: URL can't run on click.
+const safeHttpUrl = (u: string) => (/^https?:\/\//i.test(u.trim()) ? u.trim() : null)
+// Photo previews may only be local blobs, http(s) URLs or same-origin paths.
+const safeImageUrl = (u: string | null) => (u && /^(blob:|https?:\/\/|\/(?!\/))/i.test(u) ? u : undefined)
+
 interface BookItem {
   discussion_id: string
   book_id: string
@@ -1139,9 +1144,9 @@ export default function AdminDatabasePage() {
                   <label className="block text-neutral-700 font-semibold">
                     Resource / Web Link (YouTube, IMDb, Website)
                   </label>
-                  {newBookUrl && (
+                  {safeHttpUrl(newBookUrl) && (
                     <a
-                      href={newBookUrl}
+                      href={safeHttpUrl(newBookUrl) ?? undefined}
                       target="_blank"
                       rel="noreferrer"
                       className="text-[10px] text-amber-700 hover:text-amber-900 underline flex items-center gap-0.5"
@@ -1388,9 +1393,9 @@ export default function AdminDatabasePage() {
                   <label className="block text-neutral-700 font-semibold">
                     Resource / Web Link (YouTube, IMDb, Website)
                   </label>
-                  {editBookUrl && (
+                  {safeHttpUrl(editBookUrl) && (
                     <a
-                      href={editBookUrl}
+                      href={safeHttpUrl(editBookUrl) ?? undefined}
                       target="_blank"
                       rel="noreferrer"
                       className="text-[10px] text-amber-700 hover:text-amber-900 underline flex items-center gap-0.5"
@@ -1561,7 +1566,7 @@ export default function AdminDatabasePage() {
                     {/* Polaroid-styled preview frame */}
                     <div className="bg-white p-3 pb-8 rounded-lg shadow-md border border-neutral-200 rotate-[-1deg] transition-transform group-hover:rotate-0">
                       <img
-                        src={photoPreviewUrl}
+                        src={safeImageUrl(photoPreviewUrl)}
                         alt={`Group photo for Meetup #${currentMeetup.number}`}
                         className="w-full max-h-56 object-cover rounded-xs"
                       />

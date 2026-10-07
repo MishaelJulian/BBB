@@ -13,8 +13,11 @@ from typing import Optional, List
 from collections import defaultdict
 from datetime import date, datetime
 from pydantic import BaseModel
+import urllib.error
 import urllib.request
 import urllib.parse
+import ipaddress
+import socket
 import json
 import re
 import time
@@ -1609,6 +1612,31 @@ def search_external_books(q: str) -> list:
     return results
 
 
+def _is_public_http_url(url: str) -> bool:
+    """SSRF guard: http(s) only, and the host must resolve solely to public IPs."""
+    parts = urllib.parse.urlparse(url)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        return False
+    try:
+        infos = socket.getaddrinfo(parts.hostname, parts.port or None)
+    except (socket.gaierror, ValueError):
+        return False
+    return all(ipaddress.ip_address(info[4][0]).is_global for info in infos)
+
+
+class _PublicOnlyRedirects(urllib.request.HTTPRedirectHandler):
+    """Re-check every redirect target so a public URL can't bounce to an internal one."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _is_public_http_url(newurl):
+            raise urllib.error.HTTPError(newurl, code, "redirect to non-public address blocked", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+# ponytail: resolve-then-fetch leaves a DNS-rebinding window; pin the resolved IP if this endpoint goes public.
+_public_opener = urllib.request.build_opener(_PublicOnlyRedirects)
+
+
 def resolve_media_url(url: str) -> dict:
     """
     Auto-detects and extracts metadata from pasted URLs:
@@ -1646,6 +1674,8 @@ def resolve_media_url(url: str) -> dict:
 
     # 2. General OpenGraph & HTML scraper (YouTube channel, IMDb, Goodreads, Wondrium, Substack, etc.)
     try:
+        if not _is_public_http_url(clean_url):
+            raise ValueError("URL does not resolve to a public address")
         req = urllib.request.Request(
             clean_url,
             headers={
@@ -1653,7 +1683,7 @@ def resolve_media_url(url: str) -> dict:
                 "Accept-Language": "en-US,en;q=0.9"
             }
         )
-        with urllib.request.urlopen(req, timeout=4.0) as resp:
+        with _public_opener.open(req, timeout=4.0) as resp:
             raw_html = resp.read()[:800000].decode("utf-8", errors="ignore")
 
         # Title
