@@ -138,14 +138,13 @@ The repository is the final authority on current implementation state.
 For project decisions:
 
 1.  explicit human instruction
-2.  `MASTER_FOUNDATION_PROMPT.md`
-3.  `BUILD_GUIDE.md`
-4.  `AGENT_PLAYBOOK.md`
-5.  `SESSION_LOG.md`
-6.  `BBB_RULES.md`
-7.  `BBB_UI.md`
-8.  existing implementation
-9.  general engineering convention
+2.  `BBB_PRD_TRD.md`
+3.  `AGENT_PLAYBOOK.md`
+4.  `SESSION_LOG.md`
+5.  `BBB_RULES.md`
+6.  `BBB_UI.md`
+7.  existing implementation
+8.  general engineering convention
 
 If sources conflict, report the conflict.
 
