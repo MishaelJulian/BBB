@@ -28,7 +28,7 @@
 | #22 | 2019-08-22 | Atta Galatta | 49 | 46 | BBB Meetup-9.txt |
 | #23 | 2019-09-23 | Atta Galatta | 71 | 62 | BBB Meetup-9.txt |
 | #24 | 2019-11-24 | Atta Galatta | 114 | 104 | BBB Meetup-9.txt |
-| #25 | 2019-12-22 | — | — | 0 | BBB Meetup-9.txt |
+| #25 | 2019-12-22 | Art Studio, Koramangala | 86 | 86 | BBB Meetup-9.txt |
 | #26 | 2020-01-26 | Atta Galatta | 63 | 55 | BBB Meetup-9.txt |
 | #31 | 2020-07-12 | Online | 29 | 29 | BBB Meetup-9.txt |
 | #34 | 2020-10-25 | Online | 31 | 28 | BBB Meetup-9.txt |

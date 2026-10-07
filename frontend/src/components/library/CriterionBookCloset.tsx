@@ -38,9 +38,9 @@ export function getBookSpineStyle(title: string, id?: string) {
   const palette = CLOSET_PALETTES[absHash % CLOSET_PALETTES.length]
   const spineNumber = (absHash % 990) + 10
 
-  // Heights: 165px to 215px, Widths: 24px to 42px
+  // Heights: 165px to 215px, Widths: 22px to 37px
   const height = 165 + (absHash % 48)
-  const width = 24 + (absHash % 18)
+  const width = 22 + (absHash % 15)
 
   return {
     palette,
@@ -80,6 +80,7 @@ interface ClosetSpineProps {
   onSelect: (book: Book) => void
   onHover: (book: Book | null) => void
   isMobile?: boolean
+  rowIsFull?: boolean
 }
 
 const ClosetSpine = React.memo(function ClosetSpine({
@@ -90,6 +91,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
   onSelect,
   onHover,
   isMobile = false,
+  rowIsFull = false,
 }: ClosetSpineProps) {
   const [isMouseHovered, setIsMouseHovered] = React.useState(false)
   const isTargeted = !isMobile && (isMouseHovered || isHoveredByReticle)
@@ -102,9 +104,11 @@ const ClosetSpine = React.memo(function ClosetSpine({
 
   return (
     <div
-      className="relative select-none shrink-0 transition-all duration-200 cursor-pointer"
+      className={`relative select-none transition-all duration-200 cursor-pointer ${
+        rowIsFull ? 'flex-1 min-w-[18px] max-w-[42px]' : 'shrink-0'
+      }`}
       style={{
-        width: spineWidth,
+        width: rowIsFull ? undefined : spineWidth,
         height: isMobile ? 240 : 220,
         display: 'flex',
         alignItems: 'flex-end',
@@ -135,7 +139,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
       <div
         className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full bg-black/80 blur-[2px] pointer-events-none transition-all duration-200"
         style={{
-          width: isTargeted || isSelected ? spineWidth * 1.3 : spineWidth * 0.8,
+          width: isTargeted || isSelected ? '120%' : '80%',
           height: isTargeted || isSelected ? 8 : 4,
           opacity: isTargeted || isSelected ? 0.9 : 0.45,
         }}
@@ -143,9 +147,9 @@ const ClosetSpine = React.memo(function ClosetSpine({
 
       {/* Physical Spine (Flat transform on mobile saves 540 GPU layers) */}
       <div
-        className="relative rounded-t-[3px] rounded-b-[1px] overflow-hidden shadow-lg transition-transform duration-200"
+        className="relative rounded-t-[3px] rounded-b-[1px] overflow-hidden shadow-lg transition-transform duration-200 w-full"
         style={{
-          width: spineWidth,
+          width: rowIsFull ? '100%' : spineWidth,
           height: spineHeight,
           backgroundColor: palette.bg,
           transform: isSelected
@@ -265,28 +269,31 @@ const ShelfWall = React.memo(function ShelfWall({
       </div>
 
       {/* 5 Shelf Rows (Tiers 0–4) */}
-      {rows.map((rowBooks, rIdx) => (
-        <div key={`shelf-${shelfNumber}-row-${rIdx}`} className="relative flex flex-col">
-          {/* Spines on Row (Sitting closely touching on the shelf plank) */}
-          <div className={`flex items-end px-2 space-x-[1px] ${isMobile ? 'min-h-[240px]' : 'min-h-[220px]'} overflow-hidden`}>
-            {rowBooks.map((book) => (
-              <ClosetSpine
-                key={`b-${book.id}`}
-                book={book}
-                isSelected={selectedBookId === book.id}
-                isHoveredByReticle={hoveredBookId === book.id}
-                isSaved={userPicks.some((b) => b.id === book.id)}
-                onSelect={onSelectBook}
-                onHover={onHoverBook}
-                isMobile={isMobile}
-              />
-            ))}
-            {rowBooks.length === 0 && (
-              <div className="h-10 flex items-center px-4 text-[10px] font-mono text-white/25 italic">
-                Empty shelf tier
-              </div>
-            )}
-          </div>
+      {rows.map((rowBooks, rIdx) => {
+        const isFull = rowBooks.length >= 20
+        return (
+          <div key={`shelf-${shelfNumber}-row-${rIdx}`} className="relative flex flex-col">
+            {/* Spines on Row (Sitting closely touching on the shelf plank) */}
+            <div className={`flex items-end px-2 space-x-[1px] w-full ${isMobile ? 'min-h-[240px]' : 'min-h-[220px]'} overflow-hidden`}>
+              {rowBooks.map((book) => (
+                <ClosetSpine
+                  key={`b-${book.id}`}
+                  book={book}
+                  isSelected={selectedBookId === book.id}
+                  isHoveredByReticle={hoveredBookId === book.id}
+                  isSaved={userPicks.some((b) => b.id === book.id)}
+                  onSelect={onSelectBook}
+                  onHover={onHoverBook}
+                  isMobile={isMobile}
+                  rowIsFull={isFull}
+                />
+              ))}
+              {rowBooks.length === 0 && (
+                <div className="h-10 flex items-center px-4 text-[10px] font-mono text-white/25 italic">
+                  Empty shelf tier
+                </div>
+              )}
+            </div>
 
           {/* Wooden Shelf Plank with Beveled Brass Front Edge Trim */}
           <div className="relative h-4 -mt-0.5 mx-0.5 z-10 pointer-events-none">
@@ -307,7 +314,7 @@ const ShelfWall = React.memo(function ShelfWall({
             />
           </div>
         </div>
-      ))}
+      )})}
     </div>
   )
 })
@@ -1091,11 +1098,11 @@ export function CriterionBookCloset() {
   //       Shelf 3 (Right Wall, Rows 0-4) ->
   //       Next Shelves Section (Shelves 4-6, 7-9, etc.)
   // =======================================================
-  const BOOKS_PER_ROW = 18
+  const BOOKS_PER_ROW = 24
   const ROWS_PER_SHELF = 5
-  const BOOKS_PER_SHELF = BOOKS_PER_ROW * ROWS_PER_SHELF // 90
+  const BOOKS_PER_SHELF = BOOKS_PER_ROW * ROWS_PER_SHELF // 120
   const SHELVES_PER_SECTION = 3
-  const BOOKS_PER_SECTION = BOOKS_PER_SHELF * SHELVES_PER_SECTION // 270
+  const BOOKS_PER_SECTION = BOOKS_PER_SHELF * SHELVES_PER_SECTION // 360
 
   const totalSections = Math.max(1, Math.ceil(filteredBooks.length / BOOKS_PER_SECTION))
   const safeSection = Math.min(shelfSection, totalSections - 1)
