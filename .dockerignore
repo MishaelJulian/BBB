@@ -1,0 +1,12 @@
+.git
+frontend
+bbb-library
+graphify-out
+node_modules
+__pycache__
+*.pyc
+.pytest_cache
+.env
+*.pdf
+*.mp4
+logs

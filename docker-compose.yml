@@ -1,0 +1,26 @@
+# ponytail: SQLite file mounted from host; add a postgres service when the planned SQLite→PostgreSQL move happens.
+services:
+  backend:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///./book_club_archivist.db}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./book_club_archivist.db:/app/book_club_archivist.db
+      - ./assets:/app/assets
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8000
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
