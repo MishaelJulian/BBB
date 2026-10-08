@@ -10,16 +10,25 @@ services:
     volumes:
       - ./book_club_archivist.db:/app/book_club_archivist.db
       - ./assets:/app/assets
+    # python:3.11-slim has no curl, so the check uses Python's stdlib.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   frontend:
     build: ./frontend
     restart: unless-stopped
     environment:
       BACKEND_INTERNAL_URL: http://backend:8000
+      NEXT_TELEMETRY_DISABLED: "1"
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     volumes:
       - ./frontend:/app
       - /app/node_modules

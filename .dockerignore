@@ -1,12 +1,27 @@
+# Backend image: program files plus the archive sources it reads.
+# Kept IN the image: app/, tests/, scripts/, sources/ (meetup PDFs + TXT), docs/*.md, requirements.
+# `**/` matches every folder depth; a bare pattern like *.mp4 only matches the top folder.
+
+# Version control, tooling, caches
 .git
-frontend
-bbb-library
+.remember
 graphify-out
 node_modules
-__pycache__
-*.pyc
+**/__pycache__
+**/*.pyc
 .pytest_cache
-.env
-*.pdf
-*.mp4
 logs
+.env
+
+# The frontend has its own image (frontend/Dockerfile)
+frontend
+
+# Not program files: videos, archived material
+**/*.mp4
+archive
+docs/media
+
+# Runtime data, mounted by docker-compose.yml instead of baked in
+assets/cache
+assets/uploads
+assets/generated_pdfs
