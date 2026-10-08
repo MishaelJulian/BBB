@@ -553,14 +553,7 @@ export default function AdminDatabasePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <a
-              href="/all_meetups_and_books.csv"
-              download
-              className="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-              title="Open full database in Microsoft Excel or Google Sheets"
-            >
-              <span>📊 Export Excel / CSV</span>
-            </a>
+            {/* Export hidden until a live GET /export/meetups.csv endpoint exists; the old static CSV is in archive/. */}
           </div>
         </div>
       </header>
