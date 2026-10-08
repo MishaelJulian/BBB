@@ -6,7 +6,7 @@ It reuses the existing SQLAlchemy models and database layer.
 """
 
 from fastapi import FastAPI, HTTPException, Query, UploadFile, File
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
@@ -23,7 +23,7 @@ import re
 import time
 import os
 
-from sqlalchemy import func
+from sqlalchemy import func, text
 
 from app.core.database import get_engine, SessionLocal
 from app.core.config import settings
@@ -338,6 +338,19 @@ def meetup_to_dict(meetup: Meetup, db) -> dict:
 # ============================================
 # API Endpoints
 # ============================================
+
+@app.get("/health")
+def health():
+    """Liveness + database reachability, for docker compose and monitoring."""
+    db = SessionLocal()
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "ok"}
+    except Exception:
+        return JSONResponse(status_code=503, content={"status": "error", "database": "unreachable"})
+    finally:
+        db.close()
+
 
 @app.get("/stats")
 def get_stats():
