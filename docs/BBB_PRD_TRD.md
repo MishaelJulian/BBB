@@ -1141,21 +1141,4 @@ This project has already been built across multiple AI sessions. The purpose of 
 
 ---
 
-# 26. WHERE TO FIND THINGS
-
-| Need | File |
-|---|---|
-| Agent behaviour, database safety, API contract, dependencies | `docs/AGENT_RULES.md` |
-| UI and visual rules | `docs/BBB_UI.md` |
-| Current state, measured | `docs/health/CURRENT_STATE.md` |
-| Session history | `docs/health/SESSION_LOG.md` |
-| Known data problems | `docs/book_count&details_issues.md` |
-| Optional closet features | `docs/plans/backlog.md` |
-| Architecture notes | `docs/architecture/` |
-| Prior work and research | `docs/references.md` |
-| Running the app, API reference | `README.md` |
-| Required tools | `scripts/install_tools.sh` |
-
----
-
 # END OF BBB_PRD_TRD.md

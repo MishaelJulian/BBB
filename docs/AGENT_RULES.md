@@ -33,6 +33,7 @@ These are never broken.
 - **Never make up stats.** Counts shown in the UI or written in docs come from the live database. If a number cannot be computed, say so.
 - **Deletions need a content comparison and the founders' approval of the final list.** Compare by content, list exactly what would be deleted, and wait for approval of that list.
 - **Never change or delete the founders' text without asking.** This includes notes, docs and comments the founders wrote. Fixing obvious typos must be stated.
+- **Keep `index.md` true.** Adding, moving, renaming or archiving a doc or a top-level folder updates `index.md` in the same commit.
 - **Never invent project state or archive data.** Do not claim a route, endpoint, table, component, dependency, data field or working integration exists unless you inspected it. Never invent meetup attendance, who read a book, dates, recommendations, authors, book metadata, or relationships between people and books. If information is unavailable, show it as unavailable.
 
 ---
@@ -42,11 +43,12 @@ These are never broken.
 At the start of a session, read:
 
 ```text
-1. docs/BBB_PRD_TRD.md
-2. docs/AGENT_RULES.md
-3. docs/health/SESSION_LOG.md (latest entries)
-4. relevant source files
-5. the task specification
+1. index.md (where everything lives)
+2. docs/BBB_PRD_TRD.md
+3. docs/AGENT_RULES.md
+4. docs/health/SESSION_LOG.md (latest entries)
+5. relevant source files
+6. the task specification
 ```
 
 Do not read the entire repository blindly unless performing an explicit audit.
