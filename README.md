@@ -1,5 +1,7 @@
 # BBB — Broke Bibliophiles of Bangalore Digital Archive & Virtual Library
 
+> AI agents and contributors: start with [`docs/BBB_PRD_TRD.md`](docs/BBB_PRD_TRD.md), then [`docs/AGENT_RULES.md`](docs/AGENT_RULES.md).
+
 [![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js)](https://nextjs.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat-square&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python)](https://python.org/)

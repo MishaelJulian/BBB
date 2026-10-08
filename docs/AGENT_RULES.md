@@ -42,9 +42,9 @@ These are never broken.
 At the start of a session, read:
 
 ```text
-1. BBB_PRD_TRD.md
-2. AGENT_RULES.md
-3. SESSION_LOG.md (latest entries)
+1. docs/BBB_PRD_TRD.md
+2. docs/AGENT_RULES.md
+3. docs/health/SESSION_LOG.md (latest entries)
 4. relevant source files
 5. the task specification
 ```
@@ -161,7 +161,7 @@ regenerating the archive
 |---|---|---|
 | `archive reset-db` (`app/cli/main.py`) | `reset_db()`: `drop_all` + `create_all` on the live DB, no confirmation, no backup | Never run on the live DB |
 | `archive import-full --reset` | Same `reset_db()` before re-importing | Never run on the live DB; import into a scratch DB and diff |
-| `app/plans/sprint_1c_implementation.md` Q5 | Justifies `drop_all` because "the DB has 0 records" | Expired assumption; the DB now holds the archive |
+| `docs/plans/sprint_1c_implementation.md` Q5 | Justifies `drop_all` because "the DB has 0 records" | Expired assumption; the DB now holds the archive |
 
 Tests are safe: `tests/conftest.py` uses an in-memory SQLite engine (`sqlite:///:memory:`), never the archive file.
 
@@ -172,7 +172,7 @@ Tests are safe: `tests/conftest.py` uses an in-memory SQLite engine (`sqlite:///
 3. Get founder approval for anything beyond a single, targeted record fix.
 4. Apply.
 5. Verify counts before vs after, and re-check affected API routes.
-6. Record the change in `SESSION_LOG.md`.
+6. Record the change in `docs/health/SESSION_LOG.md`.
 
 ## 5.4 Migrations
 
@@ -304,7 +304,7 @@ file:line
 
 # 9. SESSION HANDOFF
 
-At the end of every meaningful session, update `SESSION_LOG.md` with:
+At the end of every meaningful session, update `docs/health/SESSION_LOG.md` with:
 
 - current state,
 - what was inspected,

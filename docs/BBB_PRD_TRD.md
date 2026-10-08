@@ -5,7 +5,7 @@
 **Date:** 7 Oct 2026  
 **Purpose:** Product requirements (Part I), technical requirements (Part II) and agent operating rules (Part III) for every coding agent and contributor.  
 **Repository:** `git@github.com:MishaelJulian/BBB.git` — `main` is the permanent record.  
-**Related:** [`AGENT_RULES.md`](AGENT_RULES.md) — how AI agents work on this repo (second in authority after this file) · [`docs/references.md`](docs/references.md) — prior work and research sources.
+**Related:** [`AGENT_RULES.md`](AGENT_RULES.md) — how AI agents work on this repo (second in authority after this file) · [`references.md`](references.md) — prior work and research sources.
 
 ---
 
@@ -226,7 +226,7 @@ The following figures are the currently reported archive snapshot and must be tr
 
 If code inspection or a fresh database query produces different numbers, do not silently overwrite these figures but keep a mark and start investigating based on this set of reported project data.
 
-Record the discrepancy in `SESSION_LOG.md` and identify which source is authoritative. Known discrepancies are investigated in `docs/book_count&details_issues.md`.
+Record the discrepancy in `docs/health/SESSION_LOG.md` and identify which source is authoritative. Known discrepancies are investigated in `docs/book_count&details_issues.md`.
 
 ---
 
@@ -266,10 +266,10 @@ Archival data is not disposable seed data. Never:
 **Known destructive paths** (see `AGENT_RULES.md` §5 for the full procedure):
 
 - `archive reset-db` and `archive import-full --reset` (`app/cli/main.py`) call `reset_db()`, which runs `drop_all` + `create_all` on the live database with no confirmation and no backup. Never run them on the live DB; import into a scratch DB and diff instead.
-- `app/plans/sprint_1c_implementation.md` Q5 justifies `drop_all` because the DB "has 0 records". That assumption has expired.
+- `docs/plans/sprint_1c_implementation.md` Q5 justifies `drop_all` because the DB "has 0 records". That assumption has expired.
 - Tests are isolated: `tests/conftest.py` uses an in-memory SQLite engine.
 
-**Before any write to the archive:** back up `book_club_archivist.db`, dry-run and report per-table counts, get approval for anything beyond a single targeted fix, apply, verify counts before vs after, and record it in `SESSION_LOG.md`.
+**Before any write to the archive:** back up `book_club_archivist.db`, dry-run and report per-table counts, get approval for anything beyond a single targeted fix, apply, verify counts before vs after, and record it in `docs/health/SESSION_LOG.md`.
 
 **Migrations:** Alembic is configured but unused (empty migration folder; the schema comes from `Base.metadata.create_all`). Schema changes follow the checklist above by hand and are ARCHITECTURAL (§23).
 
@@ -1006,7 +1006,7 @@ When information conflicts, use this order:
 2. `BBB_PRD_TRD.md`
 3. `AGENT_RULES.md`
 4. `BBB_UI.md`, by relevance to the task
-5. `SESSION_LOG.md` latest verified state
+5. `docs/health/SESSION_LOG.md` latest verified state
 6. Current source code
 7. Existing task descriptions
 8. Older agent output
@@ -1059,7 +1059,7 @@ A task is complete only when:
 - [ ] No unrelated files were modified
 - [ ] No fake archive data
 - [ ] No silent error handling
-- [ ] `SESSION_LOG.md` was updated (contents: `AGENT_RULES.md` §9)
+- [ ] `docs/health/SESSION_LOG.md` was updated (contents: `AGENT_RULES.md` §9)
 - [ ] Any unresolved issue is documented
 
 ---
