@@ -117,7 +117,7 @@ def cmd_stats():
 
 @app.command("import-full")
 def cmd_import_full(
-    data_dir: str = typer.Option(".", "--data-dir", help="Directory containing archive files"),
+    data_dir: str = typer.Option("sources", "--data-dir", help="Directory containing archive files"),
     reset: bool = typer.Option(False, "--reset", help="Drop and recreate all tables before import"),
     report_dir: str = typer.Option("reports", "--report-dir", help="Reports root; files go in <dir>/<YYYY-MM-DD>/"),
 ):

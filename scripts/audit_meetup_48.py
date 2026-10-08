@@ -86,7 +86,7 @@ def audit_meetup_48():
 
     # 4. Check raw text file BBB Meetup-9.txt lines 1755-1848
     print("\n=== RAW TEXT ARCHIVE COMPARISON (BBB Meetup-9.txt) ===")
-    with open('BBB Meetup-9.txt', 'r', encoding='utf-8') as f:
+    with open('sources/BBB Meetup-9.txt', 'r', encoding='utf-8') as f:
         all_lines = f.readlines()
     
     # Line numbers 1755 to 1848 (0-indexed 1754 to 1848)
@@ -186,7 +186,7 @@ def audit_meetup_48():
     print("\n=== TXT_PARSER OUTPUT FOR MEETUP 48 ===")
     from app.parsers.txt_parser import TxtMeetupParser
     parser = TxtMeetupParser()
-    records = parser.parse('BBB Meetup-9.txt')
+    records = parser.parse('sources/BBB Meetup-9.txt')
     m48_recs = [r for r in records if r.meetup and r.meetup.meetup_number == 48]
     print(f"Total records parsed by txt_parser for Meetup 48: {len(m48_recs)}")
     for r in m48_recs:

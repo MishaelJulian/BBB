@@ -91,7 +91,7 @@ def audit_meetup_45():
 
     # 4. Compare with raw lines from BBB Meetup-9.txt
     print("\n=== RAW TEXT ARCHIVE COMPARISON (BBB Meetup-9.txt) ===")
-    with open('BBB Meetup-9.txt', 'r', encoding='utf-8') as f:
+    with open('sources/BBB Meetup-9.txt', 'r', encoding='utf-8') as f:
         all_lines = f.readlines()
     
     slice_lines = [l.strip() for l in all_lines[1493:1567] if l.strip()]

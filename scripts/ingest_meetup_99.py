@@ -35,7 +35,7 @@ def main():
             print(f"[OK] Copied group picture to {photo_dst}")
 
         # Copy the genuine PDF for Meetup 99
-        pdf_src = "BBB 99, Books Discussion List.pdf"
+        pdf_src = "sources/BBB 99, Books Discussion List.pdf"
         pdf_dst = "assets/generated_pdfs/bbb_meetup_99.pdf"
         if os.path.exists(pdf_src):
             shutil.copyfile(pdf_src, pdf_dst)
