@@ -1,4 +1,6 @@
-# Backlog: optional closet features
+# Backlog
+
+## Optional closet features
 
 Ideas carried over from the earlier Library Room (`archive/docs-v1/VirtualLibraryRoom.tsx` and its components in `frontend/src/components/library/`). The live closet (`CriterionBookCloset`) does not have them yet. All are optional; each one passes the rules in `docs/BBB_PRD_TRD.md` before it is built.
 
@@ -13,3 +15,16 @@ Measured on 2026-10-08 (development mode, median of 3 loads, same data): the liv
 | 5 | Hardcover book look: cloth texture, page block, pull-out | `Book3D.tsx` | Reference for the WebGL closet (PRD §18.1) |
 
 When a feature ships, move it out of this table and record it in `docs/health/SESSION_LOG.md`.
+
+## Architecture research and contention (founder review 2026-10-09)
+
+Open items from the review of `docs/architecture/`. Each one touches the database, the API and the future OCR step, so each gets its own research pass before any schema change.
+
+| # | Item | Why it matters | Where |
+|---|---|---|---|
+| R1 | Book identity from real-world rules: ISBN rules and procedures (ISO 2108, International ISBN Agency user manual) and legal book-naming practice | An ISBN identifies one edition and format of a book, and the archive tracks the work. Attributes of a book should come from these published rules instead of the current hand-made field and validation list. Deferred to save time; revisit before OCR, since OCR output must map onto these attributes | `imperative_decisions.md` §2.A.3 to §2.A.4 |
+| R2 | Faster duplicate matching | Today `app/pipeline/full_import.py` compares each new title against canonical titles of similar length with `difflib.SequenceMatcher`, so cost grows with books times canonical books. Needs an indexed approach (blocking key, trigram index or similar) chosen under PRD §7.1 | `imperative_decisions.md` §2.A.5 |
+| R3 | Recommendation, current read and mention taxonomy as a long-lasting recommendation feature | Point of contention: it is the base for recommendations and must stay fast as books grow. Tables exist with 0 rows (API backlog A7) | `imperative_decisions.md` §2.D |
+| R4 | API: Swagger docs, flexibility, security | FastAPI already serves Swagger UI at `/docs` and the schema at `/openapi.json`; Pydantic response models (build phase) make them accurate. Quantum-resistant security belongs to the TLS layer of the host (hybrid post-quantum key exchange), independent of REST or GraphQL; confirm on the chosen host | `bbb-library-architecture.md` |
+| R5 | Protect writes beyond CORS | CORS only limits which browser pages may call the API; it does not stop other clients. Admin login (P12) and the database backup rule protect create, update and delete | `bbb-library-architecture.md` |
+| R6 | Hosting and database | Founder position: SQLite stays for simplicity; PostgreSQL when statistics, RAG or MCP work needs it (SQLAlchemy makes it a connection-string change plus a data migration). Vercel for testing and demo; final home is the project's own website | `bbb-library-architecture.md` |

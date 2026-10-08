@@ -26,7 +26,7 @@ Where everything in this repository lives. Any person or AI model can start here
 
 | File | What it is |
 |---|---|
-| [`docs/plans/backlog.md`](docs/plans/backlog.md) | Optional closet features carried over from the earlier room |
+| [`docs/plans/backlog.md`](docs/plans/backlog.md) | Optional closet features; architecture research and contention items (R1 to R6) |
 | [`docs/plans/sprint_1c_implementation.md`](docs/plans/sprint_1c_implementation.md) | Plan for the original full-archive import (historical; its "reset the database" step no longer applies) |
 | [`docs/references.md`](docs/references.md) | Prior work and research sources |
 
@@ -38,7 +38,7 @@ Older design write-ups; the PRD is the current source.
 |---|---|
 | [`docs/architecture/bbb-library-architecture.md`](docs/architecture/bbb-library-architecture.md) | The app as first built |
 | [`docs/architecture/universal_app_flow.md`](docs/architecture/universal_app_flow.md) | Roadmap: logical flow of the full archive pipeline (future features, not current code) |
-| [`docs/architecture/canonical_archive_specification.md`](docs/architecture/canonical_archive_specification.md) | Archive specification |
+| [`docs/architecture/imperative_decisions.md`](docs/architecture/imperative_decisions.md) | Entity specifications (required) with founder review notes; data flow section is roadmap |
 | [`docs/architecture/domain_model.md`](docs/architecture/domain_model.md) | Domain model |
 | [`docs/architecture/DatabaseSchema.md`](docs/architecture/DatabaseSchema.md) | Database schema notes |
 | [`docs/architecture/standalone_documents.md`](docs/architecture/standalone_documents.md) | The standalone archive documents |

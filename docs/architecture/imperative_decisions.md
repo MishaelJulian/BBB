@@ -1,4 +1,6 @@
-# Canonical Archive Specification — BBB Library
+# Imperative Decisions: BBB Library
+
+> Renamed from `canonical_archive_specification.md` on 2026-10-09. §2 (entity specifications) is required. Founder review notes are marked **Review 2026-10-09**.
 
 **Project**: Broke Bibliophiles Bangalore (BBB) Digital Archive  
 **Document**: Sprint 1A — Canonical Archive Architectural Specification  
@@ -11,28 +13,13 @@
 
 The **BBB Library Archive** is engineered as a digital humanities platform. Unlike transient commercial web applications, this system prioritizes **uncompromising provenance tracking**, **immutable historical records**, and **explicit entity resolution workflows**.
 
-### The Three-Layer Immutable Data Principles
-
-```text
-  [ Layer 1: Raw Imported Record ]
-                 │
-                 ▼  (Extraction & Normalization)
-[ Layer 2: Normalized Candidate Record ]
-                 │
-                 ▼  (Review Queue & Entity Resolution)
-   [ Layer 3: Canonical Archive Record ]
-```
-
-1. **Layer 1 — Raw Imported Record (Immutable Source Provenance)**:
-   Raw text, PDF page numbers, paragraph indices, exact original line strings, and raw metadata are preserved *forever* without mutation. No data cleaning or editing ever occurs at this layer.
-2. **Layer 2 — Normalized Candidate Record (Staging & Staged Entities)**:
-   Extracted facts (titles, authors, dates) are parsed, sanitized, and matched against existing database entries. Confidence scores and candidate merge links (`PossibleDuplicate`) are calculated.
-3. **Layer 3 — Canonical Archive Record (Verified Single Source of Truth)**:
-   The curated entity representations (`CanonicalBook`, `Author`, `Meetup`, `Venue`, `Discussion`) consumed by public APIs, search indexes, and the 3D virtual closet.
+The three-layer data model (raw, normalized candidate, canonical) is defined once in `domain_model.md` §1.
 
 ---
 
 ## 2. Comprehensive Entity Specifications
+
+> **Review 2026-10-09:** this section is required.
 
 ### A. Book (`Book` & `CanonicalBook`)
 
@@ -75,7 +62,11 @@ A **Book** represents a distinct literary work discussed, mentioned, or recommen
 - Raw imported books are **NEVER** forced into unique constraints at ingestion.
 - Uniqueness is enforced at Layer 3 (`CanonicalBook`). A canonical book is unique by the tuple `(normalized_title, primary_author_id)`.
 
+> **Review 2026-10-09:** §3 and §4 are sound in logic and do not yet cover odd real-world cases. Book attributes should come from ISBN rules and legal book-naming practice. Research deferred: `docs/plans/backlog.md` R1 (affects DB, API and OCR).
+
 #### 5. Merge Rules & Archive Review Workflow
+
+> **Review 2026-10-09 (contention):** fuzzy matching every new book against canonical books slows down as the archive grows. Needs a faster algorithm: backlog R2.
 ```text
   [ New Imported Book ]
             │
@@ -88,6 +79,8 @@ A **Book** represents a distinct literary work discussed, mentioned, or recommen
 ---
 
 ### B. Meetup (`Meetup`)
+
+> **Review 2026-10-09:** agreed.
 
 #### 1. What is a Meetup?
 A **Meetup** represents a single historical gathering of Broke Bibliophiles Bangalore on a specific date at a specific venue.
@@ -115,6 +108,8 @@ A **Meetup** represents a single historical gathering of Broke Bibliophiles Bang
 ---
 
 ### C. Discussion (`Discussion`)
+
+> **Review 2026-10-09:** accepted.
 
 #### 1. What Qualifies as a Discussion?
 A **Discussion** is an explicit interaction recorded during a meetup where one or more members discussed, analyzed, or presented a specific book (or theme).
@@ -146,6 +141,8 @@ A **Discussion** is an explicit interaction recorded during a meetup where one o
 
 ### D. Recommendation, Current Read, & Mention Taxonomy
 
+> **Review 2026-10-09 (contention):** this is the base of a long-lasting recommendation feature and must stay fast as books increase. Backlog R3.
+
 To prevent data ambiguity, interactions are strictly partitioned into 4 distinct categories:
 
 ```text
@@ -168,6 +165,8 @@ or presentation  by Member A to Member B          reading book         during ch
 ---
 
 ### E. Provenance & Source (`Source`)
+
+> **Review 2026-10-09:** agreed.
 
 #### How Provenance is Preserved Forever
 Every single extracted entity, fact, quote, or relationship in the database carries an immutable link (`source_id`) to a record in `sources`.
@@ -301,6 +300,8 @@ erDiagram
 ---
 
 ## 4. System Data Flow Architecture
+
+> **Status: roadmap (review 2026-10-09).** Too advanced for now, same as `universal_app_flow.md`. Current flow: `docs/BBB_PRD_TRD.md` §9.
 
 ```text
 +-------------------------------------------------------------------------+

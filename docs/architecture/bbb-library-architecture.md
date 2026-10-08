@@ -93,7 +93,7 @@ bbb/
 │
 ├── book_club_archivist.db   # SQLite database
 ├── requirements-api.txt     # Python dependencies
-└── ARCHITECTURE.md          # This file
+└── docs/architecture/bbb-library-architecture.md  # This file
 ```
 
 ## Data Flow
@@ -117,3 +117,16 @@ For production:
 - Frontend: Deploy to Vercel, Netlify, or similar
 - Backend: Deploy to Railway, Render, or similar
 - Database: Keep SQLite for simplicity, or migrate to PostgreSQL
+
+## Founder review (2026-10-09)
+
+**Still relevant.** All 7 listed endpoints exist in `app/api/main.py`; the API now has about 25 more (members, authors, synopsis, admin, suggest). 15 of 16 project-structure paths exist; the file used to be `ARCHITECTURE.md` (fixed above). Missing from the tree: `app/cli/`, `app/importers/`, `app/schemas/`, `app/services/`, `Dockerfile`, `docker-compose.yml`.
+
+**Data Flow and Key Decisions: kept.** One API between the UI and the database keeps coupling low and matches PRD §7.0 (one contract, one client). Weak point for scale: `app/api/main.py` holds every route in one module, which lowers cohesion; splitting it into FastAPI routers per area is the first step when it grows.
+
+**Planned alterations**
+
+- **Simple REST API:** stays REST. Goals: better API security, flexibility, and tooling such as Swagger docs for the API rules. Swagger is already served by FastAPI at `/docs`. See `docs/plans/backlog.md` R4.
+- **CORS:** make sure create, update and delete cannot damage the database. See backlog R5.
+
+**Deployment (point of contention).** SQLite stays for simplicity; PostgreSQL makes more sense once statistics, RAG and MCP integration arrive. Vercel for testing and the demo showcase with full features (less weight on statistics). The goal is a website of its own. See backlog R6.
