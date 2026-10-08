@@ -168,7 +168,7 @@ cd frontend && npm run build
 
 ## Contributing
 
-Start with [`docs/BBB_PRD_TRD.md`](docs/BBB_PRD_TRD.md), then [`docs/AGENT_RULES.md`](docs/AGENT_RULES.md). Both apply to people and AI agents alike. To brief an AI model in one step, give it [`docs/MASTER_PROMPT.md`](docs/MASTER_PROMPT.md). Commits follow `type: summary` (`feat`, `fix`, `docs`, `chore`, `build`).
+Start with [`docs/BBB_PRD_TRD.md`](docs/BBB_PRD_TRD.md), then [`docs/AGENT_RULES.md`](docs/AGENT_RULES.md). Both apply to people and AI agents alike. Commits follow `type: summary` (`feat`, `fix`, `docs`, `chore`, `build`).
 
 ## License
 
