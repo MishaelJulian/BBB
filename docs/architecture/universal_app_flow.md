@@ -1,4 +1,6 @@
-# Book Club Archivist - System Architecture
+# Universal App Flow
+
+> **Status: roadmap.** The logical flow of the full archive pipeline as a future target. It is not an implementation plan and does not describe the code today. Current architecture: `docs/BBB_PRD_TRD.md` §7 and §9.
 
 ## Overview
 **Book Club Archivist** is an enterprise-grade digital archival data pipeline system designed to collect, process, deduplicate, enrich, validate, and preserve years of scattered book club history from heterogeneous sources into one canonical database.

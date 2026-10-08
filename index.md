@@ -37,7 +37,7 @@ Older design write-ups; the PRD is the current source.
 | File | What it is |
 |---|---|
 | [`docs/architecture/bbb-library-architecture.md`](docs/architecture/bbb-library-architecture.md) | The app as first built |
-| [`docs/architecture/book-club-archivist-architecture.md`](docs/architecture/book-club-archivist-architecture.md) | The early, larger pipeline plan |
+| [`docs/architecture/universal_app_flow.md`](docs/architecture/universal_app_flow.md) | Roadmap: logical flow of the full archive pipeline (future features, not current code) |
 | [`docs/architecture/canonical_archive_specification.md`](docs/architecture/canonical_archive_specification.md) | Archive specification |
 | [`docs/architecture/domain_model.md`](docs/architecture/domain_model.md) | Domain model |
 | [`docs/architecture/DatabaseSchema.md`](docs/architecture/DatabaseSchema.md) | Database schema notes |
