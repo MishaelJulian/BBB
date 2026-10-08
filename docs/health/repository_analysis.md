@@ -5,6 +5,8 @@
 **Role**: Lead Software Architect  
 **Status**: Architectural Discovery & Data Inventory Complete (Pre-Implementation Phase)  
 
+> **Note (2026-10-08):** Three.js / React Three Fiber here is a plan from an earlier sprint. The live closet uses CSS 3D. WebGL is a future option for the closet only, after the admission rule in `docs/BBB_PRD_TRD.md` §7.1 (see §18.1).
+
 ---
 
 ## 1. Project Overview

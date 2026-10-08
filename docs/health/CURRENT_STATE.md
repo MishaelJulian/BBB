@@ -41,12 +41,12 @@ Frontend routes: `/`, `/library` (redirects to `/library-room`), `/library-room`
 - `/library-room` renders `CriterionBookCloset`, which draws its own book spines and opens `CriterionDetailModal` on selection.
 - It loads one request: `/books?limit=3000&only_discussed=true&exclude_general=true`, 2,018 books, 2,151,353 bytes, 0.51 s locally, uncompressed.
 - Deep links work through query parameters: `?select=<book id>` opens one book, `?meetup=<number>` shelves one meetup.
-- It does not use viewport-aware mounting: every book is drawn at once.
+- It draws one section at a time: 3 shelves of 120 books (360 books), with Prev/Next paging across the collection ("Shelves 1-3 of 18").
 - Flow D (thin shelf, rich pull) is the decided replacement and is not built yet (PRD §9.2).
 
 ### Components no longer reachable from any route
 
-Not imported by any live page since `VirtualLibraryRoom.tsx` was archived: `Shelf3D.tsx`, `ShelfBay.tsx`, `Shelf.tsx`, `Book3D.tsx`, `ReadingTable.tsx`, `HeroBookModal.tsx`, `ClosetPicksTray.tsx`, `AlphabetNav.tsx`. They stay in `frontend/src/components/library/` until the founders decide, because deletions need an approved list. PRD §12.2 (the `Book3D` contract) and the `Shelf → Book3D` steps in PRD §9.1 describe this unused path.
+Not reachable from any page since `VirtualLibraryRoom.tsx` was archived (10 files): `AlphabetNav.tsx`, `AmbientLighting.tsx`, `BookCover.tsx`, `ClosetPicksTray.tsx`, `HeroBookModal.tsx`, `ReadingTable.tsx`, `Shelf3D.tsx`, `Shelf.tsx` (nothing imports them), plus `Book3D.tsx` and `ShelfBay.tsx` (imported only by those). They stay in `frontend/src/components/library/` until the founders decide, because deletions need an approved list. PRD §9.1 and §12.2 now describe the live closet. Ideas worth keeping from these files are in `docs/plans/backlog.md`.
 
 ## 4. Verification run (2026-10-08)
 

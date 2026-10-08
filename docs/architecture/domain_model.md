@@ -146,3 +146,5 @@ Below is the complete inventory of all **21 domain entities** implemented in `bb
 
 - **Vector Search / AI Librarian**: Add a `vector_embedding` column (`Vector(1536)` via `pgvector`) to `CanonicalBook` and `Discussion` without modifying foreign key schemas.
 - **3D Closet Assets**: Add `model_3d_url`, `spine_color`, and `texture_atlas_coords` to `CanonicalBook` to power the React Three Fiber virtual bookshelf canvas.
+
+> **Note (2026-10-08):** Three.js / React Three Fiber here is a plan from an earlier sprint. The live closet uses CSS 3D. WebGL is a future option for the closet only, after the admission rule in `docs/BBB_PRD_TRD.md` §7.1 (see §18.1).

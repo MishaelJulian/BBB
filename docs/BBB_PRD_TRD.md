@@ -468,11 +468,13 @@ Adapter / normalization
   ↓
 TypeScript model
   ↓
-Library state
+Closet state (CriterionBookCloset: one section of 360 books at a time)
   ↓
-Shelf
+ShelfWall
   ↓
-Book3D
+ClosetSpine
+  ↓
+CriterionDetailModal (pulled-book card)
   ↓
 Book detail page
 ```
@@ -483,7 +485,7 @@ The first place where the real data stops flowing is the place to fix.
 
 Do not rewrite the whole application because one boundary is broken.
 
-**Current loading behaviour (verified 2026-10-08):** the Library Room (`CriterionBookCloset.tsx`) makes one request, `GET /books?limit=3000&only_discussed=true&exclude_general=true`. It returns 2,018 books in 2,151,353 bytes, uncompressed (the API has no gzip middleware), in 0.51 s locally. Each row carries nested `meetups[]`, `members[]`, `description` and Goodreads fields. Pulling a book needs no further book request because the data is already in memory; only the synopsis is fetched. Every book is drawn at once.
+**Current loading behaviour (verified 2026-10-08):** the Library Room (`CriterionBookCloset.tsx`) makes one request, `GET /books?limit=3000&only_discussed=true&exclude_general=true`. It returns 2,018 books in 2,151,353 bytes, uncompressed (the API has no gzip middleware), in 0.51 s locally. Each row carries nested `meetups[]`, `members[]`, `description` and Goodreads fields. Pulling a book needs no further book request because the data is already in memory; only the synopsis is fetched. The closet draws one section at a time (3 shelves of 120 books, 360 books) and pages through the rest.
 
 ## 9.2 Flow D: "thin shelf, rich pull" (DECIDED 2026-10-08; target loading strategy, not yet implemented)
 
@@ -491,7 +493,7 @@ Based on progressive disclosure ("overview first, zoom and filter, then details 
 
 ```text
 Shelf:  GET /books?fields=shelf   (id, title, author, covers, discussion_count, meetup numbers)
-        → render only visible bays (windowing)
+        → keep the closet's paging (one section of 360 books at a time)
 Hover:  prefetch GET /books/{id}  (hides latency)
 Pull:   blur closet + float card from cached detail
         history: discussions ordered by meetup number (first = min #)
@@ -520,7 +522,7 @@ Not measured yet: the render-time saving from windowing.
 |---|---|---|
 | Purpose | Find the first broken boundary | Match load cost to what the user looks at |
 | First load | O(N × full fields): all books with all nested history | O(N × shelf fields) |
-| DOM | One element set per book (O(N)) | Visible bays only (O(visible)) |
+| DOM | One section of 360 books at a time (paged) | Visible rows only (O(visible)) |
 | Pull | No request (data already loaded) | One request per book, prefetched on hover |
 | Cost | Large up-front payload | One more endpoint shape (`fields=`) plus a client cache |
 
@@ -714,21 +716,24 @@ Visual components do not invent their own database/API behaviour.
 
 When a visual component needs data or performance the current API does not give (a new field, a slower but richer call, more compute), it **proposes** an API change instead of working around it. Expect pushback on every proposal. Proposals are weighed so that only some allowed changes get more compute, and only the parts of the program that justify it are optimised.
 
-## 12.2 Book3D: presentational contract (for now)
+## 12.2 Closet components: presentational contract (for now)
 
-`Book3D` is a presentational component:
+The live closet (`frontend/src/components/library/`) splits into one container and presentational pieces:
 
-- **Input:** a book model plus visual tokens.
-- **Output:** user events only (e.g. hover, pull).
+| Component | Role | Fetches data? |
+|---|---|---|
+| `CriterionBookCloset` | Container: loads the books (`fetchBooks`), owns filters, paging, picks and the selected book | Yes, the book list only |
+| `ShelfWall`, `ClosetSpine` | Draw one shelf and one spine from a book model plus visual tokens (palette, size) | No |
+| `CriterionDetailModal` (with `Rotatable3DBook`) | The pulled-book card | Only the synopsis (`fetchBookSynopsis`) |
 
-It should not:
+Presentational pieces take a book model plus visual tokens as input and emit user events only (hover, select, close, next, previous). They should not:
 
 - query SQLite,
 - construct fake archival records,
 - make unrelated API calls,
 - own global library state.
 
-This contract is provisional; the founders will revise it in the future.
+This contract is provisional; the founders will revise it in the future. `Book3D.tsx` and the other components of the earlier room (`AlphabetNav`, `AmbientLighting`, `BookCover`, `ClosetPicksTray`, `HeroBookModal`, `ReadingTable`, `Shelf3D`, `Shelf`, `ShelfBay`) are not reachable from any page; ideas worth keeping from them are listed in `docs/plans/backlog.md`.
 
 ---
 
