@@ -1,4 +1,4 @@
-# AGENT_RULES.md — BBB Digital Library
+# AGENT_RULES.md: BBB Digital Library
 
 **Project:** Broke Bibliophiles of Bangalore (BBB) Digital Library / Archive  
 **Version:** 1.0 (combines `AGENT_PLAYBOOK.md` v1.0 and `BBB_RULES.md` v1.0)  
@@ -140,7 +140,7 @@ SAFE / CONTROLLED / ARCHITECTURAL · size XS / S / M / L   (see BBB_PRD_TRD.md �
 
 # 5. DATABASE SAFETY
 
-The archive (`book_club_archivist.db`, SQLite, tracked in git) is the project's most valuable asset. It is not seed data.
+The archive (`book_club_archivist.db`, SQLite, tracked in git) is the project's most valuable asset. Treat every row as irreplaceable.
 
 ## 5.1 Never, without explicit founder approval
 
@@ -187,7 +187,7 @@ The frontend and backend share one contract: FastAPI routes in `app/api/main.py`
 ## 6.1 Before adding or changing an endpoint
 
 - Search `app/api/main.py` for an existing route first. Several routes have both `/x` and `/api/x` forms.
-- Inspect the actual JSON from a running server, not just the code: status, top-level shape, field names, nullability, nested objects, pagination, ordering, error structure.
+- Inspect the actual JSON from a running server as well as the code: status, top-level shape, field names, nullability, nested objects, pagination, ordering, error structure.
 - Compare with the TypeScript types in `frontend/src/lib/api.ts`.
 - There are no Pydantic response models on the routes today, so the response code is the contract. Read it.
 
@@ -261,13 +261,13 @@ SUCCESS / PARTIAL / BLOCKED / FAILED
 
 ## Files
 Modified:
-- path — reason
+- path: reason
 Created:
-- path — reason
+- path: reason
 Deleted:
-- path — reason
+- path: reason
 Intentionally not changed:
-- path — reason
+- path: reason
 
 ## Risks
 - ...

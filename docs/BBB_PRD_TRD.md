@@ -1,21 +1,21 @@
-# BBB_PRD_TRD.md — BBB Digital Library
+# BBB_PRD_TRD.md: BBB Digital Library
 
 **Project:** Broke Bibliophiles of Bangalore (BBB) Digital Library / Archive  
 **Version:** 2.0 (merge of `MASTER_FOUNDATION_PROMPT.md` v1.0 and `BUILD_GUIDE.md` v1.0, both dated 11 Aug 2026; originals in `archive/docs-v1/`)  
 **Date:** 7 Oct 2026  
 **Purpose:** Product requirements (Part I), technical requirements (Part II) and agent operating rules (Part III) for every coding agent and contributor.  
-**Repository:** `git@github.com:MishaelJulian/BBB.git` — `main` is the permanent record.  
-**Related:** [`AGENT_RULES.md`](AGENT_RULES.md) — how AI agents work on this repo (second in authority after this file) · [`references.md`](references.md) — prior work and research sources.
+**Repository:** `git@github.com:MishaelJulian/BBB.git`. `main` is the permanent record.  
+**Related:** [`AGENT_RULES.md`](AGENT_RULES.md): how AI agents work on this repo (second in authority after this file) · [`references.md`](references.md): prior work and research sources.
 
 ---
 
-# PART I — PRODUCT (PRD)
+# PART I: PRODUCT (PRD)
 
 # 1. WHO YOU ARE
 
 You are a coding agent continuing the **BBB Digital Library**, an existing archival web application for the Broke Bibliophiles of Bangalore community. This holds for any model or agent environment (Claude Code, Gemini CLI, OpenCode, etc.).
 
-This is not a greenfield project. Continue the existing system: do not destroy working functionality, invent architecture, or forget recorded decisions.
+This is an existing project. Continue the existing system: do not destroy working functionality, invent architecture, or forget recorded decisions.
 
 Your first responsibility:
 
@@ -29,9 +29,9 @@ A feature that is not obvious from one file is not necessarily missing from the 
 
 BBB is a digital archive / library experience for the Broke Bibliophiles of Bangalore community.
 
-The purpose of the application is to turn the recovered BBB archive into an explorable digital library rather than a conventional database interface.
+The purpose of the application is to turn the recovered BBB archive into an explorable digital library.
 
-## PRIMARY PRODUCT EXPERIENCE — THE 3D LIBRARY ROOM
+## PRIMARY PRODUCT EXPERIENCE: THE 3D LIBRARY ROOM
 
 The **3D Library Room is the single highest-priority experience in the entire project**.
 
@@ -63,9 +63,7 @@ Do not reduce it to "a CRUD book website."
 
 # 2A. LIBRARY ROOM PRODUCT CANON
 
-The Library Room is not merely a visualization of the database.
-
-It is the primary way users encounter the archive.
+The Library Room is the primary way users encounter the archive.
 
 ### Required experience
 
@@ -83,15 +81,15 @@ When the user selects and pulls a book from the shelf, the resulting state shoul
 
 **Information on the card, in display order:**
 
-1. **When** — the month and year the meetup was conducted on (format: `MM,YYYY`). The full date stays in the archive; no detail is lost.
-2. **Which meetup** — the meetup number (e.g. `#93`, `#64`).
-3. **Introducer(s)** — who read or presented/discussed it first, labelled **"first recorded"** (see *Introducers and discussers* below).
-4. **Discussers** — which member(s) were associated with it after or along with the first discussion.
+1. **When**: the month and year the meetup was conducted on (format: `MM,YYYY`). The full date stays in the archive; no detail is lost.
+2. **Which meetup**: the meetup number (e.g. `#93`, `#64`).
+3. **Introducer(s)**: who read or presented/discussed it first, labelled **"first recorded"** (see *Introducers and discussers* below).
+4. **Discussers**: which member(s) were associated with it after or along with the first discussion.
 5. Discussion information.
 6. Repeat appearances across meetups.
 7. Recommendations / current-read context where available.
 8. Links to the full book record.
-9. **Why** (optional) — shown at the bottom in near-greyed-out text: unimportant but nice to have. Source: the discussion notes (`discussions.notes`), an optional field in the backend. The public API does not return notes yet (see §17).
+9. **Why** (optional): shown at the bottom in near-greyed-out text: unimportant but nice to have. Source: the discussion notes (`discussions.notes`), an optional field in the backend. The public API does not return notes yet (see §17).
 
 The UI must clearly distinguish:
 
@@ -101,7 +99,7 @@ VERIFIED ARCHIVAL DATA
 
 from anything that is merely inferred or unavailable.
 
-If a historical field is missing, show that it is unavailable rather than inventing it.
+If a historical field is missing, show it as unavailable.
 
 ### Introducers and discussers
 
@@ -126,7 +124,7 @@ For an appearance (m, n₀(b)):
     role(m, n₀(b)) = introducer   (ties at n₀ are all credited)
 ```
 
-- **"First recorded", not "first ever":** n₀ is the earliest meetup *recorded in the archive*. Not every meetup has been recovered, so a book's introducer can change when an earlier meetup is recovered. The card labels introducers "first recorded".
+- **"First recorded":** n₀ is the earliest meetup *recorded in the archive*. Not every meetup has been recovered, so a book's introducer can change when an earlier meetup is recovered. The card labels introducers "first recorded".
 - **No introducer:** if the book was first raised in a discussion with no member attached (e.g. a general discussion), I(b) is empty and the card shows the introducer as **unavailable**.
 
 ### Physical interaction is part of the product
@@ -163,7 +161,7 @@ Show archival history
 Navigate to full book detail
 ```
 
-The "take a book out and discover its history" interaction is a core product requirement, not a decorative animation. The 3D animation exists to support this discovery loop. It is not an independent visual gimmick.
+The "take a book out and discover its history" interaction is a core product requirement. The 3D animation exists to support this discovery loop.
 
 ---
 
@@ -172,13 +170,13 @@ The "take a book out and discover its history" interaction is a core product req
 The 3D Library Room is the **hero experience** and highest-priority feature.
 
 ```text
-P0 — 3D Library Room / physical browsing experience
-P1 — Archive + API data foundation
-P2 — Book detail / archival history
-P3 — Secondary archive interfaces and polish
+P0: 3D Library Room / physical browsing experience
+P1: Archive + API data foundation
+P2: Book detail / archival history
+P3: Secondary archive interfaces and polish
 ```
 
-The Library Room must use **real archival books**, not a fake demo collection.
+The Library Room must use **real archival books** only.
 
 ## 3.1 Library Room implementation priority
 
@@ -214,7 +212,7 @@ The exact current API/database relationship names must always be inspected befor
 
 # 4. CURRENT ARCHIVAL CANON
 
-The following figures are the currently reported archive snapshot and must be treated as **reported project data**, not freshly verified facts:
+The following figures are the currently reported archive snapshot and must be treated as **reported project data** (unverified):
 
 - **2,747 canonical books**
 - **3,554 imported book records**
@@ -224,7 +222,7 @@ The following figures are the currently reported archive snapshot and must be tr
 - **11 standalone archival documents**
 - **Meetup #97** was manually imported
 
-If code inspection or a fresh database query produces different numbers, do not silently overwrite these figures but keep a mark and start investigating based on this set of reported project data.
+If code inspection or a fresh database query produces different numbers, keep a mark on these figures and start investigating based on this set of reported project data. Never overwrite them silently.
 
 Record the discrepancy in `docs/health/SESSION_LOG.md` and identify which source is authoritative. Known discrepancies are investigated in `docs/book_count&details_issues.md`.
 
@@ -252,7 +250,7 @@ Archival data is not disposable seed data. Never:
 - regenerate the archive without backup,
 - modify historical records without documentation.
 
-**Migration checklist** — for any migration:
+**Migration checklist**: for any migration:
 
 1. inspect current schema,
 2. explain the change,
@@ -316,7 +314,7 @@ The actual BBB meetup records are the source material, transformed as:
 source record → normalized record → database → API → UI / Library Room
 ```
 
-Do not silently change the meaning of the source. The same book appearing at several meetups is **historical information**, not duplicate noise. Preserve every occurrence:
+Do not silently change the meaning of the source. The same book appearing at several meetups is **historical information**; keep every appearance. Preserve every occurrence:
 
 ```text
 BOOK → BOOK OCCURRENCE → MEETUP → PERSON
@@ -361,17 +359,17 @@ The visual direction includes:
 - real books from the archive
 - click-through to actual book details
 
-These are product goals, not permission to invent unrelated features.
+These are product goals only; unrelated features need founder approval.
 
 If the current implementation differs, inspect the repository and record the difference before changing it.
 
 ---
 
-# PART II — TECHNICAL (TRD)
+# PART II: TECHNICAL (TRD)
 
 # 7. TECHNICAL ARCHITECTURE
 
-> **Status: INITIAL — NOT FINAL.** The stack, and especially additional software and its tentative usage, is expected to change significantly.
+> **Status: INITIAL: NOT FINAL.** The stack, and especially additional software and its tentative usage, is expected to change significantly.
 
 ## 7.1 Admission rule for new software / tools
 
@@ -485,14 +483,14 @@ The first place where the real data stops flowing is the place to fix.
 
 Do not rewrite the whole application because one boundary is broken.
 
-**Current loading behaviour (verified 2026-10-07):** the Library Room makes one request, `GET /books?limit=3000`. It returns all 2,736 books (2,398,462 bytes, uncompressed: the API has no gzip middleware), each with nested `meetups[]`, `members[]` and `description`. Pulling a book needs no further book request because the data is already in memory; only the synopsis is fetched.
+**Current loading behaviour (verified 2026-10-08):** the Library Room (`CriterionBookCloset.tsx`) makes one request, `GET /books?limit=3000&only_discussed=true&exclude_general=true`. It returns 2,018 books in 2,151,353 bytes, uncompressed (the API has no gzip middleware), in 0.51 s locally. Each row carries nested `meetups[]`, `members[]`, `description` and Goodreads fields. Pulling a book needs no further book request because the data is already in memory; only the synopsis is fetched. Every book is drawn at once.
 
-## 9.2 Flow D — "thin shelf, rich pull" (DECIDED 2026-10-08 — target loading strategy, not yet implemented)
+## 9.2 Flow D: "thin shelf, rich pull" (DECIDED 2026-10-08; target loading strategy, not yet implemented)
 
 Based on progressive disclosure ("overview first, zoom and filter, then details on demand"; see `docs/references.md`).
 
 ```text
-Shelf:  GET /books?fields=shelf   (id, title, author, page_count, discussion_count)
+Shelf:  GET /books?fields=shelf   (id, title, author, covers, discussion_count, meetup numbers)
         → render only visible bays (windowing)
 Hover:  prefetch GET /books/{id}  (hides latency)
 Pull:   blur closet + float card from cached detail
@@ -500,21 +498,25 @@ Pull:   blur closet + float card from cached detail
 Open:   /books/[id] reuses same cached detail
 ```
 
-**Measured 2026-10-07** against the live `GET /books?limit=3000` response (2,736 books, compact JSON):
+**Measured 2026-10-08** against the closet's real request (2,018 books, compact JSON). The spines show covers and the first meetup numbers, so those stay in the shelf payload:
 
 | Shelf payload | Raw bytes | vs full | gzip bytes | vs full gzip |
 |---|---|---|---|---|
-| Full (today) | 2,414,112 | — | 544,093 | — |
-| Shelf fields only | 412,245 | **82.9 % smaller** | 133,806 | 75.4 % smaller |
-| Shelf fields + `cover_url` | 641,564 | 73.4 % smaller | 167,407 | 69.2 % smaller |
+| Today | 2,167,473 | baseline | 523,519 | baseline |
+| Shelf fields only (no covers) | 311,149 | 85.6 % smaller | 101,910 | 80.5 % smaller |
+| **Shelf fields + covers + meetup numbers** | **837,940** | **61.3 % smaller** | **154,887** | **70.4 % smaller** |
 
-Per-book detail (fetched on hover/pull): median 794 bytes, max 10,005 bytes.
+The honest figure for Flow D is **61.3 % smaller**. An earlier measurement (82.9 %) used the unfiltered list and dropped the covers, so it overstated the saving.
+
+Per-book detail (fetched on hover/pull, measured 2026-10-07 on the unfiltered list): median 794 bytes, max 10,005 bytes.
+
+**API gap:** the card's Introducer and Discussers need (member, meetup) pairs. Today the API returns `meetups[]` and `members[]` as separate lists, so `/books/{id}` must return discussions as (meetup number, date, member) entries before §2A can be computed.
 
 Not measured yet: the render-time saving from windowing.
 
 ## 9.3 Comparison
 
-| | A/B — pipeline trace (§9.1) | D — progressive disclosure (§9.2) |
+| | A/B: pipeline trace (§9.1) | D: progressive disclosure (§9.2) |
 |---|---|---|
 | Purpose | Find the first broken boundary | Match load cost to what the user looks at |
 | First load | O(N × full fields): all books with all nested history | O(N × shelf fields) |
@@ -522,7 +524,7 @@ Not measured yet: the render-time saving from windowing.
 | Pull | No request (data already loaded) | One request per book, prefetched on hover |
 | Cost | Large up-front payload | One more endpoint shape (`fields=`) plus a client cache |
 
-The two are not exclusive. The trace stays the debugging method under either loading strategy.
+The two work together. The trace stays the debugging method under either loading strategy.
 
 > **Decision (founders, 2026-10-08):** the Library Room moves to **Flow D** (progressive disclosure). Until it is implemented, today's single full load (§9.1) remains in place. The pipeline trace stays the debugging method.
 
@@ -688,7 +690,7 @@ For Library Room work, verify where applicable:
 - [ ] API failures stay contained and show a controlled state,
 - [ ] no new console errors.
 
-A change that only makes the shelf prettier while real data is broken is not a successful outcome.
+A change that only makes the shelf prettier while real data is broken counts as a failed outcome.
 
 ---
 
@@ -712,7 +714,7 @@ Visual components do not invent their own database/API behaviour.
 
 When a visual component needs data or performance the current API does not give (a new field, a slower but richer call, more compute), it **proposes** an API change instead of working around it. Expect pushback on every proposal. Proposals are weighed so that only some allowed changes get more compute, and only the parts of the program that justify it are optimised.
 
-## 12.2 Book3D — presentational contract (for now)
+## 12.2 Book3D: presentational contract (for now)
 
 `Book3D` is a presentational component:
 
@@ -758,7 +760,7 @@ Failed to fetch books
 
 while the FastAPI server itself was successfully returning 200 responses.
 
-This strongly suggests that the problem may exist between the API and frontend consumer, rather than in the database itself. The agent must verify this rather than assume it.
+This strongly suggests that the problem sits between the API and the frontend consumer. The agent must verify this rather than assume it.
 
 ---
 
@@ -767,7 +769,7 @@ This strongly suggests that the problem may exist between the API and frontend c
 A book detail page has already been created. The task list in an earlier agent session showed:
 
 ```text
-T2 — Create book detail page
+T2: Create book detail page
 ```
 
 marked complete. The route is `/books/[id]` (`frontend/src/app/books/[id]/page.tsx`).
@@ -781,7 +783,7 @@ Do not recreate this page without first inspecting the current implementation.
 An earlier task addressed:
 
 ```text
-T1 — Fix Library Room fetch to use correct API endpoint
+T1: Fix Library Room fetch to use correct API endpoint
 ```
 
 It was marked complete, but the agent continued afterward and hit a **Too Many Requests** / rate-limit state.
@@ -935,25 +937,25 @@ Forbidden:
 
 ---
 
-# PART III — AGENT OPERATING RULES
+# PART III: AGENT OPERATING RULES
 
 # 21. AI AGENT NON-NEGOTIABLES
 
 Every AI agent must obey these rules.
 
-### Rule 1 — Never hallucinate the repository
+### Rule 1: Never hallucinate the repository
 
 If you have not inspected a file while the founder is asking a question that pertains to it, do not claim what you think is fact. Instead, read the relevant words or heuristics-based operations within the related files, and report what was done, what is planned to be done, what was stalled, and what couldn't be done.
 
 Use:
 
 ```text
-VERIFY — inspect <file/path>
+VERIFY: inspect <file/path>
 ```
 
 when necessary.
 
-### Rule 2 — Never invent API contracts
+### Rule 2: Never invent API contracts
 
 Inspect:
 
@@ -965,11 +967,11 @@ Inspect:
 
 before changing the consumer.
 
-### Rule 3 — Never fabricate database records
+### Rule 3: Never fabricate database records
 
 Never invent book titles, authors, members, meetups, discussions, or statistics and present them as archive data.
 
-### Rule 4 — Never silently change architecture
+### Rule 4: Never silently change architecture
 
 If you discover stale architecture, report it first. Example:
 
@@ -981,20 +983,20 @@ Preferred:
 Frontend → FastAPI
 
 Status:
-ARCHITECTURE DRIFT — requires confirmation before removal.
+ARCHITECTURE DRIFT: requires confirmation before removal.
 ```
 
-### Rule 5 — Never rewrite working systems unnecessarily
+### Rule 5: Never rewrite working systems unnecessarily
 
 A bug in one data path does not justify rewriting the backend, database, and frontend.
 
-### Rule 6 — Never delete archival data
+### Rule 6: Never delete archival data
 
 No destructive database operation without explicit human approval.
 
-### Rule 7 — Never mark a task complete without verification
+### Rule 7: Never mark a task complete without verification
 
-"Code changed" is not the same as "feature works."
+"Code changed" and "feature works" are separate claims.
 
 ---
 
@@ -1040,7 +1042,7 @@ Architectural changes require an explicit explanation before implementation.
 | XS | Small isolated fix |
 | S | One feature or component |
 | M | Multiple related files |
-| L | Architecture or major feature — never let it become an uncontrolled rewrite; split it |
+| L | Architecture or major feature; never let it become an uncontrolled rewrite, split it |
 
 Write both, e.g. `CONTROLLED · M`. The end-of-task report format lives in `AGENT_RULES.md` §8.
 
@@ -1072,7 +1074,7 @@ When uncertain:
 
 Never replace uncertainty with confidence.
 
-This project has already been built across multiple AI sessions. The purpose of this document is to make the next agent inherit the project rather than restart it.
+This project has already been built across multiple AI sessions. The purpose of this document is to make the next agent inherit the project and continue it.
 
 ---
 

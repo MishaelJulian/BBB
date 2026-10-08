@@ -1,4 +1,4 @@
-# BBB — Broke Bibliophiles of Bangalore Digital Archive & Virtual Library
+# BBB: Broke Bibliophiles of Bangalore Digital Archive & Virtual Library
 
 > AI agents and contributors: start with [`docs/BBB_PRD_TRD.md`](docs/BBB_PRD_TRD.md), then [`docs/AGENT_RULES.md`](docs/AGENT_RULES.md).
 

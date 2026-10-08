@@ -702,4 +702,39 @@ Basics-cleanup plan steps 1–3 (memory init, knowledge graph, change history), 
 
 ---
 
+# SESSION: 009: Agent rules, docs reorganisation, health endpoint, root cleanup
+
+## Date
+2026-10-08
+
+## Agent
+Coding agent, founder-directed
+
+## Task
+Merge the agent playbook and rules, reorganise the docs, add `GET /health`, clean the repo root, and verify the app end to end.
+
+## Completed
+- [x] Rebased onto Mishael's `6af556d` (Meetup #25 ingest, closet spine layout). Its changes outside #25 (120 titles, 218 authors, 31 removed discussions) were reported to him.
+- [x] `AGENT_PLAYBOOK.md` and `BBB_RULES.md` merged into `docs/AGENT_RULES.md`, second in authority after `docs/BBB_PRD_TRD.md`; PRD expanded with data, API, dependency, git and 3D performance rules (`e9e0d9f`, `347b3fb`).
+- [x] Docs moved into `docs/`, `docs/health/`, `docs/architecture/`, `docs/plans/` and `archive/`; MIT `LICENSE` promoted to the root; release v1.0 created on `a7d3c52` (`261d456`, `268fd7f`).
+- [x] `GET /health` added (`5d8e0fe`).
+- [x] Admin CSV export hidden until a live export exists; static CSV and the Criterion reference recording moved to `archive/` (`0f1d445`, `6fe8370`).
+- [x] `CURRENT_STATE.md` rewritten from live measurements; PRD §9 corrected to the closet's real request (Flow D saves 61.3 %, the earlier 82.9 % used the unfiltered list); em dashes and "not X but Y" phrasing removed from the PRD, AGENT_RULES and README.
+- [x] Root cleanup: 32 meetup PDFs, `BBB Meetup-9.txt` and `meetup_numbers.txt` moved to `sources/` (import default `--data-dir` is now `sources`); scratch scripts to `scripts/scratch/`; verify scripts to `tests/verify/`.
+
+## Verification
+- `pytest`: 31 passed. Scanner on `sources/`: 1 TXT, 32 PDFs.
+- `tests/verify/verify_p0_suite.py`, `verify_p2_pathways.py`, `verify_p3_bidirectional.py`: all pass against the live API.
+- `npm run build`: exit 0, 11 routes. Production frontend on port 3000 with the API on port 8000: every route returns 200; `/library-room?select=<Mort>` opens the book card; `?meetup=97` shelves 43 volumes; `/members/Abhiram` shows 31 books and 18 meetups; the admin export button is gone.
+
+## Git state
+`main` matches `origin/main` up to `6fe8370`; this session's cleanup and doc fixes are committed locally for the founders to push.
+
+## Next
+- README rewrite (Mermaid, CI/CodeQL/Python badges, three closet captures, short roadmap with the WebGL closet first, Examples from the verified deep links), then archive `Used tool manage_task.txt`.
+- Build: Pydantic response models, Flow D (with paginated `/books` and member-meetup pairs for introducers), search across authors and notes, Lucide and React Testing Library, genre data and filters, OCR.
+- Founders to decide: the components no longer reachable from any route (`Book3D`, `Shelf3D`, `ReadingTable` and others, listed in `CURRENT_STATE.md` §3).
+
+---
+
 # END OF SESSION_LOG.md
