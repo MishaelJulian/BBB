@@ -41,21 +41,7 @@ The 3D Library Room is the BBB equivalent of the Criterion Closet and is the pri
 
 ## CORE LIBRARY ROOM INTERACTION
 
-A user should be able to:
-
-```text
-browse real archival books
-→ hover/focus a book
-→ pull the book out of the shelf
-→ transition into a featured book state
-→ see who read/discussed it
-→ see when it was read/discussed
-→ see which meetup(s) it appeared in
-→ see discussion/context information
-→ open the full book detail page
-```
-
-This interaction must use actual archive relationships from the database/API.
+Defined in `BBB_PRD_TRD.md` §2A. It must use actual archive relationships from the database/API.
 
 Do not fabricate reader names, meetup dates, or discussion history.
 
@@ -441,13 +427,13 @@ Need a controlled agent workflow with persistent project documentation.
 
 ## Decision 002 — Four-document project memory system
 
-**Status:** LOCKED (amended 2026-10-07: `MASTER_FOUNDATION_PROMPT.md` and `BUILD_GUIDE.md` merged into `BBB_PRD_TRD.md`; originals in `archive/docs-v1/`)
+**Status:** LOCKED (amended 2026-10-07: `MASTER_FOUNDATION_PROMPT.md` and `BUILD_GUIDE.md` merged into `BBB_PRD_TRD.md`; originals in `archive/docs-v1/`; amended 2026-10-08: `AGENT_PLAYBOOK.md` and `BBB_RULES.md` merged into `AGENT_RULES.md`; originals in `archive/docs-v1/`)
 
 The project uses:
 
 ```text
 BBB_PRD_TRD.md
-AGENT_PLAYBOOK.md
+AGENT_RULES.md
 SESSION_LOG.md
 ```
 
@@ -456,7 +442,7 @@ Purpose:
 | File | Role |
 |---|---|
 | BBB_PRD_TRD.md | What the project is, what must not change, and how the software should be engineered |
-| AGENT_PLAYBOOK.md | How AI agents should behave |
+| AGENT_RULES.md | How AI agents should behave |
 | SESSION_LOG.md | Where the project currently is |
 
 ---

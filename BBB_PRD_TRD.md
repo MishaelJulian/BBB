@@ -5,7 +5,7 @@
 **Date:** 7 Oct 2026  
 **Purpose:** Product requirements (Part I), technical requirements (Part II) and agent operating rules (Part III) for every coding agent and contributor.  
 **Repository:** `git@github.com:MishaelJulian/BBB.git` — `main` is the permanent record.  
-**Related:** [`docs/references.md`](docs/references.md) — prior work and research sources.
+**Related:** [`AGENT_RULES.md`](AGENT_RULES.md) — how AI agents work on this repo (second in authority after this file) · [`docs/references.md`](docs/references.md) — prior work and research sources.
 
 ---
 
@@ -83,15 +83,15 @@ When the user selects and pulls a book from the shelf, the resulting state shoul
 
 **Information on the card, in display order:**
 
-1. **Why** — the why of the meetup is displayed first; it is the first order of information. Source: the discussion notes (`discussions.notes`). The public API does not return notes yet (see §17).
-2. **Introducer(s)** — who read or presented/discussed it first, labelled **"first recorded"** (see *Introducers and discussers* below).
-3. **Discussers** — which member(s) were associated with it after or along with the first discussion.
-4. **Which meetup** — the meetup number (e.g. `#93`, `#64`).
-5. **When** — the month and year the meetup was conducted on (format: `MM,YYYY`). The full date stays in the archive; no detail is lost.
-6. Discussion information.
-7. Repeat appearances across meetups.
-8. Recommendations / current-read context where available.
-9. Links to the full book record.
+1. **When** — the month and year the meetup was conducted on (format: `MM,YYYY`). The full date stays in the archive; no detail is lost.
+2. **Which meetup** — the meetup number (e.g. `#93`, `#64`).
+3. **Introducer(s)** — who read or presented/discussed it first, labelled **"first recorded"** (see *Introducers and discussers* below).
+4. **Discussers** — which member(s) were associated with it after or along with the first discussion.
+5. Discussion information.
+6. Repeat appearances across meetups.
+7. Recommendations / current-read context where available.
+8. Links to the full book record.
+9. **Why** (optional) — shown at the bottom in near-greyed-out text: unimportant but nice to have. Source: the discussion notes (`discussions.notes`), an optional field in the backend. The public API does not return notes yet (see §17).
 
 The UI must clearly distinguish:
 
@@ -261,6 +261,18 @@ Archival data is not disposable seed data. Never:
 5. verify counts,
 6. test affected API routes.
 
+**Never, without explicit founder approval:** `DROP`, `TRUNCATE`, mass `DELETE` / `UPDATE`, or regenerating the archive. Do not destroy or rewrite source records to solve a UI problem.
+
+**Known destructive paths** (see `AGENT_RULES.md` §5 for the full procedure):
+
+- `archive reset-db` and `archive import-full --reset` (`app/cli/main.py`) call `reset_db()`, which runs `drop_all` + `create_all` on the live database with no confirmation and no backup. Never run them on the live DB; import into a scratch DB and diff instead.
+- `app/plans/sprint_1c_implementation.md` Q5 justifies `drop_all` because the DB "has 0 records". That assumption has expired.
+- Tests are isolated: `tests/conftest.py` uses an in-memory SQLite engine.
+
+**Before any write to the archive:** back up `book_club_archivist.db`, dry-run and report per-table counts, get approval for anything beyond a single targeted fix, apply, verify counts before vs after, and record it in `SESSION_LOG.md`.
+
+**Migrations:** Alembic is configured but unused (empty migration folder; the schema comes from `Base.metadata.create_all`). Schema changes follow the checklist above by hand and are ARCHITECTURAL (§23).
+
 ## 5.3 API contract before UI assumptions
 
 The frontend must adapt to the actual backend response.
@@ -295,6 +307,34 @@ over:
 rewrite everything
 → hope it works
 ```
+
+## 5.6 Repeat appearances are history
+
+The actual BBB meetup records are the source material, transformed as:
+
+```text
+source record → normalized record → database → API → UI / Library Room
+```
+
+Do not silently change the meaning of the source. The same book appearing at several meetups is **historical information**, not duplicate noise. Preserve every occurrence:
+
+```text
+BOOK → BOOK OCCURRENCE → MEETUP → PERSON
+```
+
+## 5.7 Stable book identity
+
+Every book has one stable canonical identity. Do not create duplicate books because of differences in capitalization, punctuation, formatting, author-name spelling, or repeated meetup appearances. Normalize where appropriate, but keep every meaningful archival occurrence. Known identity problems are listed in `docs/book_count&details_issues.md`.
+
+## 5.8 Data-driven shelf and book resolution
+
+- Do not hardcode individual books into the Library Room. Prefer `book data → shelf layout → book instances`, so the room scales as the archive grows.
+- Every 3D book maps to its canonical book ID, and a selected book resolves through `3D book instance → canonical book ID → API/database → correct book → correct history`.
+- Never show one book's data for another. If a record cannot be resolved, show a controlled "unavailable" state.
+
+## 5.9 No mocking a broken core
+
+Do not solve API bugs with hardcoded data, 3D bugs by replacing the room with a grid, or missing archive data by inventing records. Temporary fixtures are allowed only when clearly isolated for development.
 
 ---
 
@@ -342,6 +382,15 @@ Any new software or tool must first be **critiqued against the current stack** (
 - Otherwise it is rejected, based on the strength of the resolutions.
 
 Record the critique, resolutions and verdict.
+
+**Dependency checklist** (see `AGENT_RULES.md` §7):
+
+1. Inspect `frontend/package.json` and `requirements.txt` / `requirements-api.txt`.
+2. Check whether the existing stack already solves the problem (standard library, platform feature, installed package).
+3. Assess bundle size and runtime impact, especially on the Library Room.
+4. Pin a specific version; never blindly install `latest`.
+
+**Automated updates:** Dependabot opens one grouped PR per ecosystem (pip, npm, github-actions) every 3 days. The dependency-review workflow fails a PR that adds a dependency with a high-severity vulnerability. Major-version bumps inside a grouped PR are reviewed separately before merging. Never mix a dependency upgrade with a bug fix, refactor or redesign in one task.
 
 ## 7.2 Stack
 
@@ -438,7 +487,7 @@ Do not rewrite the whole application because one boundary is broken.
 
 **Current loading behaviour (verified 2026-10-07):** the Library Room makes one request, `GET /books?limit=3000`. It returns all 2,736 books (2,398,462 bytes, uncompressed: the API has no gzip middleware), each with nested `meetups[]`, `members[]` and `description`. Pulling a book needs no further book request because the data is already in memory; only the synopsis is fetched.
 
-## 9.2 Proposed flow D — "thin shelf, rich pull" (PROPOSED, not approved)
+## 9.2 Flow D — "thin shelf, rich pull" (DECIDED 2026-10-08 — target loading strategy, not yet implemented)
 
 Based on progressive disclosure ("overview first, zoom and filter, then details on demand"; see `docs/references.md`).
 
@@ -475,7 +524,7 @@ Not measured yet: the render-time saving from windowing.
 
 The two are not exclusive. The trace stays the debugging method under either loading strategy.
 
-> **Decision pending (founders):** how to load and render the Library Room: A/B pipeline-trace loading (today), the hero-closet rendering, or D progressive-disclosure loading. Flow D stays PROPOSED until decided.
+> **Decision (founders, 2026-10-08):** the Library Room moves to **Flow D** (progressive disclosure). Until it is implemented, today's single full load (§9.1) remains in place. The pipeline trace stays the debugging method.
 
 ---
 
@@ -498,6 +547,13 @@ This proves that the backend is capable of serving book data. It does NOT by its
 # 11. API RULES
 
 > **Marked for replacement:** §11.1–§11.6 are minimal and loosely defined. They are to be replaced with a standard API-management guide chosen through deep research.
+
+## 11.0 Contract basics (see `AGENT_RULES.md` §6)
+
+- One contract: FastAPI routes in `app/api/main.py`, consumed only through `frontend/src/lib/api.ts`.
+- There are no Pydantic response models on the routes today, so the route code is the contract.
+- Before adding an endpoint, search for an existing one. Several routes have both `/x` and `/api/x` forms.
+- Never silently change a response shape. When it must change, change it in this order within one task: `backend route → types/schema → every consumer → tests → documentation`. A contract change is ARCHITECTURAL (§23).
 
 ## 11.1 Backend is authoritative
 
@@ -616,6 +672,23 @@ Database
 ```
 
 Do not stop at "the backend returned 200."
+
+### Library Room verification checklist
+
+For Library Room work, verify where applicable:
+
+- [ ] app starts and the Library Room opens,
+- [ ] the 3D scene renders,
+- [ ] real archive books appear (no fixtures),
+- [ ] each book maps to its correct canonical ID,
+- [ ] hover / focus and selection work,
+- [ ] the pulled book resolves to the correct record,
+- [ ] archival history loads (reader/member, meetup, date),
+- [ ] navigation to the book detail page works,
+- [ ] API failures stay contained and show a controlled state,
+- [ ] no new console errors.
+
+A change that only makes the shelf prettier while real data is broken is not a successful outcome.
 
 ---
 
@@ -750,6 +823,24 @@ API unavailable
 
 Do not turn "network/API failure" into "there are no books."
 
+## 17.1 Async states
+
+Every network action visibly supports four states:
+
+```text
+idle → loading → success → error
+```
+
+The user must know what is happening. Errors preserve access to whatever still works. For example:
+
+```text
+The archive record could not be opened.
+The Library Room is still available.
+Try again.
+```
+
+The room should remain usable when secondary API features fail.
+
 > **Marked for future:** `discussions.notes` is never returned by the public book endpoints. The API uses notes only internally, to classify "general" / "tangent" discussions; only the admin meetup endpoint returns them.
 
 ---
@@ -775,6 +866,13 @@ Prefer:
 - animation only when the relevant experience is active.
 
 Do not optimize prematurely. Measure first.
+
+## 18.1 3D performance
+
+- **The 3D closet (Library Room) may use rendering techniques at their maximum** where they are needed for many real books plus a convincing, stable spatial experience: instancing, efficient meshes, texture reuse, culling, lazy loading, simple materials and restrained lighting. Any new library this requires still passes the admission rule (§7.1).
+- **Everywhere else in the app, CSS 3D remains the strong majority preference.**
+- **WebGL / Three.js option:** Three.js (WebGL) is not installed today. It may get downloaded in the future despite these constraints, for the 3D closet, after passing the admission rule (§7.1).
+- Do not add expensive effects merely for spectacle. The goal is many real books + a convincing spatial experience + stable interaction.
 
 ---
 
@@ -803,6 +901,16 @@ Never mix:
 - visual redesign
 
 in one uncontrolled task.
+
+**Hard rules** (also in `AGENT_RULES.md` §2):
+
+- **Agents never push.** The founders push manually. Agents commit only when asked.
+- Agents never force-push, rewrite shared history, or merge branches without approval.
+- No AI or tool attribution in commits, PRs or logs.
+
+## 19.1 Secrets
+
+Never commit `.env`, `.env.local`, API keys, credentials, database passwords or service-role keys. Never expose server-side secrets to the browser. `.env.example` holds only placeholder names.
 
 ---
 
@@ -896,11 +1004,13 @@ When information conflicts, use this order:
 
 1. Explicit founder instruction in the current task
 2. `BBB_PRD_TRD.md`
-3. `SESSION_LOG.md` latest verified state
-4. Current source code
-5. Existing task descriptions
-6. Older agent output
-7. Agent assumptions
+3. `AGENT_RULES.md`
+4. `BBB_UI.md`, by relevance to the task
+5. `SESSION_LOG.md` latest verified state
+6. Current source code
+7. Existing task descriptions
+8. Older agent output
+9. Agent assumptions
 
 Conversation memory is useful context but is not proof of what needs to be done, or that recently completed tasks are aligned with the repository.
 
@@ -923,20 +1033,16 @@ Changes data flow, database schema, framework, API contract, or major component 
 
 Architectural changes require an explicit explanation before implementation.
 
-After every task, report:
+### Size (always stated next to the class)
 
-```markdown
-Files modified:
-- path — reason
+| Size | Scope |
+|---|---|
+| XS | Small isolated fix |
+| S | One feature or component |
+| M | Multiple related files |
+| L | Architecture or major feature — never let it become an uncontrolled rewrite; split it |
 
-Files created:
-- path — reason
-
-Files deleted:
-- path — reason
-```
-
-If a file is unrelated to the task, leave it alone.
+Write both, e.g. `CONTROLLED · M`. The end-of-task report format lives in `AGENT_RULES.md` §8.
 
 ---
 
@@ -953,7 +1059,7 @@ A task is complete only when:
 - [ ] No unrelated files were modified
 - [ ] No fake archive data
 - [ ] No silent error handling
-- [ ] `SESSION_LOG.md` was updated
+- [ ] `SESSION_LOG.md` was updated (contents: `AGENT_RULES.md` §9)
 - [ ] Any unresolved issue is documented
 
 ---

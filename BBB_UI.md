@@ -29,21 +29,7 @@ The **3D Library Room is the primary visual experience.**
 
 ## 2. CORE EXPERIENCE {#2-core-experience}
 
-The primary journey is:
-
-``` text
-Landing
-  ↓
-Enter the Library
-  ↓
-3D Library Room
-  ↓
-Browse real books
-  ↓
-Take a book from the shelf
-  ↓
-Discover its history
-```
+The primary journey and book interaction are defined in `BBB_PRD_TRD.md` §2A.
 
 If development time is limited:
 
