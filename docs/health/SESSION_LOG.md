@@ -805,4 +805,46 @@ Branch `main`. Unpushed: `96dbe94` and `c2ba3a7` were pushed earlier; `4199504`,
 
 ---
 
+# SESSION: 011: Architecture consult: hosting, auth, data model, mobile, founder questions
+
+## Date
+2026-10-09
+
+## Agent
+Coding agent, founder-directed consult (no code, database or dependency changes)
+
+## Task
+See which aspects of each main architecture doc hold up against the revision requests (BACKLOGS_MAIN, MAIN CHANGES, PRESENTER module ideas, THINGS_FROM_RTIH, DOMAINS) and the evidence files (`docs/health/*`); put every architectural choice to the founders as options; record the decisions and revise the docs.
+
+## Inspected
+The 7 main docs, the 6 evidence files, the 7 revision-request files; RTIH `platform_/docker/docker-compose.yml`, `docs/reference/primers/architecture.md`, `docs/harness/sdlc-master-plan.md`, `specs/backup-dr.md`, `docs/notes/security-backlog.txt`; `security_more`; `MLCP Scheming/security-immediate.txt`; `app/database/models.py`; `app/api/main.py` outbound calls; the database (read-only).
+
+## Completed
+- [x] 35 decisions (D1 to D35) and answers to Q1 to Q10, each chosen by the founders from an options menu; recorded in `imperative_decisions.md` §6 and `FOUNDER_QUESTIONS.md`.
+- [x] PRD: new §2B (users and roles), §8.3 (deployment), §12.3 (server vs browser rendering), §12.4 (theming tokens), §17.2 (privacy, DPDP), §18.2 (Core Web Vitals gate, adaptive loading, offline), §19.2 (versioning); §11.1 to §11.5 replaced by the API standard; stack additions marked "pending §7.1"; §4 discrepancy logged without overwriting the reported figures.
+- [x] `bbb-library-architecture.md` rewritten as the runtime owner: target topology, doc ownership map, proxy hardening checklist, cache layers, accounts and recovery, secrets, backups, costs; founder review block kept word for word.
+- [x] `DatabaseSchema.md` regenerated from the models (24 tables, live counts, status, planned changes, generator inline).
+- [x] `domain_model.md`: wrong path, entity count and threshold corrected; attendance, member lifecycle, inflows, identity rules added.
+- [x] `universal_app_flow.md`: presenter-form inflow, review queue, real enrichers, one-database principle.
+- [x] `flow_comparison.md` §8: write path, statistics path, touch prefetch, Flow E threshold tied to the mobile budget.
+- [x] `docs/plans/backlog.md`: resolutions, launch gate, roadmap phases, tool evaluation.
+- [x] Upload cap lowered from 30 MB to 4.5 MB to match Vercel's body limit (D36); `app/api/main.py`; 32 tests pass (scratch venv built from the requirements files; the default interpreters lack `loguru`).
+
+## Measurements
+- Latency from Airtel mobile, Bengaluru (TCP connect, median of 5): Vercel edge 34 ms, DigitalOcean BLR1 38 ms, DigitalOcean SGP1 86 ms, Hetzner FSN1 189 ms, DigitalOcean FRA1 220 ms, Hetzner SIN 274 ms, Hetzner HEL1 284 ms.
+- Live counts (read-only): canonical_books 2,783; imported_books 3,637; meetups 53; discussions 2,686; members 174; sources 1,829; meetup #99 has 62 discussions and no `source_id`.
+
+## Unfinished work
+- Open: the founders will pass the PostHog DNS records to the club domain's manager; whether Vercel to Caddy negotiates X25519MLKEM768; the other 77 founder questions. Dead-code deletion held until P4 (founders).
+- Nothing from the roadmap (P0 to P5) is built yet.
+
+## Files changed
+`docs/BBB_PRD_TRD.md`, `docs/architecture/{bbb-library-architecture,DatabaseSchema,domain_model,flow_comparison,imperative_decisions,universal_app_flow}.md`, `docs/plans/backlog.md`, `FOUNDER_QUESTIONS.md`, `index.md`, `docs/health/SESSION_LOG.md`.
+
+## Next
+1. Roadmap P0 (backups and restore drill first, then the Q9 baseline, then each data step with a dry run).
+2. The launch gate in `docs/plans/backlog.md`.
+
+---
+
 # END OF SESSION_LOG.md

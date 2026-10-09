@@ -10,8 +10,22 @@ Every open question and decision from the health reviews, in one place. Built on
 |---|---|---|---|
 | A-S2 | S2: may opening a book (the public `GET /books/{id}/synopsis`) write to the database? | **No** (2026-10-09) | Synopsis enrichment moves off the public GET; saving happens only through the admin enrich route. Also settles Q-error-handling silent failures 2, Q-structures content hashing 4 (enrichment leaves public GET) and the synopsis half of Q-comments 6. Code change not yet made |
 | A-CH2 | Delete `sources/BBB 99, Books Discussion List.pdf` | **Requested** (2026-10-09); deleted in its own commit, revertible with `git revert` | See Q1 below: the file turned out to be the original, not app output |
+| A-Q1 | BBB 99 original | **Restore it in full and include all of it** (2026-10-09) | Revert `74207d7`; add a Source row and link `meetups.source_id` for #99 (NULL today; 62 discussions stored); diff the PDF against the 62 discussions and add what is missing. Dry run, backup, approval (roadmap P0) |
+| A-Q2 | Database in the public repo (F8) | **Public by intent** (2026-10-09) | Privacy policy says so and offers removal; account data only in the private `auth.db` (D8) |
+| A-Q3 | How the app runs | **Moot after the move** (2026-10-09) | Production is the DigitalOcean droplet (D6); local docker is dev-only with the safe-stop rule |
+| A-Q4 | Will `full_import.py` run again | **Yes, re-import later** (2026-10-09) | Fix C4 to C6, C8, K1/RC1, RX1 to RX12, A3 first; re-import into a scratch DB; diff against live (roadmap P0b) |
+| A-Q5 | Which July 2025 file is real | **`86 - BBB Meetup - Books Discussed - July 2025.pdf`** (2026-10-09) | Remove the other file's 74 rows (dry run, backup) |
+| A-Q6 | Fuzzy threshold | **Two bands** (2026-10-09) | ≥ 0.90 "likely", 0.75 to 0.90 "possible"; nothing merges automatically |
+| A-Q7 | Same title, different author | **Case by case** (2026-10-09) | Separate by default; the review queue may merge with a founder's decision |
+| A-Q8 | The unnumbered PDFs | **Confirmed** (2026-10-09) | Jul 2023 = #62, Aug 2023 = #63, BYOB + BBB 25 Nov 2023 = #66, 30 Dec 2023 export = #67, Aug to Dec 2025 = #87 to #91, Jan 2026 = #92; `meetup_number` stays required |
+| A-Q9 | Alembic baseline; drop `books`, `attachments` | **Yes to both** (2026-10-09) | Backup, drift check, baseline, stamp, then a separate drop migration |
+| A-Q10 | Merge the 27 title and 106 author groups | **Review queue, a founder approves each** (2026-10-09) | Old forms kept as aliases |
+| A-Sec3 | Will the app leave the LAN | **Yes** (2026-10-09): public demo on Vercel + droplet | Login (P12), the proxy checklist and the launch gate become blockers (`docs/plans/backlog.md`) |
+| A-Sec6 | Shared admin token as the first step | **No: per-person accounts with Better Auth** (2026-10-09, D5) | Every write records who made it |
 
 ## Decide first
+
+> **All ten answered on 2026-10-09**; see the Answered table above. Kept below for the evidence links.
 
 Ordered by risk today, then by what they unblock. Several appear more than once in the full list below; the IDs show where.
 
@@ -95,7 +109,7 @@ Source: `docs/health/pattern_review_analysis.md`, section "Comments and docstrin
 
 1. K1: should duplicate detection produce fuzzy candidates? If yes, it must compare each book against other canonicals; A3 and A7 depend on this.
 2. PT2 and K2: is `/admin/media/resolve-url` meant to be reachable by anyone who can reach port 8000? Should PDF cover downloads use the same public-address check?
-3. PT1: will a reverse proxy sit in front of the API when deployed? Without one, the 30 MB check is the only limit.
+3. PT1: will a reverse proxy sit in front of the API when deployed? Without one, the 30 MB check is the only limit. **Answered 2026-10-09:** yes, Vercel's proxy (4.5 MB body limit) plus Caddy; the API cap now matches at 4.5 MB (D36).
 4. K3: apply `safeHttpUrl` at `admin/page.tsx:873`, and reject non-http(s) values for `external_url` in the API?
 5. K4: limit the LAN and localhost CORS rule to `ENV=development`?
 6. K5 and K6: make the synopsis and PDF routes `POST` or admin-only, or only document the writes? **(Answered by S2: No)**

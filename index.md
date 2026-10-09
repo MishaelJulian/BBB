@@ -10,7 +10,7 @@ Where everything in this repository lives. Any person or AI model can start here
 |---|---|
 | [`README.md`](README.md) | Front page: what BBB Library is, how to run it, examples, API reference |
 | [`docs/BBB_PRD_TRD.md`](docs/BBB_PRD_TRD.md) | Main document: product and technical requirements, goals, constraints, change policy. First in authority after the founders |
-| [`FOUNDER_QUESTIONS.md`](FOUNDER_QUESTIONS.md) | Every open question and decision from the health reviews, prioritised, with answers recorded |
+| [`FOUNDER_QUESTIONS.md`](FOUNDER_QUESTIONS.md) | Every open question and decision from the health reviews, prioritised, with answers recorded (Q1 to Q10 answered 2026-10-09) |
 | [`docs/AGENT_RULES.md`](docs/AGENT_RULES.md) | How AI agents work here: hard rules, session start, database safety, API contract, dependencies, reports |
 | [`docs/BBB_UI.md`](docs/BBB_UI.md) | UI and visual rules |
 
@@ -31,7 +31,7 @@ Where everything in this repository lives. Any person or AI model can start here
 
 | File | What it is |
 |---|---|
-| [`docs/plans/backlog.md`](docs/plans/backlog.md) | Optional closet features; architecture research and contention items (R1 to R6) |
+| [`docs/plans/backlog.md`](docs/plans/backlog.md) | Optional closet features; research items R1 to R6 and their resolutions; launch gate; roadmap phases P0 to P5; tool evaluation (PRD §7.1 first pass) |
 | [`docs/plans/sprint_1c_implementation.md`](docs/plans/sprint_1c_implementation.md) | Plan for the original full-archive import (historical; its "reset the database" step no longer applies) |
 | [`docs/references.md`](docs/references.md) | Prior work and research sources |
 
@@ -41,13 +41,13 @@ Older design write-ups; the PRD is the current source.
 
 | File | What it is |
 |---|---|
-| [`docs/architecture/bbb-library-architecture.md`](docs/architecture/bbb-library-architecture.md) | The app as first built |
+| [`docs/architecture/bbb-library-architecture.md`](docs/architecture/bbb-library-architecture.md) | Owner of runtime and deployment: target topology (Vercel + DigitalOcean BLR1), document ownership map, proxy hardening checklist, cache layers, accounts and recovery, secrets, backups, hosting costs |
 | [`docs/architecture/universal_app_flow.md`](docs/architecture/universal_app_flow.md) | Roadmap: logical flow of the full archive pipeline (future features, not current code) |
-| [`docs/architecture/imperative_decisions.md`](docs/architecture/imperative_decisions.md) | Entity specifications (required) with founder review notes; data flow section is roadmap |
+| [`docs/architecture/imperative_decisions.md`](docs/architecture/imperative_decisions.md) | Entity specifications (required) with founder review notes; §6 decision log (D1 to D35, 2026-10-09) with rejected options and sources |
 | [`docs/architecture/flow_comparison.md`](docs/architecture/flow_comparison.md) | Data flows compared with the code: cost per flow, schools of thought, Flow E option, lessons from the ISI DRTC library science syllabus |
 | [`docs/CODEMAPS/`](docs/CODEMAPS/) | Token-lean code maps: architecture, backend routes, frontend tree, data tables, dependencies and external services, coupling (generated 2026-10-09) |
-| [`docs/architecture/domain_model.md`](docs/architecture/domain_model.md) | Domain model |
-| [`docs/architecture/DatabaseSchema.md`](docs/architecture/DatabaseSchema.md) | Database schema notes |
+| [`docs/architecture/domain_model.md`](docs/architecture/domain_model.md) | Domain model: three layers, attendance and member lifecycle, inflows, identity rules |
+| [`docs/architecture/DatabaseSchema.md`](docs/architecture/DatabaseSchema.md) | Physical schema generated from the models (24 tables) with live row counts, status (live, dormant, legacy) and planned changes |
 | [`frontend/ARCHITECTURE.md`](frontend/ARCHITECTURE.md) | Frontend architecture |
 
 ## Audit snapshots

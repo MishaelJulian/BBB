@@ -165,6 +165,22 @@ The "take a book out and discover its history" interaction is a core product req
 
 ---
 
+# 2B. USERS AND ROLES
+
+> Decided 2026-10-09 (`docs/architecture/imperative_decisions.md` §6, D5, D9, D10, D12).
+
+| Role | Who | Can |
+|---|---|---|
+| Public | Anyone, no login | Read every public page: Library Room, books, meetups, members, scorecard, about, gallery |
+| Presenter | A logged-in club member who runs a meetup | Everything public, plus record a meetup through the presenter form (date, venue preset, attendees, books with Goodreads autofill and manual override) |
+| Admin | A founder | Everything a presenter can do, plus edit or merge records, approve review-queue items, manage users and run reports |
+
+- Public pages never call a write route. Every write route checks the role on the server (FastAPI), on every request.
+- **Attendee and member.** Everyone who attends is recorded in `meetup_attendance` (status: registered, attended or presenter). A member is someone who attended BBB at least twice and is part of the WhatsApp group. After a meetup is saved, the app suggests "X attended Y times, make them a member?". The presenter confirms, because only the presenter knows about the WhatsApp group.
+- Registrations from Google Forms enter the same table with status `registered` and source `gforms`. The presenter ticks who actually came.
+
+---
+
 # 3. PRODUCT PRIORITY
 
 The 3D Library Room is the **hero experience** and highest-priority feature.
@@ -185,6 +201,9 @@ The Library Room must use **real archival books** only.
 3. **Correct data:** fix the issues in `docs/book_count&details_issues.md` without losing any record.
 4. **Search, typed API responses, frontend tests, genre filters, OCR**, as listed in the README roadmap.
 5. **The WebGL closet,** the long-term showpiece. It needs the admission rule (§7.1) before any library is installed.
+6. **Presenter module and scorecard** (§2B): the presenter form as the main way new meetups enter the archive, and a public statistics page. Added 2026-10-09; its position in this list is for the founders to confirm.
+
+**Launch gate (2026-10-09, D31):** the public link is shared only after the items listed in `docs/plans/backlog.md` ("Launch gate") are done.
 
 ## 3.1 Library Room implementation priority
 
@@ -233,6 +252,8 @@ The following figures are the currently reported archive snapshot and must be tr
 If code inspection or a fresh database query produces different numbers, keep a mark on these figures and start investigating based on this set of reported project data. Never overwrite them silently.
 
 Record the discrepancy in `docs/health/SESSION_LOG.md` and identify which source is authoritative. Known discrepancies are investigated in `docs/book_count&details_issues.md`.
+
+> **Discrepancy logged 2026-10-09 (read-only query of `book_club_archivist.db`):** 2,783 canonical books, 3,637 imported book records, 53 meetups with records, 2,686 discussions, 174 members. The club has held 99 meetups. The reported figures above are kept unchanged.
 
 ---
 
@@ -390,6 +411,9 @@ If the current implementation differs, inspect the repository and record the dif
 | Admin | `/admin/*` has no login yet. Do not widen what it can reach |
 | Files | Names must stay unique without regard to letter case (Windows and macOS checkouts) |
 | Writing | No em dashes. No "not X but Y" phrasing. Every number is measured and given with its cause |
+| Licences | Every tool is free for long-term use and MIT-licensed or similarly forkable, with source code visible (founder rule, 2026-10-09) |
+| Hosting | Vercel Hobby is non-commercial only: no payments, ads, sales or paid hosting on it. Donations are allowed (§8.3) |
+| Privacy | Member names and notes in the archive are public by intent; personal account data lives only in `auth.db` (§17.2) |
 
 ## 7.1 Admission rule for new software / tools
 
@@ -426,6 +450,20 @@ Record the critique, resolutions and verdict.
 | Motion | Framer Motion |
 | 3D / spatial UI | CSS / frontend rendering as implemented |
 | Local API | `http://localhost:8000` |
+
+**Decided 2026-10-09, each still to pass §7.1 before install** (`imperative_decisions.md` §6):
+
+| Purpose | Tool | Licence |
+|---|---|---|
+| Auth (passkeys, email links, roles) | Better Auth | MIT |
+| Service worker / offline | Serwist | MIT |
+| UI components, command palette, icons | shadcn/ui, cmdk, lucide | MIT, MIT, ISC |
+| TLS reverse proxy on the VPS | Caddy | Apache-2.0 |
+| Secrets | SOPS + age | MPL-2.0, BSD-3-Clause |
+| Bot check | ALTCHA | MIT |
+| Email, error tracking, feature flags | PostHog | MIT outside `ee/` |
+| Static analysis in CI | Opengrep | LGPL-2.1 |
+| Admin statistics view | perspective | Apache-2.0 |
 
 Do not change the stack without explicit approval (and §7.1).
 
@@ -464,6 +502,14 @@ python -m uvicorn app.api.main:app --host 0.0.0.0 --port 8000
 Or the whole stack with `docker compose up` (see `docker-compose.yml`).
 
 Frontend development commands must be taken from the current `frontend/package.json` (at present: `dev`, `build`, `start`, `lint`). Do not invent a package script.
+
+## 8.3 Deployment (decided 2026-10-09, not yet built)
+
+- **Frontend:** Next.js on Vercel (Hobby plan, non-commercial use only). The browser talks only to the Vercel site; `/api/*` is rewritten to the VPS, so login cookies stay first-party on Android and iOS.
+- **Backend:** FastAPI, the Better Auth sidecar and Caddy on a DigitalOcean droplet in Bangalore (BLR1, 1 GB, $7.08 a month including 18 % GST). It holds `book_club_archivist.db` and `auth.db`, with nightly off-box backups.
+- **Users:** mostly Android phone browsers; desktop matters equally. Every page is built mobile-first.
+- **Final home:** the club's own website, brokebibliophilesbangalore.com. The demo address is Vercel's for now.
+- Full topology, proxy hardening and cache layers: `docs/architecture/bbb-library-architecture.md`.
 
 ---
 
@@ -532,6 +578,8 @@ The honest figure for Flow D is **61.3 % smaller**. An earlier measurement (82.9
 
 Per-book detail (fetched on hover/pull, measured 2026-10-07 on the unfiltered list): median 794 bytes, max 10,005 bytes.
 
+**Touch screens (decided 2026-10-09, D18):** phones have no hover, so on touch the detail fetch starts on `pointerdown` (the moment the finger lands), and when the phone is idle the details of the few books in view are prefetched (capped per row). Desktop keeps hover prefetch. On slow connections or Data Saver the idle prefetch is skipped (§18.2).
+
 **API gap:** the card's Introducer and Discussers need (member, meetup) pairs. Today the API returns `meetups[]` and `members[]` as separate lists, so `/books/{id}` must return discussions as (meetup number, date, member) entries before §2A can be computed.
 
 Not measured yet: the render-time saving from windowing.
@@ -570,7 +618,7 @@ This proves that the backend is capable of serving book data. It does NOT by its
 
 # 11. API RULES
 
-> **Marked for replacement:** §11.1–§11.6 are minimal and loosely defined. They are to be replaced with a standard API-management guide chosen through deep research.
+> **Replaced 2026-10-09 (D25, D26):** §11.1 to §11.5 below now hold the API standard, adapted from the RTIH primer (`RTIH/proj01/docs/reference/primers/architecture.md`, Stripe's ten-year API rules). §11.0 and §11.6 are unchanged.
 
 ## 11.0 Contract basics (see `AGENT_RULES.md` §6)
 
@@ -579,88 +627,40 @@ This proves that the backend is capable of serving book data. It does NOT by its
 - Before adding an endpoint, search for an existing one. Several routes have both `/x` and `/api/x` forms.
 - Never silently change a response shape. When it must change, change it in this order within one task: `backend route → types/schema → every consumer → tests → documentation`. A contract change is ARCHITECTURAL (§23).
 
-## 11.1 Backend is authoritative
+## 11.1 Contract and inspection
 
-The frontend should not guess database structure.
+- The backend is authoritative. The frontend never guesses database structure; every field it uses (`book.id`, `book.title` ...) is checked against the real response.
+- Every route declares a **Pydantic response model**. The models are the contract, and FastAPI turns them into an accurate Swagger page at `/docs` and a schema at `/openapi.json`.
+- When debugging, inspect the real JSON (`GET /books?limit=10`): status, top-level shape, field names, nullability, nested objects, pagination fields, ordering, error structure. Then compare with the TypeScript types.
+- Never paper over a mismatch with `as any`. If backend and frontend disagree, change the model deliberately.
+- **Swagger exposure:** public routes appear in the public `/docs`; admin and presenter routes appear only to a logged-in admin.
 
-If a frontend component needs:
+## 11.2 Errors
 
-```text
-book.title
-book.author
-book.id
+Every error uses one envelope:
+
+```json
+{ "error": { "type": "validation_error", "code": "meetup_number_taken", "message": "Meetup #99 already exists." } }
 ```
 
-those fields must be verified against the actual API response.
+- `type` is one of: `validation_error`, `auth_error`, `permission_error`, `not_found`, `conflict`, `rate_limited`, `server_error`.
+- `message` is safe to show a user. Raw exception text, file paths and SQL never reach the client (security finding F5); they go to the server log and to error tracking.
 
-## 11.2 Inspect actual JSON
+## 11.3 Lists, paging and limits
 
-When debugging an endpoint, use the real response. For example:
+- Every list endpoint has a **maximum `limit`** (security finding E6: `GET /books` returns 2.15 MB with no cap today).
+- Paging uses **cursors (keyset)**: the response carries `next_cursor`, and the client sends `after=<cursor>`. Offsets break when data changes between pages and slow down as the archive grows (`flow_comparison.md` §3.3).
+- Filtering and sorting: decide whether the backend or the frontend is authoritative for each rule, implement it once, and test it. The existing `sort_by` / `sort_order` parameters keep working.
 
-```text
-GET /books?limit=10
-```
+## 11.4 Rate limits and versions
 
-Inspect:
-
-- HTTP status
-- top-level JSON shape
-- field names
-- nullability
-- nested objects
-- pagination fields
-- ordering
-- error structure
-
-Then compare with TypeScript types.
-
-## 11.3 Do not fix contract mismatches with random casting
-
-Avoid:
-
-```ts
-as any
-```
-
-as a permanent fix. If the backend and frontend disagree, normalize the data deliberately.
-
-## 11.4 Search and sorting
-
-The current backend has demonstrated sorting through:
-
-```text
-/books?sort_by=title&sort_order=asc
-```
-
-Any new sorting/filtering feature should preserve the existing API contract unless an intentional API change is approved.
-
-When adding filtering:
-
-```text
-filter requirement
-→ determine whether backend or frontend is authoritative
-→ implement once
-→ test result
-```
-
-Avoid implementing the same business rule independently in multiple places.
+- Every response carries `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`. Limits are per IP and, when logged in, per account. A request over the limit gets HTTP 429 with the `rate_limited` envelope.
+- **Never break the contract.** Add fields; never remove or rename one. A breaking change needs a new date-stamped version (for example `BBB-Version: 2026-10-09`), and the old behaviour stays the default until every consumer has moved.
+- Presenter writes carry an `Idempotency-Key` header; the server stores the key with the result, so a retry on weak signal never saves a meetup twice (§18.2).
 
 ## 11.5 Book detail routing
 
-The book detail route is:
-
-```text
-/books/[id]
-```
-
-Before modifying it:
-
-- inspect its current data fetching,
-- verify the ID format,
-- verify 404 handling,
-- verify loading state,
-- verify real API data,
-- verify navigation from Library Room.
+The book detail route is `/books/[id]`. Before modifying it: inspect its current data fetching, verify the ID format, 404 handling and loading state, verify real API data, and verify navigation from the Library Room.
 
 ## 11.6 Testing requirements
 
@@ -754,6 +754,23 @@ Presentational pieces take a book model plus visual tokens as input and emit use
 - own global library state.
 
 This contract is provisional; the founders will revise it in the future. `Book3D.tsx` and the other components of the earlier room (`AlphabetNav`, `AmbientLighting`, `BookCover`, `ClosetPicksTray`, `HeroBookModal`, `ReadingTable`, `Shelf3D`, `Shelf`, `ShelfBay`) are not reachable from any page; ideas worth keeping from them are listed in `docs/plans/backlog.md`.
+
+## 12.3 What runs on the server and what runs in the browser (decided 2026-10-09)
+
+| Page type | Where it renders | Data | Refresh |
+|---|---|---|---|
+| Public reading pages: about, gallery, meetups, members, scorecard, book pages | Server (Next.js), cached on Vercel's CDN | Public API and precomputed JSON (`archive_statistics.json`, `timeline.json`) | The cache tag is purged when a presenter saves a meetup |
+| Library Room (closet) | Browser app | Flow D: slim shelf first, book detail on tap or hover (§9.2) | Service-worker cache, stale-while-revalidate |
+| Presenter and admin pages | Browser app behind login | Protected API routes | Never cached |
+
+Rule: a public page must render useful content without JavaScript-only data fetching, so the first paint is fast on a phone.
+
+## 12.4 Theming and visual identity (decided 2026-10-09)
+
+- Every colour, font, spacing step and motion timing is a **design token**: a CSS custom property with a light set and a dark set. Tailwind reads the tokens.
+- Components use token names only, never raw colour values. Dark mode, and a later BBB identity (half brutalist, half commercial), then mean changing the tokens without rewriting components.
+- Components come from shadcn/ui (copied into the repo, so the club owns the code); the command palette uses cmdk; icons come from lucide. Each passes §7.1 first.
+- The search bar becomes a floating command palette (founder request), separate from the header.
 
 ---
 
@@ -870,6 +887,14 @@ The room should remain usable when secondary API features fail.
 
 > **Marked for future:** `discussions.notes` is never returned by the public book endpoints. The API uses notes only internally, to classify "general" / "tangent" discussions; only the admin meetup endpoint returns them.
 
+## 17.2 Privacy and personal data (decided 2026-10-09)
+
+- **Law:** India's Digital Personal Data Protection Rules 2025 (notified 13 November 2025) apply to anyone processing personal data in India, whatever their size. The main duties (notice, consent, erasure, breach notice) apply from about May 2027. GDPR applies only to data of people in the EU.
+- **Public by intent:** member names and discussion notes in `book_club_archivist.db` are public, and the repository is public. The privacy policy (linked from the footer) says so, and gives a way to ask for a name to be removed.
+- **Private:** email addresses, passkeys, sessions and password hashes live only in `auth.db` on the server. It is never committed, is encrypted in backups, and is deleted row by row on an erasure request. The archive keeps only a display name.
+- **Consent:** the registration form states what is stored and why, and asks for consent. There is no product analytics on public pages (D23).
+- **Bot check:** ALTCHA, a self-hosted proof-of-work check with no third-party tracking.
+
 ---
 
 # 18. PERFORMANCE
@@ -900,6 +925,34 @@ Do not optimize prematurely. Measure first.
 - **Everywhere else in the app, CSS 3D remains the strong majority preference.**
 - **WebGL / Three.js option:** Three.js (WebGL) is not installed today. It may get downloaded in the future despite these constraints, for the 3D closet, after passing the admission rule (§7.1).
 - Do not add expensive effects merely for spectacle. The goal is many real books + a convincing spatial experience + stable interaction.
+
+## 18.2 Mobile budget, adaptive loading and offline (decided 2026-10-09)
+
+**Release gate (D20):** Core Web Vitals at the 75th percentile of page loads, measured separately on mobile and desktop (web.dev/articles/vitals):
+
+| Metric | Must be |
+|---|---|
+| LCP (largest contentful paint) | ≤ 2.5 s |
+| INP (interaction to next paint) | ≤ 200 ms |
+| CLS (cumulative layout shift) | ≤ 0.1 |
+
+Measured with Lighthouse in CI and Vercel Speed Insights. A release that misses a gate does not ship.
+
+**Adaptive loading (D19).** Chrome on Android reports connection speed (`navigator.connection.effectiveType`) and Data Saver (`saveData`). On 2g or 3g, or with Data Saver on: smaller covers, no 3D motion, no idle prefetch. Browsers without these signals (Safari, Firefox desktop) get the full experience.
+
+**Installable app and offline (D15, D17).** A web app manifest makes the site installable, and a service worker (Serwist) caches:
+- the app shell and hashed JS and CSS (cache first);
+- the shelf payload and public statistics JSON (stale-while-revalidate);
+- books already opened (network first, then cache);
+- covers (cache first, size-capped).
+
+Presenter-form drafts are kept on the phone and retried visibly with an idempotency key (§11.4).
+
+Never cached: login, admin and presenter API calls. On iPhone, Safari clears site storage after 7 days without use unless the app is installed to the Home Screen, so offline on iOS depends on installing.
+
+**Layout.** Mobile-first CSS grid and container queries; touch targets at least 44 to 48 px; the closet section must stay within the INP budget on a low-end Android phone (measure, then draw only the rows in view).
+
+**Third-party assets.** Every library is bundled from npm and served from Vercel with the site; no runtime CDN such as unpkg (D29). This keeps the content security policy at `'self'` and works in privacy browsers such as LibreWolf and Zen.
 
 ---
 
@@ -938,6 +991,13 @@ in one uncontrolled task.
 ## 19.1 Secrets
 
 Never commit `.env`, `.env.local`, API keys, credentials, database passwords or service-role keys. Never expose server-side secrets to the browser. `.env.example` holds only placeholder names.
+
+Shared secrets (the API origin secret, auth signing keys, PostHog keys) are kept encrypted in the repository with SOPS + age, one key per admin (D7). Adding or removing an admin means re-encrypting; git history is the audit trail.
+
+## 19.2 Version numbers (decided 2026-10-09, D14)
+
+- Releases use **SemVer** (`MAJOR.MINOR.PATCH`), bumped by hand when a release is cut, with a stage tag while the app is young, for example `0.4.0-alpha`, `0.9.0-beta`, then `1.0.0` for the first stable release.
+- The footer shows the release version plus a **build number**, which CI stamps from the commit count (`git rev-list --count main`). Vercel builds from a shallow clone, so the count is taken in CI, where the full history is available.
 
 ---
 

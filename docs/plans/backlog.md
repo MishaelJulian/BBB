@@ -40,3 +40,80 @@ Open decisions from the reviews:
 - The fuzzy threshold: 0.75 in the code vs 85% in the spec.
 - Whether full_import.py will run again. If yes, fix C4–C6, C8 and K1 first.
 - The deferred container rebuild.
+
+## Resolved by the architecture consult (2026-10-09)
+
+Decisions with sources: `docs/architecture/imperative_decisions.md` §6. Founder answers: `FOUNDER_QUESTIONS.md`.
+
+| Item | Resolution |
+|---|---|
+| R4 API: Swagger, flexibility, security | API standard in PRD §11 (D25); Swagger public for public routes, admin routes hidden (D26); post-quantum transport via the host's TLS (Vercel and Caddy offer X25519MLKEM768); passkeys classical for now (D32) |
+| R5 Protect writes beyond CORS | Better Auth login + role check on every write in FastAPI (D5, D12); proxy hardening checklist (D35) |
+| R6 Hosting and database | Vercel Hobby (frontend) + DigitalOcean BLR1 droplet (API, SQLite) (D1, D6); PostgreSQL only for RAG/MCP (D11) |
+| F8 database in the public repo | Public by intent; privacy policy and removal on request (D8) |
+| Fuzzy threshold 0.75 vs 85 % | Two bands: ≥ 0.90 likely, 0.75 to 0.90 possible (Q6) |
+| Will full_import.py run again | Yes, later: fix the import defects, re-import into a scratch DB, diff against live (Q4) |
+| Merge the 27 title and 106 author groups | Review queue, a founder approves each, aliases kept (Q10) |
+| Deferred container rebuild | Moot for production (droplet); local docker is dev-only (Q3) |
+
+Dead-code deletion list (1,050 lines, `docs/health/pattern_review_analysis.md` D1 to D23): **held until P4** (founders, 2026-10-09). Decide during the UI phase, when shadcn/ui replaces the old components. Nothing has been deleted. Note for that decision: D4 to D6 cover PRD §17.1 states, D21 `get_db` fits the router split (D12), and `@radix-ui/react-dialog` is also used by shadcn/ui.
+
+## Launch gate (D31)
+
+The public link is shared only after all of these are done:
+
+- [ ] Login and role checks on every write (closes E1, E2)
+- [ ] F1: cover download allow-list and scheme check (SSRF)
+- [ ] F2: scheme check on stored links rendered as `href`
+- [ ] F5: error envelope; no raw exception text to clients
+- [ ] F6: backend container runs as a non-root user
+- [ ] The 12-point proxy hardening checklist (`bbb-library-architecture.md`, D35)
+- [ ] E6 and B1: a maximum `limit` on every list; fix the 6,278-query `/meetups` N+1
+- [ ] Off-box backups and one timed restore drill (D33)
+- [ ] S1 / A9: flush before reading `source.id`
+- [ ] Privacy policy page linked from the footer (D8, DPDP)
+- [ ] Core Web Vitals gate passing on mobile and desktop (D20)
+
+Closed as moot, with a note in the finding: F3 (same origin through the proxy), F7 (frontend runs on Vercel), E7 (closes with login).
+
+Everything else is bundled into the roadmap phase that touches the same files, highest FMEA risk first (`docs/health/report_insights.md` §10.8).
+
+## Roadmap phases (2026-10-09)
+
+| Phase | Work |
+|---|---|
+| P0 Safety and data | Off-box backup + restore drill; Alembic baseline stamp + drop `books`/`attachments` (Q9); A9; S2 (no writes on the public synopsis GET); restore the BBB 99 original and link its Source (Q1); remove the 74 duplicate July 2025 rows (Q5); assign meetup numbers #62, 63, 66, 67, 87 to 92 (Q8). Each data step: dry run, backup, founder approval |
+| P0b Import fixes (Q4) | Fix C4 to C6, C8, K1/RC1 (two bands), RX1 to RX12, A3; re-import into a scratch DB; diff against live |
+| P1 Deploy | Droplet, Caddy, Vercel rewrite + origin secret, cache headers, SOPS secrets; gzip in the first coding release (D22) |
+| P2 Auth | Better Auth sidecar, `auth.db`, JWT check in FastAPI, router split by audience, login page, ALTCHA, audit log |
+| P3 Presenter | `meetup_attendance`, `members.status`, presenter form with Goodreads autofill, idempotency keys, promotion prompt, statistics JSON, PDF from the form |
+| P4 Mobile and UI | Design tokens + shadcn/ui + dark mode, command palette, Flow D with touch prefetch, PWA, adaptive tiers, Core Web Vitals in CI, Opengrep in CI |
+| P5 Search and data | FTS5 search, genre facets, OCR into Layer 2, normaliser merge |
+
+## Tool evaluation (PRD §7.1 first pass, 2026-10-09)
+
+Licences from the GitHub API on 2026-10-09. "Admitted" still needs the full §7.1 critique before install.
+
+| Tool | Licence | Verdict | Reason |
+|---|---|---|---|
+| Better Auth | MIT | Admitted | D5, D21 |
+| PostHog | MIT outside `ee/` | Admitted (email, error tracking, flags) | D23; no product analytics on public pages |
+| Serwist | MIT | Admitted | D17 |
+| shadcn/ui, cmdk, lucide | MIT, MIT, ISC | Admitted | D13 |
+| Caddy | Apache-2.0 | Admitted | Post-quantum TLS by default |
+| SOPS + age | MPL-2.0 + BSD-3-Clause | Admitted | D7 |
+| ALTCHA | MIT | Admitted | D28 |
+| Opengrep | LGPL-2.1 | Admitted (CI) | D34 |
+| perspective | Apache-2.0 | Admitted (admin desktop only) | D27 |
+| Unstructured-IO | Apache-2.0 | Deferred to P5 (OCR into Layer 2) | Heavy dependency |
+| glide-data-grid | MIT | Deferred | Canvas grid; only if admin tables need it |
+| ClickHouse | Apache-2.0 | Deferred | D24 |
+| Infisical | MIT outside `ee/` | Deferred | Needs Postgres + Redis; free cloud plan lacks audit log |
+| Sentry | FSL-1.1 | Rejected | Fails the licence rule; PostHog covers errors |
+| Clerk | Proprietary service | Rejected | D2 |
+| Friendly Captcha | Widget MIT, service paid | Rejected | ALTCHA chosen |
+| trillian | Apache-2.0 | Rejected | Hash-chained table chosen (D30) |
+| ory/keto | Apache-2.0 | Rejected | Three roles fit in JWT claims |
+| unpkg (runtime) | MIT | Rejected | D29 |
+| OpenPanel | AGPL-3.0 | Rejected | Licence preference |
+| Supabase, Pinecone, BullMQ + Redis, PgBouncer, Stripe, GoLogin | various | Not needed | SQLite on one droplet; non-commercial; out of scope |

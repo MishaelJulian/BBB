@@ -252,3 +252,46 @@ The Open Archival Information System model names three packages: what arrives (S
 - Koha shelf browser preference text: https://github.com/Koha-Community/Koha
 - VuFind and its browse handler: https://github.com/vufind-org/vufind, https://github.com/vufind-org/vufind-browse-handler
 - Harvard StackLife: https://github.com/harvard-lil/stacklife
+
+---
+
+## 8. Write path, statistics path and mobile (added 2026-10-09)
+
+§1 to §6 cover how data reaches the reader. The founders' 2026-10-09 decisions (`imperative_decisions.md` §6) add the paths in the other direction and the phone constraints.
+
+### 8.1 Write path: the presenter form (D4, D9, D17)
+
+```text
+Presenter's phone: form (date, venue preset, attendees, books + Goodreads autofill, manual override)
+  → draft kept on the phone
+  → POST with Idempotency-Key (retried visibly on weak signal)
+  → FastAPI: check login + role, check the key (a repeat returns the stored result, nothing is written twice)
+  → Layer 2 staging + review queue
+  → Layer 3 canonical records, audit-log row (hash-chained, D30)
+  → recompute statistics JSON + timeline JSON, purge the CDN cache tag, generate the meetup PDF
+  → "X attended Y times, make them a member?" prompt
+```
+
+Cost: one meetup writes a few dozen rows (a meetup has 38 book records on average; §3.4). The statistics recompute is a handful of group-by queries over 2,686 discussions, so it runs once per save instead of once per visitor.
+
+### 8.2 Statistics path (D11, D27)
+
+The scorecard reads precomputed `archive_statistics.json` and `timeline.json`, rendered on the server as SVG and HTML. §6.2 item 9 showed these are counts and group-bys that SQLite handles at this size; the founders accepted SQLite and deferred PostgreSQL until RAG or MCP work needs it. The admin desktop view may use perspective (WASM, lazy-loaded, with a plain table fallback when canvas is blocked).
+
+### 8.3 Touch changes Flow D (D18)
+
+Flow D's "prefetch on hover" (§3.2, PRD §9.2) assumes a mouse. Phones have no hover, so on touch:
+
+- the detail fetch starts on `pointerdown`, about 100 to 200 ms before the tap completes;
+- when the phone is idle, the details of the few books in view are prefetched, capped per row;
+- on 2g, 3g or Data Saver the idle prefetch is skipped (D19).
+
+Each detail is small (median 794 B, §3.1), so a capped row prefetch of 10 books is about 8 KB.
+
+### 8.4 Flow E threshold tied to the phone budget
+
+§3.4 set the switch to Flow E at about 1 MB of gzipped shelf payload, judged on a 1 MB/s connection. The founders adopted Core Web Vitals as a release gate (D20: LCP ≤ 2.5 s at the 75th percentile on mobile). The switch point is therefore the shelf size at which the first shelf can no longer paint within 2.5 s on a mid-range Android phone. That is measured, not assumed; the 1 MB figure stays a starting estimate.
+
+### 8.5 Cache layers
+
+Four caches must agree after a presenter save: the service worker, Vercel's CDN, the browser's HTTP cache and the precomputed JSON on the server. The table of strategies and invalidation lives in `bbb-library-architecture.md` ("Cache layers").

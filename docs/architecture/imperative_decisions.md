@@ -67,6 +67,8 @@ A **Book** represents a distinct literary work discussed, mentioned, or recommen
 #### 5. Merge Rules & Archive Review Workflow
 
 > **Review 2026-10-09 (contention):** fuzzy matching every new book against canonical books slows down as the archive grows. Needs a faster algorithm: backlog R2.
+
+> **Threshold decided 2026-10-09 (Q6):** the "≥ 85%" in the diagram below is replaced by two bands: 0.90 and above "likely", 0.75 to 0.90 "possible"; nothing merges automatically (§6).
 ```text
   [ New Imported Book ]
             │
@@ -369,8 +371,72 @@ erDiagram
 
 ## 5. Specification Review Summary
 
+> **Historical (noted 2026-10-09):** the sprint plan below targeted PostgreSQL and a `bbb-library/backend` path that does not exist. The live stack and the current decisions are in §6 and `bbb-library-architecture.md`.
+
 This specification establishes an immutable, museum-grade archival foundation for Broke Bibliophiles Bangalore. 
 
 * **Sprint 1A**: Canonical Archive Specification (Complete ✅)
 * **Sprint 1B**: Implementation of SQLAlchemy 2.0 AsyncIO models in `bbb-library/backend/app/models/` matching this exact specification.
 * **Sprint 1C**: Full ingestion of `BBB Meetup-9.txt` & 25 PDFs into PostgreSQL, culminating in `archive_summary.md`.
+
+---
+
+## 6. Decision log
+
+Dated architecture decisions, ADR style. Each entry gives the decision, the options the founders rejected, and the sources. A later decision replaces an earlier one by naming it; entries are never edited in place. Analysis behind these decisions: `docs/architecture/flow_comparison.md`, `docs/health/*`. Founder answers to open questions: `FOUNDER_QUESTIONS.md`.
+
+### 6.1 Decisions of 2026-10-09 (architecture consult)
+
+**Hosting, runtime and security**
+
+| ID | Decision | Rejected | Sources |
+|---|---|---|---|
+| D1 | Split host: Next.js frontend on Vercel (Hobby, non-commercial), FastAPI + SQLite on a VPS | All on Vercel with a hosted DB; one VPS without Vercel; read-only static demo | vercel.com/docs/plans/hobby; vercel.com/docs/functions/limitations (no persistent disk, 4.5 MB body, 300 s max) |
+| D6 | VPS: DigitalOcean BLR1, 1 GB droplet, $6.00/mo + 18 % GST = $7.08/mo; own backups | Hetzner Singapore (274 ms measured, Airtel, Bengaluru); Hetzner EU; Oracle Always Free (limits cut 2026-06-15, idle reclaim) | digitalocean.com/pricing/droplets; docs.digitalocean.com/platform/billing/taxes/ind; latency measured 2026-10-09 (DO BLR1 38 ms, Vercel edge 34 ms) |
+| D5, D21 | Auth: Better Auth (MIT) as a sidecar on the droplet; personal data in a separate `auth.db`; FastAPI verifies Ed25519 JWTs via JWKS; passkeys; email links through PostHog on a club mail subdomain; public reads anonymous | Clerk (closed service; MFA and passkeys paid); Auth.js (maintenance mode since 2025-09-22); Python-side auth | better-auth.com/docs/plugins/jwt; better-auth.com/blog/authjs-joins-better-auth; clerk.com/pricing; GitHub licence fields |
+| D7 | Secrets: SOPS + age, one key per admin | Infisical Cloud free (no audit log, versioning or rotation); Infisical self-hosted (Postgres 8 GB + Redis); env vars only | infisical.com/pricing; infisical.com/docs/self-hosting/configuration/requirements |
+| D8 | The archive DB stays public by intent; the privacy policy says so and offers removal on request; auth data stays private | Untrack; scrub history | DPDP Rules 2025 (notified 2025-11-13) |
+| D12 | API split by audience in the same change as auth: public router (GET, cacheable), admin/presenter router (auth on every route), health | One file with per-route auth; full split by domain | `app/api/main.py` (2,226 lines) |
+| D26 | Swagger: public routes public; admin and presenter routes shown to admins only | Admins only; fully public | FastAPI `/docs`, `/openapi.json` |
+| D28 | Bot protection: ALTCHA (MIT), verified by FastAPI | Friendly Captcha (service paid; free plan non-commercial, 1,000 requests a month) | github.com/altcha-org/altcha |
+| D29 | Libraries bundled from npm and served from Vercel; no runtime unpkg | unpkg with SRI; jsDelivr | unpkg outage history (4 since 2025-03) |
+| D30 | Audit trail: hash-chained audit table in SQLite for every admin and presenter write | trillian; plain audit table | github.com/google/trillian |
+| D32 | Passkeys: classical algorithms (ES256, EdDSA) now; revisit ML-DSA when phones ship it | Accept ML-DSA now; ML-DSA only | IANA COSE registry (ML-DSA −48/−49/−50, RFC 9964); simplewebauthn.dev PQC page (v14, Node ≥ 24.7) |
+| D33 | Recovery: RPO 24 h, RTO 4 h; extra backup after each presenter save on meetup day; quarterly restore drill; alert if no backup in 26 h | RPO 1 h; RPO 7 d | RTIH `specs/backup-dr.md` |
+| D34 | Static analysis: Opengrep + CodeQL in CI | Semgrep CE; CodeQL only | GitHub licence fields (LGPL-2.1) |
+| D35 | The proxy hardening checklist (`bbb-library-architecture.md`) is part of the launch gate | n/a | vercel.com/docs/rewrites; vercel.com/kb/guide/enhancing-security-for-redirects-and-rewrites |
+| D36 | Upload cap 4.5 MB (4,500,000 bytes), the same as Vercel's request-body limit, so uploads pass through the proxy. Replaces the 30 MB cap of `33f4c8d` | 30 MB with direct-to-VPS uploads | vercel.com/docs/functions/limitations; `app/api/main.py`, `tests/test_upload_limit.py` (32 tests pass) |
+
+**Data and inflow**
+
+| ID | Decision | Rejected |
+|---|---|---|
+| D3 | One owner document per concern (table in `bbb-library-architecture.md`) | Status headers only; merging files |
+| D4 | Presenter form first; the meetup PDF is generated from the form; the parser is kept for old files | PDF + OCR as the main inflow; form only |
+| D9 | One `meetup_attendance` table with status (registered, attended, presenter) and source (form, gforms) | Separate registration and attendance tables |
+| D10 | Member promotion: the app suggests at 2 or more attendances; the presenter confirms | Automatic promotion |
+| D11 | Statistics: SQLite queries plus precomputed `archive_statistics.json` and `timeline.json` on each presenter save | PostgreSQL now; live SQL on every view |
+| D16 | Drop the empty legacy `books` and `attachments` tables (with Q9); `discussion_participants` stays dormant | Dropping `discussion_participants` |
+| D24 | ClickHouse: not now | Plan an events table; add it now |
+
+**Frontend, mobile and API standard**
+
+| ID | Decision | Rejected |
+|---|---|---|
+| R2 | Rendering split by page type: public pages server-rendered and cached, refreshed on presenter save; the closet stays a browser app on Flow D; admin runs in the browser behind login | Browser-rendered everywhere; static export |
+| D13 | Theming: CSS-variable tokens (light and dark) + shadcn/ui (MIT) + cmdk (MIT) + lucide (ISC), each through PRD §7.1 | Tailwind `dark:` classes only |
+| D14 | Versioning: standard SemVer with manual release bumps and an alpha or beta tag; the commit count shown separately as a CI build number | Commit-count x.y.z scheme |
+| D15, D17 | PWA: installable; read-only offline (shell, shelf, stats JSON, opened books) plus presenter-form drafts with visible retry and an idempotency key; auth, admin and presenter API calls never cached | Install only; no PWA |
+| D18 | Touch prefetch: on `pointerdown` plus an idle prefetch of the visible row; desktop keeps hover | Tap only; whole section |
+| D19 | Adaptive loading in two tiers from `effectiveType` and `saveData` | One experience |
+| D20 | Core Web Vitals at the 75th percentile, mobile and desktop, as a release gate: LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1 | Advisory only |
+| D22 | gzip ships in the first coding release | gzip in the safety phase |
+| D23 | PostHog: email, error tracking, feature flags; no product analytics on public pages | Opt-in analytics |
+| D25 | API standard (replaces PRD §11.1 to §11.5): one error envelope `{error: {type, code, message}}` and Pydantic response models; cursor (keyset) pagination and a maximum limit on every list; rate-limit headers; date-stamped versions for breaking changes | Idempotency keys on every write (kept only for presenter writes, D17) |
+| D27 | Statistics visuals: server-rendered SVG and HTML for the public scorecard; perspective (lazy-loaded, table fallback) for the admin desktop | perspective everywhere; SVG only |
+| D31 | Backlog: a launch gate plus phase bundles (list in `docs/plans/backlog.md`) | Fix everything first; features first |
+
+### 6.2 Open after 2026-10-09
+
+- DNS for the club mail subdomain: a founder knows the person who manages the club domain and will pass on the SPF, DKIM and DMARC records PostHog generates once the sending domain is added.
+- Whether the Vercel to VPS connection negotiates X25519MLKEM768 (check Caddy logs).

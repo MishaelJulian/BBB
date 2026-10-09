@@ -24,7 +24,7 @@ The **BBB Library Domain Architecture** implements a **three-layer archival mode
 
 ## 2. Entity Specifications
 
-Below is the complete inventory of all **21 domain entities** implemented in `bbb-library/backend/app/models/`.
+Below are the domain entities. The implemented set is 24 tables in `app/database/models.py` (corrected 2026-10-09; an earlier version said 21 entities in `bbb-library/backend/app/models/`, a path that does not exist). Column-level detail: `DatabaseSchema.md`.
 
 ### Layer 1 — Provenance Model
 #### `Source`
@@ -47,7 +47,7 @@ Below is the complete inventory of all **21 domain entities** implemented in `bb
   - `duplicates` (1:N with `PossibleDuplicate`, cascade delete)
 
 #### `PossibleDuplicate`
-- **Purpose**: Candidate matching queue holding fuzzy match results ($\ge 85\%$ Levenshtein similarity) for human or rule-based review.
+- **Purpose**: Candidate matching queue holding fuzzy match results for human review. Similarity is `difflib.SequenceMatcher` ratio, in two bands decided 2026-10-09 (Q6): 0.90 and above is "likely", 0.75 to 0.90 is "possible"; nothing merges automatically. The code today uses one 0.75 threshold and the comparison never runs (finding RC1, `docs/health/error_handling.md`), so the table has 0 rows.
 - **Attributes**: `id`, `imported_book_id` (FK to `ImportedBook`), `candidate_canonical_id` (FK to `CanonicalBook`), `match_confidence` (Float), `status` (`PENDING_REVIEW`, `APPROVED`, `REJECTED`, `AUTO_MERGED`).
 - **Relationships**:
   - `imported_book` (Many-to-1 with `ImportedBook`)
@@ -148,3 +148,39 @@ Below is the complete inventory of all **21 domain entities** implemented in `bb
 - **3D Closet Assets**: Add `model_3d_url`, `spine_color`, and `texture_atlas_coords` to `CanonicalBook` to power the React Three Fiber virtual bookshelf canvas.
 
 > **Note (2026-10-08):** Three.js / React Three Fiber here is a plan from an earlier sprint. The live closet uses CSS 3D. WebGL is a future option for the closet only, after the admission rule in `docs/BBB_PRD_TRD.md` §7.1 (see §18.1).
+
+---
+
+## 5. Additions decided 2026-10-09
+
+Decisions and sources: `imperative_decisions.md` §6.
+
+### Attendance and the member lifecycle (D9, D10)
+
+- **`MeetupAttendance`** (planned): one row per person per meetup, with `status` (registered, attended, presenter) and `source` (presenter form, Google Forms). A Google Forms registration arrives as `registered`; the presenter ticks who actually came.
+- **Attendee to member:** a `Member` row exists for everyone recorded; `members.status` is `attendee` or `member`. The rule for a member is: attended at least twice **and** part of the WhatsApp group. The app computes the first half and suggests the promotion; the presenter confirms the second half. Nothing flips automatically.
+- **New attendee / rejoiner:** derived counts over `MeetupAttendance` (first attendance; second attendance after a gap), shown on the presenter's meetup summary.
+
+### Inflows into the layers (D4)
+
+```text
+Presenter form (meetups from #100) ──┐
+Old PDFs and OCR backfill ───────────┼──► Layer 2 (staging + review queue) ──► Layer 3 (canonical)
+LLM or enrichment suggestions ───────┘                                         │
+                                                                               └──► meetup PDF generated from the form
+```
+
+Every inflow enters Layer 2 first; only a reviewed or rule-confirmed record reaches Layer 3. An LLM or OCR result is never written to Layer 3 directly.
+
+### Identity rules (Q7, Q10)
+
+- A book is a work (FRBR, `flow_comparison.md` §6.2): the same title by a different author is a separate book by default. The review queue may merge two records with a founder's approval.
+- The 27 title and 106 author duplicate groups go through the review queue, approved one by one; old name forms are kept as `Alias` rows (authority-file rule, `flow_comparison.md` §6.2 item 5).
+
+### Accounts (D5, D8)
+
+- A person's login lives in a separate database file, `auth.db`. The archive keeps only `members.auth_user_id` (planned, nullable). The archive's names and notes are public by intent; email addresses and passkeys are not.
+
+### OAIS mapping
+
+Raw import = Submission package (SIP), canonical record = Archival package (AIP), API response = Dissemination package (DIP). Details: `flow_comparison.md` §6.2 item 10.
