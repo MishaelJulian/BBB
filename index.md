@@ -17,7 +17,8 @@ Where everything in this repository lives. Any person or AI model can start here
 
 | File | What it is |
 |---|---|
-| [`docs/health/CURRENT_STATE.md`](docs/health/CURRENT_STATE.md) | Measured state of the archive, app and checks |
+| [`docs/health/report_insights.md`](docs/health/report_insights.md) | Measured state of the archive and app, July report findings re-checked, venue analysis, cohesion, coupling, data and product quality, security, FMEA, actions |
+| [`docs/health/security_analysis.md`](docs/health/security_analysis.md) | Security reports, one section per tool run: route inventory, findings with file:line, proposed FMEA rows |
 | [`docs/health/SESSION_LOG.md`](docs/health/SESSION_LOG.md) | What each work session did |
 | [`docs/book_count&details_issues.md`](docs/book_count&details_issues.md) | Known data problems and the repair order |
 | [`docs/meetup_index.md`](docs/meetup_index.md) | Meetup list with venues and book counts |
@@ -39,14 +40,14 @@ Older design write-ups; the PRD is the current source.
 | [`docs/architecture/bbb-library-architecture.md`](docs/architecture/bbb-library-architecture.md) | The app as first built |
 | [`docs/architecture/universal_app_flow.md`](docs/architecture/universal_app_flow.md) | Roadmap: logical flow of the full archive pipeline (future features, not current code) |
 | [`docs/architecture/imperative_decisions.md`](docs/architecture/imperative_decisions.md) | Entity specifications (required) with founder review notes; data flow section is roadmap |
+| [`docs/architecture/flow_comparison.md`](docs/architecture/flow_comparison.md) | Data flows compared with the code: cost per flow, schools of thought, Flow E option, lessons from the ISI DRTC library science syllabus |
 | [`docs/architecture/domain_model.md`](docs/architecture/domain_model.md) | Domain model |
 | [`docs/architecture/DatabaseSchema.md`](docs/architecture/DatabaseSchema.md) | Database schema notes |
-| [`docs/architecture/standalone_documents.md`](docs/architecture/standalone_documents.md) | The standalone archive documents |
 | [`frontend/ARCHITECTURE.md`](frontend/ARCHITECTURE.md) | Frontend architecture |
 
 ## Audit snapshots
 
-One-off reports from earlier sprints, kept as history in [`docs/health/`](docs/health/): `archive_audit.md`, `archive_audit_report.md`, `archive_integrity_report.md`, `audit_diff.md`, `duplicate_detection_report.md`, `meetup96_investigation.md`, `meetup_import_status.md`, `repository_analysis.md`, `schema_analysis.md`, `validation_summary.md`.
+One-off reports written on 2026-07-22 during the first import sprints, kept as history in [`docs/health/2026-07-22/`](docs/health/2026-07-22/): `archive_audit.md`, `archive_integrity_report.md`, `duplicate_detection_report.md`, `meetup96_investigation.md`, `meetup_import_status.md`, `repository_analysis.md`, `schema_analysis.md`, `validation_summary.md`. What they mean today: [`docs/health/report_insights.md`](docs/health/report_insights.md).
 
 ## Reference material
 
@@ -71,4 +72,4 @@ One-off reports from earlier sprints, kept as history in [`docs/health/`](docs/h
 
 ## Archive
 
-Retired material, kept for history in [`archive/`](archive/): the original foundation prompt, build guide, agent playbook and rules (`docs-v1/`), the master prompt, the reference README, the first scaffold (`bbb-library/`), the v1.0 release notes, the static CSV export, the Criterion reference recording, and unused files from earlier rooms.
+Retired material, kept for history in [`archive/`](archive/): the original foundation prompt, the standalone documents list, build guide, agent playbook and rules (`docs-v1/`), the master prompt, the reference README, the first scaffold (`bbb-library/`), the v1.0 release notes, the static CSV export, the Criterion reference recording, and unused files from earlier rooms.
