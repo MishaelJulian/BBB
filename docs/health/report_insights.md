@@ -324,8 +324,11 @@ Scales used: S 10 = archive lost, 7 to 8 = wrong history shown, 4 to 6 = incompl
 | 18 | Raw error text shown to clients | Paths or SQL fragments leak | `detail=str(e)` on 8 routes | `security_analysis.md` F5 | 3 | 5 | 6 | **90** | F5 fix (scheduled) |
 | 19 | Stored `javascript:` or other non-http link clicked | Script runs in the viewer's browser | No scheme check on stored URLs | `security_analysis.md` F2 | 6 | 2 | 7 | **84** | F2 fix (scheduled) |
 | 20 | CI token used with write rights | Repo changed through a compromised workflow step | `ci.yml` without `permissions:` | `security_analysis.md` F14 | 5 | 2 | 6 | **60** | Add `permissions: contents: read` |
+| 21 | Archive history wiped through open admin routes after public launch | All discussions deleted | `GET /admin/meetups` lists discussion IDs; `DELETE /admin/discussions/{id}` is open | `security_analysis.md` E1 | 10 | 3 | 7 | **210** | Login (P12) covering `/admin/*` and `/api/*` aliases |
+| 22 | Public synopsis requests trigger mass outbound fetches | Goodreads or Apple block the server; API threads held | Fetch on every public read; 2,651 of 2,783 books qualify; failures not remembered | `security_analysis.md` E5 | 4 | 5 | 6 | **120** | Enrich from admin or a job only, or remember failed tries |
+| 23 | Unbounded `GET /books` flood | API slow or down for everyone | No maximum `limit`, no gzip, one process | `security_analysis.md` E6 | 5 | 4 | 4 | **80** | Cap `limit`, gzip, proxy rate limit |
 
-The top three rows all sit in the import pipeline. A7 (one fixture test) lowers D for rows 1 to 3 at once, which is why it comes before A3. Rows 13 to 20 come from the security review (`security_analysis.md`, merged 2026-10-09); row 13 (RPN 256) ranks second overall, level with the import pipeline risks.
+The top three rows all sit in the import pipeline. A7 (one fixture test) lowers D for rows 1 to 3 at once, which is why it comes before A3. Rows 13 to 20 come from the security review and rows 21 to 23 from the exploitability review (`security_analysis.md`, merged 2026-10-09). Row 13 (RPN 256) ranks second overall, level with the import pipeline risks; row 21 (RPN 210) is the public-launch form of row 13.
 
 ---
 

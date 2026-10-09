@@ -4,6 +4,35 @@ Security reports on the BBB app, one section per tool run. Each section states i
 
 **Current decisions and schedule:** see §7 of the security review below.
 
+## Findings register
+
+Every finding from both runs, with its status. Details are in the sections below (F = security review, E = exploitability review). Severity for E items assumes a public API; see "Local network only versus public".
+
+| ID | Severity | Finding | Where | Status (2026-10-09) |
+|---|---|---|---|---|
+| E1 | Critical | Open admin routes list discussion IDs and delete them: anyone could wipe the meetup history | `main.py:994-995`, `:1371` | Scheduled with login (P12) |
+| E2 | High | All admin writes open: books, meetups, photos, flags, enrichment | `main.py` admin routes | Scheduled with login (P12) |
+| F1 / E3 | High / Medium | Cover download during PDF generation fetches any URL (blind SSRF; internal images served back) | `pdf_generator.py:72-78`, `main.py:1303-1305` | Fix scheduled later |
+| F3 | Medium | CORS regex admits the whole LAN with all methods | `main.py:54-57` | Scheduled with login |
+| F2 / E8 | Medium / Low | Stored links rendered as `href` without a scheme check | `ResourceList.tsx:25`, `admin/page.tsx:873` | Fix scheduled later |
+| F4 | Medium | Uploads: no size limit, no image check | `main.py:1068` | Size capped at 30 MB (`33f4c8d`); image check open |
+| F5 | Medium | `detail=str(e)` returns raw errors on 8 routes | `main.py:1095` and 7 more | Fix scheduled later |
+| F6 | Medium | Backend container runs as root | `Dockerfile` | Fix scheduled later |
+| F7 | Medium | Frontend container runs the dev server with source mounted | `frontend/Dockerfile`, `docker-compose.yml` | Fix scheduled later |
+| F8 | Medium to High | Database tracked in git; repository is public | git index | Founder decision |
+| E4 / F9 | Medium / Low | DNS rebinding on URL resolution returns internal page titles | `main.py:1632-1660` | Open (closes for anonymous users with login) |
+| E5 | Medium | Public synopsis route calls Goodreads or Apple on every request for 2,651 of 2,783 books | `main.py:548-575` | Open |
+| E6 | Medium | `GET /books` has no maximum `limit` (2.15 MB per call) | `main.py:378-461` | Open |
+| E7 | Low | Repeated PDF regeneration costs CPU and outbound requests | `main.py:1116` | Open (closes with login) |
+| F10 | Low | `goodreads_id` inserted unquoted into a fixed-host URL | `main.py:484` | Open |
+| F11 | Low | Local file paths accepted as cover URLs | `pdf_generator.py:66-67` | Open |
+| F12 | Low | `%` and `_` act as wildcards in name lookups (correctness) | `full_import.py:189`, `main.py:421` and others | Open |
+| F13 | Low | Python dependencies unpinned; dev packages in the runtime image | `requirements*.txt` | Open |
+| F14 | Low | `ci.yml` has no `permissions:` block | `.github/workflows/ci.yml` | Open |
+| F15 to F18 | Info | Path handling sound; no ReportLab markup injection; no secrets found; no `dangerouslySetInnerHTML` | see §2 | No action |
+
+Open items with no schedule yet: E4, E5, E6, E7, F10 to F14. E5 matters even on the local network, because a blocked address breaks enrichment for the founders.
+
 ---
 
 ## Security review (ecc:security-reviewer)
@@ -161,3 +190,127 @@ S, O, D are judgment calls on a 1-10 scale. D is how hard the failure is to dete
 Side fix in the same change: inside the upload route, an `HTTPException` (for example the 404 "Meetup not found") used to be caught by `except Exception` and returned as a 500. It is now re-raised with its own status code.
 
 **Proposed FMEA rows (§5):** 8 rows, from "unauthorised data change or deletion through the API" (RPN 256) down to "CI token used with write rights" (RPN 60). Status: merged into `report_insights.md` §10.8 as rows 13 to 20 (2026-10-09). After the 30 MB cap, the upload row is expected to drop from 5 × 3 × 7 = 105 to about 5 × 2 × 7 = 70 (judgment: the cap lowers occurrence of memory exhaustion; non-image content is still unchecked).
+
+---
+
+## Exploitable issues (ecc:security-bounty-hunter)
+
+**Date:** 2026-10-09
+**Commit:** `33f4c8d`
+**Run by:** /ecc:security-bounty-hunter, read-only static review of the code paths below. No requests were sent, nothing was run against a live server, and no exploit code was written. Reproductions are descriptions only.
+**Assumed deployment:** Next.js on Vercel or an own site, FastAPI reachable from the internet, SQLite file on the server, one `uvicorn` process (`Dockerfile:17` sets no `--workers`).
+**Scope check:** no `SECURITY.md` and no bounty programme exist for this repository; this is an internal assessment.
+**Not checked:** live behaviour (timings, Goodreads and Apple responses), React 19 handling of `javascript:` links in a real browser, browser Private Network Access enforcement, the hosting provider's own network rules.
+
+Severity uses CVSS 3.1 style vectors. **The scores are judgment**, assuming the public deployment above.
+
+### Summary
+
+- Anyone on the internet could wipe the meetup history in two steps: list discussion IDs from an open admin route, then delete them one by one (E1).
+- Every other admin write is open the same way: edit books and meetups, replace meetup photos, flip discussion flags (E2).
+- Two server-side request forgery paths exist: a blind one through cover downloads during PDF generation (E3) and a DNS-rebinding one through URL resolution that returns page titles and descriptions (E4).
+- Public read routes can be turned against the server: the synopsis route calls Goodreads or Apple for 2,651 of 2,783 books on every request (E5), and `GET /books` returns 2.15 MB with no upper limit (E6).
+- Injection into ReportLab, SQL injection, path traversal and upload-to-code-execution were checked and are not reachable (see "Not exploitable remotely").
+
+### Findings
+
+#### E1. Unauthenticated deletion of the meetup history (Critical when public)
+
+- **Preconditions:** the API is reachable; no credentials needed.
+- **Reproduction (description):** 1) Call `GET /admin/meetups`; each meetup's books come with `discussion_id` and `discussion_ids` (`app/api/main.py:994-995`). 2) For each ID, call `DELETE /admin/discussions/{id}` (`app/api/main.py:1371`). The handler deletes every discussion row for that book at that meetup (`main.py:1379-1382`). 3) Repeat for all meetups.
+- **Impact on the archive:** destroy. All 2,686 discussions (the link between books, members and meetups) can be removed. Books, members and meetups remain, but the history that connects them is gone. Recovery depends on backups (`report_insights.md` §14.1).
+- **Severity:** Critical, about 9.1 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:H). Network reachable, no login, no user action, irreversible without a backup.
+- **Smallest fix:** require a login on every `/admin/*` route and every `/api/*` alias of an admin handler (P12, scheduled). Until then, do not expose the API publicly, or block `/admin/` **and** the `/api/` admin aliases at the reverse proxy. A rule on `/admin/` alone misses `/api/media/resolve-url`, `/api/books/suggest`, `/api/media/suggest` and `/api/members/suggest` (`main.py:1911, 1918, 1920, 2003`).
+
+#### E2. Unauthenticated changes to books, meetups and photos (High when public)
+
+- **Preconditions:** API reachable.
+- **Reproduction (description):** call any of `PUT /admin/books/{id}` (`main.py:1172`), `PUT /admin/meetups/{n}` (`:1031`), `POST /admin/meetups/{n}/books` (`:1387`), `PATCH /admin/discussions/{id}/general` (`:1322`), `POST /admin/meetups/{n}/photo` (`:1068`), `DELETE /admin/meetups/{n}/photo` (`:1100`), `POST /admin/books/{id}/enrich-goodreads` (`:2169`). Book and meetup IDs come from the public `GET /books` and `GET /meetups`.
+- **Impact on the archive:** alter. Titles, authors, links and covers can be rewritten; a meetup's group photo can be replaced with any image up to 30 MB (the upload overwrites `meetup_<n>_photo.<ext>`); books can be added to any meetup or hidden by flagging them as general discussion.
+- **Severity:** High, about 8.2 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:L).
+- **Smallest fix:** same as E1.
+
+#### E3. Blind server-side request forgery through cover downloads (Medium when public)
+
+- **Preconditions:** API reachable (uses E2 to set the URL).
+- **Reproduction (description):** 1) Set a book's `cover_url` to an internal address or a `file:` path with `PUT /admin/books/{id}` (stored unchecked, `main.py:1303-1305`). 2) Add that book to a meetup if needed, then call `POST /admin/meetups/{n}/generate-pdf` (`main.py:1116`). 3) `download_and_cache_image` fetches the URL with plain `urlopen` (`app/services/pdf_generator.py:72-78`), with no address check. 4) If the response is an image, it is saved as `assets/cache/covers/<md5 of the URL>.jpg` and served by the public `/assets` mount; the attacker knows the URL, so they can compute the file name and download it. Non-images are deleted, so text responses (for example cloud metadata) are not returned. Response timing and the PDF outcome still reveal which internal hosts and ports answer.
+- **Impact:** read (internal images and image files on disk), internal network mapping. Archive data itself is untouched.
+- **Severity:** Medium, about 5.8 (AV:N/AC:L/PR:N/UI:N/S:C/C:L/I:N/A:N).
+- **Smallest fix:** run `_is_public_http_url` on `cover_url` when stored and again before the fetch, and use `_public_opener` (F1, scheduled). Reject local paths outside `assets/` (F11).
+
+#### E4. Server-side request forgery through DNS rebinding on URL resolution (Medium when public)
+
+- **Preconditions:** API reachable; attacker controls a domain whose DNS answers alternate between a public and an internal address.
+- **Reproduction (description):** 1) Call `GET /api/media/resolve-url?url=http://<attacker domain>/`. 2) `_is_public_http_url` resolves the name and sees a public address (`main.py:1632-1642`). 3) `urlopen` resolves it again; if the second answer is internal, the request goes inside the network. The code comment at `main.py:1659` already notes this window. 4) The handler returns the page's `<title>`, Open Graph description and image URL in its JSON (`main.py`, `resolve_media_url` return block).
+- **Impact:** read (title and description of internal web pages). Timing-dependent; may take many attempts.
+- **Severity:** Medium, about 5.3 (AV:N/AC:H/PR:N/UI:N/S:C/C:L/I:N/A:N).
+- **Smallest fix:** behind the login (E1 fix) this route is no longer anonymous. For full closure, connect to the address already checked instead of resolving twice (F9).
+
+#### E5. Outbound request amplification through the public synopsis route (Medium when public)
+
+- **Preconditions:** none beyond reachability; this is a public read route.
+- **Reproduction (description):** 1) List book IDs from `GET /books`. 2) Call `GET /books/{id}/synopsis` (`main.py:548`) for each. 3) For every book missing a description, page count, rating or real cover, the handler calls `fetch_book_metadata_from_web` (`main.py:571`), which contacts Goodreads and then Apple Books. Measured: **2,651 of 2,783 books** meet that condition (read-only query on 2026-10-09). Failed lookups are not remembered, so the same book triggers a new fetch on every call.
+- **Impact:** availability. Each anonymous request costs one or more outbound requests and holds a worker thread while they run. Goodreads or Apple may rate-limit or block the server's address, which breaks enrichment for the founders. A public `GET` also writes to the database when a fetch succeeds (`main.py:574`, commit below it).
+- **Severity:** Medium, about 5.3 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L).
+- **Smallest fix:** stop fetching on public reads: serve what the database holds and run enrichment only from the admin routes or a scheduled job; or record a "last tried" time per book and skip retries for a day.
+
+#### E6. Denial of service through unbounded `GET /books` (Medium when public)
+
+- **Preconditions:** none.
+- **Reproduction (description):** call `GET /books` without `limit`, or with a large `limit` (`main.py:378-461`; no maximum). The closet's own request returns 2,151,353 bytes uncompressed and took 0.51 s locally (measured 2026-10-08). Repeat in parallel.
+- **Impact:** availability. One process serves every route, so a small stream of these requests slows the whole API. A tiny request produces a 2 MB response, which also costs outbound bandwidth.
+- **Severity:** Medium, about 5.3 to 7.5 depending on server capacity (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L to H). Judgment; not load-tested.
+- **Smallest fix:** cap `limit` (for example 500) with a default page size, add `GZipMiddleware` (API backlog A3), and rate-limit at the proxy. Flow D (PRD §9.2) reduces the payload further.
+
+#### E7. CPU and disk exhaustion through repeated PDF generation (Low when public)
+
+- **Preconditions:** API reachable.
+- **Reproduction (description):** call `POST /admin/meetups/{n}/generate-pdf` (`main.py:1116`) repeatedly for meetups with many books. Each call redraws the PDF with ReportLab and may download uncached covers (8 s timeout each, `pdf_generator.py:78`).
+- **Impact:** availability.
+- **Severity:** Low, about 4.3 (AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L).
+- **Smallest fix:** login (E1 fix); regenerate only when the meetup changed.
+
+#### E8. Stored links rendered without a scheme check (Low)
+
+- **Preconditions:** E2 to store a `javascript:` URL in a book link or resource; a reader must click it.
+- **Reproduction (description):** store the link through `PUT /admin/books/{id}` (`main.py:1302`); it is rendered as `href` in `frontend/src/components/shared/ResourceList.tsx:25` and `frontend/src/app/admin/page.tsx:873`.
+- **Impact:** script in the reader's browser after a click. The site uses no cookies or login yet, so there is little to steal today. React 19 handling of `javascript:` links was not verified in a browser.
+- **Severity:** Low, about 3.5 (requires a click; outside typical bounty scope).
+- **Smallest fix:** validate http(s) in the Pydantic model and reuse `safeHttpUrl` (F2, scheduled).
+
+### Not exploitable remotely
+
+- **SQL injection:** every `ilike` and filter uses bound parameters; the only `text()` is `SELECT 1`.
+- **Path traversal:** `asset_path` resolves with `realpath` and refuses paths outside `assets/` (`app/core/paths.py:6-11`); upload names are built from an integer meetup number.
+- **Upload to code execution:** the extension is forced to `.jpg`, `.jpeg`, `.png` or `.webp`, files are served as static content, and nothing executes them. Size is capped at 30 MB.
+- **Injection into ReportLab:** text is drawn with `drawString`, which does not parse markup.
+- **CORS regex bypass:** the pattern is anchored (`^...(:\d+)?$`), so look-alike hosts such as `localhost.example.com` fail. When the API is public, CORS is not a defence anyway: an attacker calls it directly without a browser.
+- **`goodreads_id` in the outbound URL:** the host is fixed to `www.goodreads.com`; only the path changes (F10).
+- **`reset_db` and `import-full --reset`:** command line only, no HTTP route.
+- **Database file in the public repository (F8):** a disclosure through GitHub, outside the running app; tracked in §7 for a founder decision.
+- **Container runs as root (F6), CI token scope (F14):** matter only after another compromise.
+
+### Local network only versus public
+
+| Finding | API public | API on the local network only |
+|---|---|---|
+| E1 delete history | Critical: anyone on the internet | High: anyone on the same network. A website opened in a browser on that network cannot send the `DELETE` (it needs a CORS preflight, and only LAN origins pass), so remote reach is lost |
+| E2 change data | High | Medium to High: anyone on the network. Exception: `POST` routes with no JSON body (photo upload as a form, `generate-pdf`, `enrich-goodreads`) are "simple" requests that a public website can fire blind from a visitor's browser at `localhost:8000` or a guessed LAN address, without reading the answer. Chrome's Private Network Access rules may block this; not verified (judgment) |
+| E3 blind SSRF | Medium | Low: needs `PUT`, which only LAN origins and LAN clients can send |
+| E4 DNS rebinding SSRF | Medium | Low: needs network access to the API first |
+| E5 outbound amplification | Medium | Low: only local users can trigger it |
+| E6 `GET /books` DoS | Medium | Low |
+| E7 PDF regeneration | Low | Low, and also reachable blind from a public website as a simple `POST` |
+| E8 stored link | Low | Low |
+
+**Reading:** on the local network the main risk is people already on that network (shared club or café Wi-Fi). Going public without the scheduled login turns E1 into a one-request-per-row wipe of the archive by anyone. The login (P12) and the CORS rule (F3) are therefore blockers for public hosting, together with a backup routine (`report_insights.md` §14.0).
+
+### Proposed FMEA rows (merged into report_insights.md §10.8 as rows 21 to 23, 2026-10-09)
+
+S, O, D are judgment on a 1 to 10 scale; RPN = S × O × D. Row 13 in §10.8 already covers unauthorised change and deletion.
+
+| Failure mode | Effect | Cause | S | O | D | RPN |
+|---|---|---|---|---|---|---|
+| Public synopsis requests trigger mass outbound fetches | Goodreads or Apple block the server; API threads held | Fetch on every public read for 2,651 books; failures not remembered (E5) | 4 | 5 | 6 | 120 |
+| Unbounded `GET /books` flood | API slow or down for everyone | No maximum `limit`, no gzip, one process (E6) | 5 | 4 | 4 | 80 |
+| Archive history wiped through open admin routes after public launch | All discussions deleted | Discussion IDs listed by `GET /admin/meetups`; open `DELETE` (E1) | 10 | 3 | 7 | 210 |
