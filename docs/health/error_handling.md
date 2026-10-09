@@ -27,7 +27,7 @@ EH = error-handling patterns, RC = root cause (systematic debugging), S = silent
 | RC4 | Medium | The merge leaves the moved imported book unlinked (known C6, A4) | `full_import.py:515-526`; `models.py:240-242` | Reproduced; part of A4 |
 | RC5 | Low | Docstring describes a two-phase design that cannot happen | `full_import.py:412-418` | Update with the fix |
 | S1 | High | Import reads `source.id` before the row is flushed, so 52 of 53 meetups and 2,541 of 2,686 discussions have no source; the job still reports COMPLETED | `full_import.py:243-275` | Open (verified) |
-| S2 | High | Public `GET /books/{id}/synopsis` writes Apple Books' first hit into empty fields with no title or author match | `main.py:548-586`, `:480-560` | Open |
+| S2 | High | Public `GET /books/{id}/synopsis` writes Apple Books' first hit into empty fields with no title or author match | `main.py:548-586`, `:480-560` | Founder decision 2026-10-09: no writes on the public GET; enrichment only through the admin route. Code change pending |
 | S3 | High | Enrichment accepts the first candidate when no author matches; Goodreads timeouts fall through to Apple; toast says "Matched on Goodreads" | `main.py:2133-2155`, `:1612-1638` | Open |
 | S4 | High | A corrupt PDF yields zero records with no warning; job COMPLETED, 0 WARNING logs | `pdf_parser.py:35-37, 331-333`; `full_import.py:90-96` | Open |
 | S5 to S12 | Medium | Empty suggest results cached 10 min; URL stub saved as a title (7 such books); scripts and the meetup enrich loop continue without rollback or honest counts; add-book attaches a same-title different-author book; BBB 99 photo used as a fallback group picture; dropped import rows never counted | see section | Open |

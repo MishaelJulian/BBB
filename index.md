@@ -10,6 +10,7 @@ Where everything in this repository lives. Any person or AI model can start here
 |---|---|
 | [`README.md`](README.md) | Front page: what BBB Library is, how to run it, examples, API reference |
 | [`docs/BBB_PRD_TRD.md`](docs/BBB_PRD_TRD.md) | Main document: product and technical requirements, goals, constraints, change policy. First in authority after the founders |
+| [`FOUNDER_QUESTIONS.md`](FOUNDER_QUESTIONS.md) | Every open question and decision from the health reviews, prioritised, with answers recorded |
 | [`docs/AGENT_RULES.md`](docs/AGENT_RULES.md) | How AI agents work here: hard rules, session start, database safety, API contract, dependencies, reports |
 | [`docs/BBB_UI.md`](docs/BBB_UI.md) | UI and visual rules |
 
@@ -21,6 +22,7 @@ Where everything in this repository lives. Any person or AI model can start here
 | [`docs/health/security_analysis.md`](docs/health/security_analysis.md) | Security reports, one section per tool run: route inventory, findings with file:line, proposed FMEA rows |
 | [`docs/health/pattern_review_analysis.md`](docs/health/pattern_review_analysis.md) | Code pattern reviews (React, backend), one section per tool run, with a findings register and measured query counts |
 | [`docs/health/error_handling.md`](docs/health/error_handling.md) | Error-handling reviews: patterns audit, root-cause runs, silent failures; findings register and proposed policy |
+| [`docs/health/structures_analysis.md`](docs/health/structures_analysis.md) | Data-structure reviews: database schema and queries, migrations, parsing strategy, content hashing and caches; findings register |
 | [`docs/health/SESSION_LOG.md`](docs/health/SESSION_LOG.md) | What each work session did |
 | [`docs/book_count&details_issues.md`](docs/book_count&details_issues.md) | Known data problems and the repair order |
 | [`docs/meetup_index.md`](docs/meetup_index.md) | Meetup list with venues and book counts |
