@@ -15,7 +15,7 @@ Every finding from both runs, with its status. Details are in the sections below
 | F1 / E3 | High / Medium | Cover download during PDF generation fetches any URL (blind SSRF; internal images served back) | `pdf_generator.py:72-78`, `main.py:1303-1305` | Fix scheduled later |
 | F3 | Medium | CORS regex admits the whole LAN with all methods | `main.py:54-57` | Scheduled with login |
 | F2 / E8 | Medium / Low | Stored links rendered as `href` without a scheme check | `admin/page.tsx:873` (live); `ResourceList.tsx:25` is dead code (`pattern_review_analysis.md` D7) | Fix scheduled later |
-| F4 | Medium | Uploads: no size limit, no image check | `main.py:1068` | Size capped at 30 MB (`33f4c8d`); image check open |
+| F4 | Medium | Uploads: no size limit, no image check | `main.py:1068` | Size capped at 4.5 MB (D36, matches Vercel's request-body limit; was 30 MB in `33f4c8d`); image check open |
 | F5 | Medium | `detail=str(e)` returns raw errors on 8 routes | `main.py:1095` and 7 more | Fix scheduled later |
 | F6 | Medium | Backend container runs as root | `Dockerfile` | Fix scheduled later |
 | F7 | Medium | Frontend container runs the dev server with source mounted | `frontend/Dockerfile`, `docker-compose.yml` | Fix scheduled later |
@@ -178,7 +178,7 @@ S, O, D are judgment calls on a 1-10 scale. D is how hard the failure is to dete
 
 | Finding | Decision | Status |
 |---|---|---|
-| F4 / P11 Upload size | Cap uploads at **30 MB** (arbitrary, to be revisited once real photo sizes are known) | **Done in code, uncommitted.** `MAX_UPLOAD_BYTES = 30 * 1024 * 1024` in `app/api/main.py`, checked before any database access; returns HTTP 413. Test: `tests/test_upload_limit.py` (suite: 32 passed). The server still receives the full request body before the check; a reverse-proxy body limit is the hard stop once deployed. Still open from F4: no check that the bytes are an image (Pillow `verify()`) |
+| F4 / P11 Upload size | Cap uploads at **4.5 MB** (lowered from 30 MB on 2026-10-09 to match Vercel's 4.5 MB body limit, D36) | **Done in code, uncommitted.** `MAX_UPLOAD_BYTES = 30 * 1024 * 1024` in `app/api/main.py`, checked before any database access; returns HTTP 413. Test: `tests/test_upload_limit.py` (suite: 32 passed). The server still receives the full request body before the check; a reverse-proxy body limit is the hard stop once deployed. Still open from F4: no check that the bytes are an image (Pillow `verify()`) |
 | F3 CORS, P12 login | Schedule a CORS rule together with a login page and proper authentication and authorization policies | Scheduled; design to follow |
 | F1 Cover download without SSRF guard | Noted | Fix scheduled later |
 | F2 Stored links without scheme check | Noted | Fix scheduled later |

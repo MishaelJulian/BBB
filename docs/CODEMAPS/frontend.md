@@ -67,7 +67,7 @@ frontend/src/app/
 
 ### Admin Page (`app/admin/page.tsx`)
 
-- Upload meetup photo (30 MB cap)
+- Upload meetup photo (4.5 MB cap)
 - Generate/download meetup PDF
 - Edit book metadata (title, author, isbn, cover_url)
 - Add books to meetup

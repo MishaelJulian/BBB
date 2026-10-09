@@ -16,7 +16,7 @@ This file holds the measured state of the archive and the app, and turns the Jul
 - **Coupling (§10.2):** `models` I = 0.17 (5 dependents, correctly stable); `schemas.intermediate` I = 0 (stable contract); `full_import` I = 0.86 and `pdf_parser` I = 0.75 (free to change, fits their roles). The pipeline writes straight to canonical tables because the review step is skipped, so a parser mistake reaches the UI. The frontend depends on the API only.
 - **Data quality (§10.3):** meetup completeness 53.5 %, venue completeness 100 %, imports linked 89.9 %, traceability 98.4 % (30 sources cut), 16 duplicate title groups, 0 of 218 merges reviewed.
 - **Product quality (§10.4, judgment):** compatibility good; functional suitability, performance, maintainability and flexibility fair; reliability, security and keyboard access weak.
-- **Security (§10.5):** integrity first (cut text, unreviewed merges, admin routes with no login), then availability (unguarded `reset_db`; uploads capped at 30 MB with no image check). PDFs as untrusted input are low risk while imports stay local.
+- **Security (§10.5):** integrity first (cut text, unreviewed merges, admin routes with no login), then availability (unguarded `reset_db`; uploads capped at 4.5 MB with no image check). PDFs as untrusted input are low risk while imports stay local.
 - **Functional (§10.6):** 5 reader-facing functions blocked: each book once, full book history, every meetup, introducer by meetup, source tracing.
 - **Non-functional (§10.7):** closet 2,151,353 B in 0.51 s; import speed not measured; reliability, recoverability and auditability weak until A1, A3, A7 and B8.
 - **FMEA (§10.8):** top risks are wrong automatic merges (RPN 320), merges unlinking imports (252) and partial parsing of a new PDF layout (210), all in the pipeline. A7 lowers detection risk for all three, so it comes before A3.
@@ -259,7 +259,7 @@ The archive is the product, so its data quality is measured on its own. ISO/IEC 
 | Compatibility | Frontend uses the API only; Docker runs both | Good |
 | Interaction capability (usability) | Spines not keyboard-reachable | Weak for keyboard users |
 | Reliability | Re-imports can change counts unreviewed; pipeline untested | Weak |
-| Security | Admin routes open, uploads capped at 30 MB with no image check, destructive reset unguarded, database in a public repository (§10.5, `security_analysis.md`) | Weak, mitigated by local use |
+| Security | Admin routes open, uploads capped at 4.5 MB with no image check, destructive reset unguarded, database in a public repository (§10.5, `security_analysis.md`) | Weak, mitigated by local use |
 | Maintainability | 2,215-line API file, 9 functions over 100 lines, 0 pipeline tests | Fair |
 | Flexibility (portability) | SQLAlchemy allows PostgreSQL by connection string; Alembic unstamped | Fair |
 
@@ -271,7 +271,7 @@ The archive is the product, so its data quality is measured on its own. ISO/IEC 
 | Integrity | Unreviewed automatic merges (F1) | 218 merges in July, 0 reviewed |
 | Integrity | Admin routes have no login (P12) | Can write photos, books, PDFs; reachable on the local network |
 | Availability | `reset_db()` and `import-full --reset` drop all tables with no backup or confirmation (API backlog A8) | One wrong command loses the archive |
-| Availability | Uploads capped at 30 MB since 2026-10-09 (P11); content is not checked to be an image | Junk files can still be stored under `/assets` |
+| Availability | Uploads capped at 4.5 MB since 2026-10-09 (P11, D36); content is not checked to be an image | Junk files can still be stored under `/assets` |
 | Untrusted input | PDFs parsed by third-party libraries | Low exposure while imports run locally from the CLI |
 | Confidentiality | Member names are public by design; no credentials stored | No current issue |
 
@@ -321,7 +321,7 @@ Scales used: S 10 = archive lost, 7 to 8 = wrong history shown, 4 to 6 = incompl
 | 14 | Server fetches an internal URL during PDF generation | Internal service probed; internal image copied into `assets/cache` and served | `cover_url` accepts any URL; no guard in `download_and_cache_image` | `security_analysis.md` F1 | 6 | 3 | 8 | **144** | F1 fix (scheduled) |
 | 15 | Database with member data published | Personal data exposed | DB tracked in git; repository verified public | `security_analysis.md` F8 | 7 | 3 | 6 | **126** | Founder decision |
 | 16 | Process compromise has root in the container | Writes to mounted DB and assets | No `USER` in Dockerfile | `security_analysis.md` F6 | 7 | 2 | 8 | **112** | F6 fix (scheduled) |
-| 17 | Large or non-image upload | Memory or disk strained; junk served from `/assets` | No content check; size now capped at 30 MB (2026-10-09) | `security_analysis.md` F4; was 5 × 3 × 7 = 105 before the cap | 5 | 2 | 7 | **70** | Pillow `verify()` (open) |
+| 17 | Large or non-image upload | Memory or disk strained; junk served from `/assets` | No content check; size now capped at 4.5 MB (2026-10-09, D36) | `security_analysis.md` F4; was 5 × 3 × 7 = 105 before the cap | 5 | 2 | 7 | **70** | Pillow `verify()` (open) |
 | 18 | Raw error text shown to clients | Paths or SQL fragments leak | `detail=str(e)` on 8 routes | `security_analysis.md` F5 | 3 | 5 | 6 | **90** | F5 fix (scheduled) |
 | 19 | Stored `javascript:` or other non-http link clicked | Script runs in the viewer's browser | No scheme check on stored URLs | `security_analysis.md` F2 | 6 | 2 | 7 | **84** | F2 fix (scheduled) |
 | 20 | CI token used with write rights | Repo changed through a compromised workflow step | `ci.yml` without `permissions:` | `security_analysis.md` F14 | 5 | 2 | 6 | **60** | Add `permissions: contents: read` |

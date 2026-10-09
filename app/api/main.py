@@ -1060,9 +1060,9 @@ def update_admin_meetup(meetup_number: int, req: MeetupUpdateRequest):
         db.close()
 
 
-# ponytail: arbitrary 30 MB cap set by the founders (2026-10-09); revisit once real photo sizes are known.
-# The request body is still received in full by the server; a reverse-proxy limit is the hard stop when deployed.
-MAX_UPLOAD_BYTES = 30 * 1024 * 1024
+# ponytail: 4.5 MB cap set by the founders (2026-10-09) to match Vercel's 4.5 MB request-body limit (D36).
+# Multipart headers add a few hundred bytes, so a file right at the cap may be refused by Vercel before it gets here.
+MAX_UPLOAD_BYTES = 4_500_000
 
 
 @app.post("/admin/meetups/{meetup_number}/photo")
@@ -1070,7 +1070,7 @@ async def upload_meetup_photo(meetup_number: int, file: UploadFile = File(...)):
     """Upload group picture or media for a meetup."""
     content = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(content) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="File is larger than 30 MB")
+        raise HTTPException(status_code=413, detail="File is larger than 4.5 MB")
 
     db = SessionLocal()
     try:

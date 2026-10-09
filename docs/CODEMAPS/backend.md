@@ -32,7 +32,7 @@ FastAPI app with 33 route decorators (some paths have `/api/` aliases). CORS mid
 |--------|------|---------|-------|-------|
 | GET | `/admin/meetups` | `get_admin_meetups()` | 945-1029 | List all meetups with edit UI state (date, venue, photo, PDF) |
 | PUT | `/admin/meetups/{meetup_number}` | `update_admin_meetup()` | 1031-1066 | Update date, venue_id, format, attendance_count, description |
-| POST | `/admin/meetups/{meetup_number}/photo` | `upload_meetup_photo()` | 1068-1109 | Upload photo (30 MB cap, no image check), store at `/assets/uploads/meetups/{number}.jpg` |
+| POST | `/admin/meetups/{meetup_number}/photo` | `upload_meetup_photo()` | 1068-1109 | Upload photo (4.5 MB cap, no image check), store at `/assets/uploads/meetups/{number}.jpg` |
 | DELETE | `/admin/meetups/{meetup_number}/photo` | `delete_meetup_photo()` | 1111-1125 | Remove photo file |
 | POST | `/admin/meetups/{meetup_number}/generate-pdf` | `generate_meetup_pdf_endpoint()` | 1127-1156 | Render PDF (reportlab), save at `/assets/generated_pdfs/meetup_{number}.pdf` |
 | GET | `/admin/meetups/{meetup_number}/pdf` | `download_meetup_pdf_endpoint()` | 1158-1181 | Download generated PDF |
