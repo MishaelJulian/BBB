@@ -372,6 +372,7 @@ One row per measurement run, newest last. Never edit old rows; they are the hist
 | 2026-10-08 | `6fe8370` | 53 | 2,783 | 2,133 | 3,637 | n/m | 2,686 | n/m | n/m | n/m | 31 pass; verify p0, p2, p3 pass; build 11 routes | 2,151,353 | From `CURRENT_STATE.md` |
 | 2026-10-09 | `c2ba3a7` | 53 | 2,783 | 2,133 | 3,637 | 369 | 2,686 | 16 | 30 | 1 | 31 pass (1.47 s) | not re-measured | Baseline for A1 to A7 and B8 |
 | 2026-10-09 | `c2ba3a7` + upload cap | 53 | 2,783 | 2,133 | 3,637 | 369 | 2,686 | 16 | 30 | 1 | 32 pass (3.23 s) | not re-measured | 30 MB upload cap; security review rows merged into §10.8 |
+| 2026-10-09 | `2621ad6` | n/m | n/m | n/m | n/m | n/m | n/m | n/m | n/m | n/m | 32 pass (2.16 s); verify p0, p2, p3 pass; tsc 0 errors; build 11 routes (73 s); flake8 errors-only 0 | 2,151,353 (1.32 s over HTTP) | Quality gate; `GET /meetups` 6.99 s over HTTP; DB counts unchanged since the baseline |
 
 n/m = not measured that day.
 

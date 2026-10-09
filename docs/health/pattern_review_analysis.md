@@ -4,7 +4,7 @@ Code pattern reviews of the BBB app, one section per tool run. Each section stat
 
 ## Findings register
 
-R = React review, B = backend patterns, P = FastAPI patterns. Details in the sections below.
+R = React review, B = backend patterns, P = FastAPI patterns, Q = quality gate. Details in the sections below.
 
 | ID | Severity | Finding | Where | Status (2026-10-09) |
 |---|---|---|---|---|
@@ -38,6 +38,9 @@ R = React review, B = backend patterns, P = FastAPI patterns. Details in the sec
 | P10 | Low | Six `/api/` aliases; through the Next.js proxy `/api/media/resolve-url` maps to an undefined backend path (unverified) | `main.py:379, 465, 1911, 1918, 1920, 2003`; `frontend/next.config.ts` | Open |
 | P6 | Low | All 5 `POST` routes return 200, including creates | OpenAPI | Open |
 | P8 | Low | Directories created and `/assets` mounted at import time, relative to the working directory | `main.py:42-46` | Open |
+| Q1 | Medium | Running backend container predates the 30 MB upload cap (image not rebuilt after `33f4c8d`) | `docker compose exec backend grep -c MAX_UPLOAD_BYTES` = 0 | Open: rebuild deferred by the founders (not now) |
+| Q2 | Medium | `SESSION_LOG.md` not updated for this session's work (PRD §24) | `docs/health/SESSION_LOG.md` | Done: session 010 entry written |
+| Q3 | Low | flake8: 624 style findings, including 26 unused imports, 10 unused variables, 1 redefinition; 0 syntax or undefined-name errors | `app/`, `tests/` | Open |
 
 ---
 
@@ -275,3 +278,94 @@ When it happens: move one router at a time and run the tests plus the verify scr
 ### Open questions for the founders
 
 1. Are the `/api/` aliases still needed once the admin page calls one base URL? If not, the split can drop them (P10).
+
+---
+
+## Quality gate
+
+**Date:** 2026-10-09
+**Commit:** `2621ad6`
+**Run by:** /ecc:quality-nonconformance, used for the quality-gate checks requested in its arguments; failed gate items are written up as non-conformance records with containment, root cause and corrective action, as that skill prescribes.
+**Rules followed:** nothing installed. The frontend build ran on a temporary copy of `frontend/` in the session scratchpad (sharing `node_modules`), because the Docker dev server uses `frontend/.next` and an in-place build would have overwritten it; the copy was deleted afterwards. API checks were `GET` requests to the running backend; the synopsis route was skipped because it writes.
+**Not checked:** pages in a browser (success, loading and failure states, console errors, 3D scene, hover and selection), ESLint (no config, R9), ruff (not installed).
+
+### Checks
+
+| Check | Command | Result | Counts | Duration |
+|---|---|---|---|---|
+| Python tests | `uv run --no-project --with-requirements requirements.txt --with pytest python -m pytest -q` | **Pass** | 32 passed | 2.16 s (5.5 s with startup) |
+| Verify: database profiles | `python tests/verify/verify_p0_suite.py` | **Pass** | 10 of 10 profiles | 0.31 s |
+| Verify: cross-links over the API | `python tests/verify/verify_p2_pathways.py` | **Pass** | 8 of 8 pathways | 0.80 s |
+| Verify: deep links to the Library Room | `python tests/verify/verify_p3_bidirectional.py` | **Pass** | all pathways | 0.72 s |
+| Python errors (flake8, errors only) | `flake8 app tests --count --select=E9,F63,F7,F82` | **Pass** | 0 | 2.3 s |
+| Python style (flake8, full) | `flake8 app tests --count --statistics` | **Fail** (informational, no project config) | 624 findings: 524 E501 long lines, 36 W293, 26 F401 unused imports, 10 F841 unused variables, 9 E302, 5 E402, 3 E711, 3 E741, 3 F541, 3 E305, 1 F811 redefinition of `date`, 1 W391 | n/m |
+| TypeScript | `npx --no-install tsc --noEmit -p .` (in `frontend/`) | **Pass** | 0 errors | 9.2 s |
+| Frontend build | `npm run build` (on a scratch copy) | **Pass** | 11 routes; shared first-load JS 102 kB; largest page `/` and `/library-room` 171 kB | 73 s |
+| ESLint | `next lint` | **Not run** | no ESLint config in `frontend/` (R9); the build's lint step had no rules to apply | n/a |
+| API: health | `GET /health` | **Pass** | 200, 31 B | 0.009 s |
+| API: closet list | `GET /books?limit=3000&only_discussed=true&exclude_general=true` | **Pass** | 200, 2,151,353 B; 19 fields per book | 1.32 s |
+| API: meetups | `GET /meetups` | **Pass** (slow) | 200, 1,156,181 B | **6.99 s** (confirms B1 over HTTP) |
+| API: members | `GET /members` | **Pass** | 200, 60,100 B | 1.67 s |
+| API: missing book | `GET /books/does-not-exist` | **Pass** | 404 | 0.009 s |
+| API: stats | `GET /stats` | **Pass** | 200, 185 B | 0.09 s |
+| Running image is current | `docker compose exec -T backend grep -c MAX_UPLOAD_BYTES app/api/main.py` | **Fail** | 0 (Q1) | n/a |
+
+### Verdict
+
+**Automated gate: PASS.** Every test, verify script, typecheck and build passes, and the API answers with the expected status codes and shape.
+
+**Definition of Done (PRD §24) for the work in this session: NOT MET.** Three items are open.
+
+| §24 item | Status | Evidence |
+|---|---|---|
+| Acceptance criteria satisfied | Met | 30 MB cap: `tests/test_upload_limit.py` passes |
+| Existing behaviour not broken | Met | 32 tests, 3 verify scripts, build and typecheck pass |
+| Relevant build/test command passes | Met | Checks table |
+| API behaviour checked | Partly met | `GET` routes checked over HTTP; the upload route is covered by a unit test only, and the running container does not have the change (Q1) |
+| UI behaviour checked | **Not met** | No browser check in this run |
+| Git diff inspected | Met | Commits made with explicit paths after `git status` |
+| No unrelated files modified | Met | Commits `4199504` to `2621ad6` contain only the intended files |
+| No fake archive data | Met | `verify_p0_suite.py` and `verify_p2_pathways.py` read real records |
+| No silent error handling | **Not met** (codebase) | New code passes; existing code swallows errors (R5, R6) and the API logs nothing (B6) |
+| `SESSION_LOG.md` updated | **Not met** | No entry for 2026-10-09 (Q2) |
+| Unresolved issues documented | Met | `report_insights.md`, `security_analysis.md`, this file |
+
+**Testing requirements (PRD §11.6):**
+
+| Requirement | Status |
+|---|---|
+| Backend: start FastAPI, hit endpoints, check status and response shape, run Python tests | Met (running container, `GET` routes) |
+| Frontend: build and typecheck | Met |
+| Frontend: open page; success, loading and failure states | Not met (no browser run); the failure state is missing in the closet (R5) |
+| Data integration: database to API to frontend to UI | Partly met: verify scripts cover database to API to deep-link URLs; the UI was not opened |
+| Library Room checklist | App starts: met. Real books, correct canonical IDs, navigation by deep link: met (verify scripts). Scene renders, pulled book resolves, history loads in the card, console errors: not checked. Hover and focus: **fails** for keyboard (R1). API failure contained: **fails** (R5) |
+
+### Non-conformance records
+
+| NCR | Non-conformance | Containment | Root cause | Corrective action | Verification of effectiveness |
+|---|---|---|---|---|---|
+| NCR-QG-01 (Q1) | Running backend serves code older than `main` | None needed for reads; uploads on the running server are still uncapped | The compose file mounts only the database and `assets/`, so code changes need an image rebuild; nothing reminds anyone after a merge | `docker compose up -d --build`; add "rebuild containers after backend changes" to the commit checklist in `AGENT_RULES.md` | The `grep` check above returns 1 |
+| NCR-QG-02 (Q2) | Session work not logged | None | The log step sits last in §24 and was skipped while commits were made one at a time | Write the 2026-10-09 entry (reorganised health docs, three reviews, upload cap) | Entry present before the next push |
+| NCR-QG-03 | UI not verified in a browser | Changes in this session were docs and one backend route, so reader impact is low | The run had no browser step | Open `/library-room`, a book card and `/admin` with Playwright before the next frontend change; record console errors | Screenshot and console log stored with the run |
+| NCR-QG-04 | Hook, accessibility and Python lint rules not enforced | None | No ESLint config (R9); flake8 has no project config and is not in CI | Founder installs ESLint config (R9); add a flake8 or ruff config with line length agreed, and run the errors-only selection in CI first | CI fails on a deliberately broken sample |
+
+### Measurement row (merged into report_insights.md §13, 2026-10-09)
+
+| Date | Commit | Meetups | Canonical | Discussed | Imported | Unlinked | Discussions | Dup groups | Cut sources | Aliases | Tests | Closet bytes | Note |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---:|---|
+| 2026-10-09 | `2621ad6` | n/m | n/m | n/m | n/m | n/m | n/m | n/m | n/m | n/m | 32 pass (2.16 s); verify p0, p2, p3 pass; tsc 0 errors; build 11 routes (73 s); flake8 errors-only 0 | 2,151,353 (1.32 s over HTTP) | Quality gate; `GET /meetups` 6.99 s over HTTP |
+
+Database counts were not re-measured in this run (no import or data change since the 2026-10-09 baseline row).
+
+### Follow-ups from this run
+
+| # | Item | Status (2026-10-09) |
+|---|---|---|
+| 1 | Merge the measurement row into `report_insights.md` §13 | Done |
+| 2 | Write the 2026-10-09 entry in `SESSION_LOG.md` (NCR-QG-02) | Done (session 010) |
+| 3 | Rebuild the containers so the running backend has the 30 MB upload cap (NCR-QG-01) | Deferred by the founders: not now |
+| 4 | Browser check of `/library-room`, a book card and `/admin`, with console errors recorded (NCR-QG-03) | Pending |
+| 5 | ESLint config (R9) and a flake8 or ruff config in CI (NCR-QG-04) | Pending (founder install) |
+| 6 | Commit | Done with this section |
+
+Note on the command: this run was started with `/ecc:quality-nonconformance`, a manufacturing quality-management skill (non-conformance reports, CAPA, SPC). The checks follow the quality-gate list in its arguments, and the skill's non-conformance format is used for the failed items. `/ecc:quality-gate` is the matching command for the next gate run.

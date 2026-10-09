@@ -737,4 +737,72 @@ Merge the agent playbook and rules, reorganise the docs, add `GET /health`, clea
 
 ---
 
+# SESSION: 010: Architecture review, health reports, security and pattern reviews, upload cap
+
+## Date
+2026-10-09
+
+## Agent
+Coding agent, founder-directed
+
+## Task
+Resolve conflicts between the architecture docs, turn the July import reports into actions, run security and code-pattern reviews, and cap meetup photo uploads.
+
+## Current state
+`main` at `2621ad6` plus this entry's commit; 6 local commits not pushed. The app builds and all checks pass; the Definition of Done is not met for UI checks and existing silent error handling (`docs/health/pattern_review_analysis.md`, Quality gate).
+
+## Inspected
+`docs/architecture/*`, PRD §7 to §11 and §24, `app/api/main.py`, `app/pipeline/full_import.py`, `app/parsers/`, `app/services/pdf_generator.py`, `frontend/src/` (closet, modal, book page, admin), `frontend/next.config.ts`, `Dockerfile`, `docker-compose.yml`, `.github/workflows/`, the database (read-only).
+
+## Completed
+- [x] Architecture docs: `book-club-archivist-architecture.md` renamed to `universal_app_flow.md` (roadmap); `canonical_archive_specification.md` renamed to `imperative_decisions.md` with founder review notes; founder review added to `bbb-library-architecture.md`; research items R1 to R6 in `docs/plans/backlog.md` (`96dbe94`, `c2ba3a7`).
+- [x] `docs/architecture/flow_comparison.md`: flows against the code, cost per flow, schools of thought, lessons from the ISI DRTC MS(LIS) syllabus (`4199504`).
+- [x] `docs/health/` reorganised: July reports in `2026-07-22/`; `CURRENT_STATE.md`, `archive_audit_report.md`, `audit_diff.md` removed after their content moved into `report_insights.md` (state, venue analysis, fix-log numbers, quality metrics, FMEA, measurement log, task procedures A1 to A7 and B8, data-loss runbook) (`4199504`).
+- [x] `docs/health/security_analysis.md`: security review (F1 to F18) and exploitability review (E1 to E8), findings register, founder decisions (`4199504`, `fe1ddf1`).
+- [x] Meetup photo uploads capped at 30 MB; the route's own 404 no longer becomes a 500; test `tests/test_upload_limit.py` (`33f4c8d`).
+- [x] `docs/health/pattern_review_analysis.md`: React review (R1 to R16), backend patterns (B1 to B12, with measured query counts), FastAPI patterns (P1 to P10, router split planned and not scheduled), quality gate (`2621ad6` and this commit).
+- [x] FMEA rows 13 to 37 merged into `report_insights.md` §10.8; measurement rows added to §13.
+
+## Unfinished work and remaining failures
+- Tasks A1 to A7 and B8 (`report_insights.md` §8, §14) not started.
+- Security fixes F1, F2, F5, F6, F7 noted for later; CORS rule and login (F3, P12) scheduled; F8 (database tracked in a public repository) waits on a founder decision.
+- Running backend container predates the upload cap; rebuild deferred by the founders (Q1).
+- UI not checked in a browser this session (NCR-QG-03).
+
+## Known bugs
+- `GET /meetups` runs 6,278 queries and takes about 7 s (B1).
+- Five admin write routes return 500 for their own 404 and 400 errors (B2).
+- Closet keyboard access missing (R1 to R3); Ctrl+R and other browser shortcuts captured by the closet (R4).
+- Closet shows an empty room when `/books` fails (R5); the API logs nothing (B6).
+
+## Files changed
+`index.md`, `app/api/main.py`, `tests/test_upload_limit.py`, `docs/architecture/{universal_app_flow,imperative_decisions,bbb-library-architecture,flow_comparison}.md`, `docs/plans/backlog.md`, `docs/health/{report_insights,security_analysis,pattern_review_analysis,SESSION_LOG}.md`, `docs/health/2026-07-22/*` (moved), `archive/docs-v1/standalone_documents.md` (moved by the founders).
+
+## Commands and verification
+- `pytest`: 32 passed (2.16 s).
+- `tests/verify/verify_p0_suite.py`, `verify_p2_pathways.py`, `verify_p3_bidirectional.py`: pass.
+- `npx --no-install tsc --noEmit`: 0 errors. `npm run build` (scratch copy): 11 routes, 73 s.
+- `flake8 --select=E9,F63,F7,F82`: 0. Full flake8: 624 style findings.
+- API `GET` checks against the running backend: `/health` 200; `/books` 2,151,353 B in 1.32 s; `/meetups` 6.99 s; missing book 404.
+- Query counts measured by calling route functions on a read-only database URL.
+- Backup taken: `~/bbb_backups/bbb_20261009_103653.db` (integrity check ok).
+
+## Git state
+Branch `main`. Unpushed: `96dbe94` and `c2ba3a7` were pushed earlier; `4199504`, `33f4c8d`, `fe1ddf1`, `2621ad6` and this session's last commit are local because the founders push.
+
+## Decisions and discoveries
+- Upload limit 30 MB (arbitrary, to revisit). CORS rule and login with authentication and authorization policies scheduled together.
+- Router split planned in general, not scheduled.
+- Task A8 (Alembic stamp) renamed B8; its migration is an empty baseline.
+- The repository is public and tracks the database file.
+- ISI's MS(LIS) is taught at Bengaluru (DRTC), not Kolkata.
+
+## Next
+1. Founder decision on F8 (database in the public repository).
+2. A1 (keep raw text whole), then A7 (pipeline test) before A3 (review queue).
+3. B1 (batch the meetup list) and B2 (re-raise `HTTPException`), both small.
+4. Remaining pattern reviews: `/ecc:plankton-code-quality`, `ecc:comment-analyzer`, `/ecc:refactor-clean`, `/ecc:update-codemaps`.
+
+---
+
 # END OF SESSION_LOG.md
