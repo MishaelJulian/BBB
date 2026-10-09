@@ -1060,9 +1060,18 @@ def update_admin_meetup(meetup_number: int, req: MeetupUpdateRequest):
         db.close()
 
 
+# ponytail: arbitrary 30 MB cap set by the founders (2026-10-09); revisit once real photo sizes are known.
+# The request body is still received in full by the server; a reverse-proxy limit is the hard stop when deployed.
+MAX_UPLOAD_BYTES = 30 * 1024 * 1024
+
+
 @app.post("/admin/meetups/{meetup_number}/photo")
 async def upload_meetup_photo(meetup_number: int, file: UploadFile = File(...)):
     """Upload group picture or media for a meetup."""
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File is larger than 30 MB")
+
     db = SessionLocal()
     try:
         meetup = db.query(Meetup).filter(Meetup.meetup_number == meetup_number).first()
@@ -1077,7 +1086,6 @@ async def upload_meetup_photo(meetup_number: int, file: UploadFile = File(...)):
         dest_path = asset_path("uploads", "meetups", dest_filename)
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
-        content = await file.read()
         with open(dest_path, "wb") as f:
             f.write(content)
 
@@ -1090,6 +1098,9 @@ async def upload_meetup_photo(meetup_number: int, file: UploadFile = File(...)):
             "photo_url": photo_url,
             "message": f"Group photo for Meetup #{meetup_number} uploaded successfully"
         }
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
