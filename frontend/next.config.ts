@@ -25,10 +25,12 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['192.168.1.*', '192.168.1.5', '192.168.1.5:3000', 'localhost:3000'],
   // /api/* and /assets/* are proxied by src/middleware.ts (adds the origin secret server-side).
   async headers() {
+    const isDev = process.env.NODE_ENV !== 'production'
     const csp = [
       "default-src 'self'",
       // Next.js inlines its bootstrap scripts; no third-party scripts are allowed (D29).
-      "script-src 'self' 'unsafe-inline'",
+      // Development mode (Fast Refresh / sourcemaps) requires 'unsafe-eval'.
+      isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       // Cover images come from these hosts (see app/services/pdf_generator.py COVER_HOSTS, DOMAINS.txt).
       "img-src 'self' data: blob: https://*.gr-assets.com https://*.mzstatic.com https://m.media-amazon.com https://duckduckgo.com https://static.tvmaze.com https://i.ytimg.com https://i.scdn.co",

@@ -162,6 +162,7 @@ class Member(Base, UUIDMixin, TimestampMixin):
         String(256), nullable=False, unique=True, index=True,
     )
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_hidden: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
 
     # Relationships
     discussions: Mapped[List["Discussion"]] = relationship(

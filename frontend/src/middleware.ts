@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from 'next/server'
 // Proxy only: authorisation is enforced by the API itself (CVE-2025-29927 showed middleware-only auth fails).
 export const config = { matcher: ['/api/:path*', '/assets/:path*'] }
 
-const BACKEND = process.env.BACKEND_INTERNAL_URL || 'http://localhost:8000'
-const AUTH = process.env.AUTH_INTERNAL_URL || 'http://localhost:3001'
+const BACKEND = process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:8000'
+const AUTH = process.env.AUTH_INTERNAL_URL || 'http://127.0.0.1:3001'
 
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl

@@ -14,12 +14,12 @@ export function getApiBase(): string {
   if (typeof window !== 'undefined') {
     return '/api'
   }
-  return process.env.BACKEND_INTERNAL_URL || 'http://localhost:8000'
+  return process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:8000'
 }
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' ? '/api' : 'http://localhost:8000')
+  (typeof window !== 'undefined' ? '/api' : 'http://127.0.0.1:8000')
 
 // ============================================
 // Types
@@ -281,6 +281,7 @@ export async function fetchBookSynopsis(bookId: string): Promise<{
 export interface MemberSummary {
   id: string
   display_name: string
+  is_hidden?: boolean
   book_count: number
   meetup_count: number
   first_active_date: string | null
@@ -306,6 +307,7 @@ export interface MemberDetail {
   id: string
   display_name: string
   bio: string | null
+  is_hidden?: boolean
   book_count: number
   meetup_count: number
   first_active_date: string | null
@@ -330,10 +332,12 @@ export interface AuthorDetail {
 export async function fetchMembers(options?: {
   search?: string
   sortBy?: 'books' | 'name' | 'meetups'
+  includeHidden?: boolean
 }): Promise<MemberSummary[]> {
   const params = new URLSearchParams()
   if (options?.search) params.set('search', options.search)
   if (options?.sortBy) params.set('sort_by', options.sortBy)
+  if (options?.includeHidden) params.set('include_hidden', 'true')
 
   const res = await fetch(`${API_BASE}/members?${params.toString()}`, {
     cache: 'no-store',
@@ -341,6 +345,63 @@ export async function fetchMembers(options?: {
 
   if (!res.ok) {
     throw new Error('Failed to fetch members directory')
+  }
+
+  return res.json()
+}
+
+/**
+ * Temporarily remove a member from the database (Admin only)
+ */
+export async function deleteMember(memberId: string): Promise<{ success: boolean; id: string; display_name: string; message: string }> {
+  const res = await fetch(`${API_BASE}/admin/members/${encodeURIComponent(memberId)}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || 'Failed to remove member')
+  }
+
+  return res.json()
+}
+
+export interface RemovedMember {
+  id: string
+  display_name: string
+  removed_at: string | null
+  book_count: number
+}
+
+/**
+ * Fetch list of removed members eligible for restoration (Admin only)
+ */
+export async function fetchRemovedMembers(): Promise<RemovedMember[]> {
+  const res = await fetch(`${API_BASE}/admin/removed-members`, {
+    cache: 'no-store',
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch removed members')
+  }
+
+  return res.json()
+}
+
+/**
+ * Restore a previously removed member back into the database (Admin only)
+ */
+export async function restoreMember(memberId: string): Promise<{ success: boolean; id: string; display_name: string; message: string }> {
+  const res = await fetch(`${API_BASE}/admin/members/${encodeURIComponent(memberId)}/restore`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || 'Failed to restore member')
   }
 
   return res.json()

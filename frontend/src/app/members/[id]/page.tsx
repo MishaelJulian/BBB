@@ -1,14 +1,15 @@
 'use client'
 
 import * as React from 'react'
-import { notFound, useParams } from 'next/navigation'
+import { notFound, useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Container } from '@/components/layout/Container'
 import { Section } from '@/components/layout/Section'
 import { Divider } from '@/components/ui/Divider'
 import { LoadingState } from '@/components/shared/LoadingState'
 import { ErrorState } from '@/components/shared/ErrorState'
-import { fetchMember } from '@/lib/api'
+import { fetchMember, deleteMember } from '@/lib/api'
+import { getSession } from '@/lib/auth'
 import { formatDate, getBookColor } from '@/lib/utils'
 import type { MemberDetail } from '@/lib/api'
 
@@ -17,6 +18,19 @@ export default function MemberDossierPage() {
   const [member, setMember] = React.useState<MemberDetail | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = React.useState(false)
+  const [isUpdating, setIsUpdating] = React.useState(false)
+  const [toast, setToast] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    async function checkAdmin() {
+      try {
+        const u = await getSession()
+        if (u && u.role === 'admin') setIsAdmin(true)
+      } catch (e) {}
+    }
+    checkAdmin()
+  }, [])
 
   React.useEffect(() => {
     async function loadMember() {
@@ -64,8 +78,33 @@ export default function MemberDossierPage() {
     notFound()
   }
 
+  const router = useRouter()
+
+  const handleRemove = async () => {
+    if (!member) return
+    if (!confirm(`Are you sure you want to remove "${member.display_name}"?\n\nThis will remove them from the Readers Archive. Past book discussions remain preserved in the meetups.`)) {
+      return
+    }
+    setIsUpdating(true)
+    try {
+      await deleteMember(member.id)
+      alert(`✓ "${member.display_name}" removed from database.`)
+      router.push('/members')
+    } catch (err: any) {
+      alert(`Failed to remove member: ${err.message || 'Error'}`)
+      setIsUpdating(false)
+    }
+  }
+
   return (
     <>
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-5 right-5 z-50 px-5 py-3 rounded-xl bg-[#14130F] text-white text-xs font-mono shadow-2xl animate-fade-in border border-white/20">
+          {toast}
+        </div>
+      )}
+
       {/* Dossier Header */}
       <Section size="lg">
         <Container size="narrow">
@@ -83,10 +122,25 @@ export default function MemberDossierPage() {
           </nav>
 
           <div className="p-8 sm:p-10 rounded-xl border border-border bg-paper-dark/70 shadow-sm relative overflow-hidden">
-            {/* Archival seal stamp */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/20 border border-amber-800/30 text-amber-900 text-[11px] font-mono tracking-[0.2em] uppercase mb-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-700" />
-              Archival Reader Dossier
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                {/* Archival seal stamp */}
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/20 border border-amber-800/30 text-amber-900 text-[11px] font-mono tracking-[0.2em] uppercase">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-700" />
+                  Archival Reader Dossier
+                </div>
+              </div>
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  disabled={isUpdating}
+                  onClick={handleRemove}
+                  className="px-3 py-1.5 text-xs font-mono tracking-wider rounded-lg border border-red-200 bg-red-50 hover:bg-red-600 hover:text-white text-red-700 transition-all font-semibold"
+                >
+                  {isUpdating ? 'Removing…' : '✕ Remove Member from Archive'}
+                </button>
+              )}
             </div>
 
             <h1 className="font-display text-4xl sm:text-5xl font-bold text-ink mb-3">

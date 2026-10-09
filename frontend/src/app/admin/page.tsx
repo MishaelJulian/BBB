@@ -573,7 +573,12 @@ export default function AdminDatabasePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Export hidden until a live GET /export/meetups.csv endpoint exists; the old static CSV is in archive/. */}
+            <Link
+              href="/members"
+              className="px-3 py-1.5 rounded-lg border border-[#DDD6C7] text-xs font-mono text-neutral-600 hover:text-black hover:bg-neutral-50 transition-colors"
+            >
+              Readers Archive & Visibility →
+            </Link>
           </div>
         </div>
       </header>

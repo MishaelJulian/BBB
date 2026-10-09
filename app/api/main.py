@@ -36,7 +36,8 @@ from app.core.database import get_engine, SessionLocal
 from app.core.config import settings
 from app.core.paths import ASSETS_DIR, asset_path
 from app.database.models import (
-    CanonicalBook, ImportedBook, Meetup, Venue, Author, Member, Discussion, Resource
+    CanonicalBook, ImportedBook, Meetup, Venue, Author, Member, Discussion, Resource,
+    CurrentRead, DiscussionParticipant, Quote, Recommendation
 )
 
 app = FastAPI(
@@ -848,11 +849,14 @@ def search(q: str = Query(..., min_length=1)):
 def get_members(
     search: Optional[str] = None,
     sort_by: str = "books",  # 'books', 'name', 'meetups'
+    include_hidden: bool = False,
 ):
     """Get all BBB members with reading and attendance metrics."""
     db = SessionLocal()
     try:
         query = db.query(Member)
+        if not include_hidden:
+            query = query.filter((Member.is_hidden == False) | (Member.is_hidden == None))
         if search:
             query = query.filter(Member.display_name.ilike(f"%{search}%"))
 
@@ -887,6 +891,7 @@ def get_members(
             results.append({
                 "id": m.id,
                 "display_name": m.display_name,
+                "is_hidden": bool(m.is_hidden),
                 "book_count": len(book_ids),
                 "meetup_count": len(meetup_ids),
                 "first_active_date": min(dates, default=None),
@@ -976,6 +981,7 @@ def get_member(member_id: str):
             "id": member.id,
             "display_name": member.display_name,
             "bio": member.bio,
+            "is_hidden": bool(member.is_hidden),
             "book_count": len(books_map),
             "meetup_count": len(meetups_map),
             "first_active_date": min(dates, default=None),
@@ -985,6 +991,171 @@ def get_member(member_id: str):
         }
     finally:
         db.close()
+
+
+class MemberVisibilityRequest(BaseModel):
+    is_hidden: bool = True
+
+
+@app.put("/admin/members/{member_id}/visibility")
+@app.post("/admin/members/{member_id}/toggle-hide")
+def set_member_visibility(member_id: str, req: Optional[MemberVisibilityRequest] = None):
+    """Temporarily hide or restore a member from the public Readers Archive."""
+    db = SessionLocal()
+    try:
+        member = db.query(Member).filter((Member.id == member_id) | (Member.display_name.ilike(member_id))).first()
+        if not member:
+            raise HTTPException(status_code=404, detail="Member not found")
+        
+        if req is not None and hasattr(req, "is_hidden"):
+            member.is_hidden = req.is_hidden
+        else:
+            member.is_hidden = not bool(member.is_hidden)
+            
+        db.commit()
+        state_str = "hidden from" if member.is_hidden else "restored to"
+        return {
+            "success": True, 
+            "id": member.id, 
+            "display_name": member.display_name, 
+            "is_hidden": bool(member.is_hidden),
+            "message": f"Member '{member.display_name}' {state_str} public archive."
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update member visibility") from e
+    finally:
+        db.close()
+
+
+@app.delete("/admin/members/{member_id}")
+def delete_member(member_id: str):
+    """Permanently remove a member from the members table, while keeping a recovery snapshot."""
+    db = SessionLocal()
+    try:
+        member = db.query(Member).filter((Member.id == member_id) | (Member.display_name.ilike(member_id))).first()
+        if not member:
+            raise HTTPException(status_code=404, detail="Member not found")
+
+        # 1. Capture snapshot of member's discussions for clean recovery
+        discs = db.query(Discussion.id).filter(Discussion.member_id == member.id).all()
+        disc_ids = [d[0] for d in discs]
+
+        db.execute(
+            text("""
+                INSERT INTO removed_members_archive (id, display_name, normalized_name, bio, discussions_snapshot)
+                VALUES (:id, :display_name, :normalized_name, :bio, :discussions_snapshot)
+                ON CONFLICT(id) DO UPDATE SET 
+                    display_name = :display_name,
+                    normalized_name = :normalized_name,
+                    bio = :bio,
+                    discussions_snapshot = :discussions_snapshot,
+                    removed_at = CURRENT_TIMESTAMP
+            """),
+            {
+                "id": member.id,
+                "display_name": member.display_name,
+                "normalized_name": member.normalized_name,
+                "bio": member.bio,
+                "discussions_snapshot": json.dumps(disc_ids),
+            }
+        )
+
+        # 2. Safely unlink foreign key references so discussion historical books remain in meetups
+        db.query(Discussion).filter(Discussion.member_id == member.id).update({"member_id": None}, synchronize_session=False)
+        db.query(Quote).filter(Quote.member_id == member.id).update({"member_id": None}, synchronize_session=False)
+        db.query(Recommendation).filter(Recommendation.recommender_id == member.id).update({"recommender_id": None}, synchronize_session=False)
+        db.query(CurrentRead).filter(CurrentRead.member_id == member.id).delete(synchronize_session=False)
+        db.query(DiscussionParticipant).filter(DiscussionParticipant.member_id == member.id).delete(synchronize_session=False)
+
+        # 3. Actually delete the member record
+        member_name = member.display_name
+        member_id_str = member.id
+        db.delete(member)
+        db.commit()
+
+        return {
+            "success": True,
+            "id": member_id_str,
+            "display_name": member_name,
+            "message": f"Member '{member_name}' removed from database."
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to remove member") from e
+    finally:
+        db.close()
+
+
+@app.get("/admin/removed-members")
+def get_removed_members():
+    """Get all removed members from the archive table."""
+    db = SessionLocal()
+    try:
+        rows = db.execute(text("SELECT id, display_name, removed_at, discussions_snapshot FROM removed_members_archive ORDER BY removed_at DESC")).fetchall()
+        return [
+            {
+                "id": r.id,
+                "display_name": r.display_name,
+                "removed_at": str(r.removed_at) if r.removed_at else None,
+                "book_count": len(json.loads(r.discussions_snapshot or "[]")),
+            }
+            for r in rows
+        ]
+    finally:
+        db.close()
+
+
+@app.post("/admin/members/{member_id}/restore")
+def restore_member(member_id: str):
+    """Restore a previously removed member from the archive back into the members table."""
+    db = SessionLocal()
+    try:
+        row = db.execute(
+            text("SELECT id, display_name, normalized_name, bio, discussions_snapshot FROM removed_members_archive WHERE id = :id OR display_name = :id"),
+            {"id": member_id}
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Removed member record not found in archive")
+
+        # Re-create Member in members table
+        new_m = Member(
+            id=row.id,
+            display_name=row.display_name,
+            normalized_name=row.normalized_name,
+            bio=row.bio,
+        )
+        db.add(new_m)
+        db.flush()
+
+        # Re-link discussions
+        if row.discussions_snapshot:
+            disc_ids = json.loads(row.discussions_snapshot)
+            if disc_ids:
+                db.query(Discussion).filter(Discussion.id.in_(disc_ids)).update({"member_id": new_m.id}, synchronize_session=False)
+
+        # Remove from archive table
+        db.execute(text("DELETE FROM removed_members_archive WHERE id = :id"), {"id": row.id})
+        db.commit()
+
+        return {
+            "success": True,
+            "id": row.id,
+            "display_name": row.display_name,
+            "message": f"Member '{row.display_name}' restored to database."
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to restore member") from e
+    finally:
+        db.close()
+
 
 
 # ============================================
@@ -1103,6 +1274,10 @@ class AddBookToMeetupRequest(_LinkFields):
 
 class ToggleGeneralDiscussionRequest(BaseModel):
     is_general_discussion: bool
+
+class MemberVisibilityRequest(BaseModel):
+    is_hidden: bool = True
+
 
 
 @app.get("/admin/meetups")
@@ -2295,11 +2470,14 @@ def suggest_members(
         db.close()
 
 
-def enrich_canonical_book_from_goodreads(book_id: str, db) -> dict:
+def enrich_canonical_book_from_goodreads(book_id: str, db, force: bool = False) -> dict:
     """Enrich a single canonical book by fetching metadata from Goodreads API."""
     book = db.query(CanonicalBook).filter(CanonicalBook.id == book_id).first()
     if not book:
         return {"success": False, "message": "Book not found"}
+
+    if not force and book.goodreads_id and book.cover_url:
+        return {"success": True, "book_id": book.id, "title": book.title, "already_enriched": True}
     
     author_obj = db.query(Author).filter(Author.id == book.author_id).first() if book.author_id else None
     author_name = author_obj.full_name if author_obj else None
@@ -2376,7 +2554,7 @@ def enrich_single_book_endpoint(book_id: str):
     """Enrich a single book record with Goodreads metadata."""
     db = SessionLocal()
     try:
-        res = enrich_canonical_book_from_goodreads(book_id, db)
+        res = enrich_canonical_book_from_goodreads(book_id, db, force=True)
         return res
     finally:
         db.close()
@@ -2384,24 +2562,37 @@ def enrich_single_book_endpoint(book_id: str):
 
 @app.post("/admin/meetups/{meetup_number}/enrich-goodreads")
 def enrich_meetup_books_endpoint(meetup_number: int):
-    """Enrich all books in a meetup with Goodreads metadata."""
+    """Enrich all books in a meetup with Goodreads metadata in parallel."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     db = SessionLocal()
     try:
         meetup = db.query(Meetup).filter(Meetup.meetup_number == meetup_number).first()
         if not meetup:
             raise HTTPException(status_code=404, detail="Meetup not found")
-            
+
         discussions = db.query(Discussion).filter(Discussion.meetup_id == meetup.id).all()
+        book_ids = list({d.canonical_book_id for d in discussions if d.canonical_book_id})
+        total_books = len(book_ids)
+
+        def _enrich_worker(b_id):
+            thread_db = SessionLocal()
+            try:
+                return enrich_canonical_book_from_goodreads(b_id, thread_db)
+            finally:
+                thread_db.close()
+
         enriched_count = 0
-        total_books = len(discussions)
-        
-        for d in discussions:
-            if not d.canonical_book_id:
-                continue
-            res = enrich_canonical_book_from_goodreads(d.canonical_book_id, db)
-            if res.get("success"):
-                enriched_count += 1
-                
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            futures = [executor.submit(_enrich_worker, b_id) for b_id in book_ids]
+            for f in as_completed(futures):
+                try:
+                    res = f.result()
+                    if res.get("success"):
+                        enriched_count += 1
+                except Exception:
+                    pass
+
         return {
             "success": True,
             "meetup_number": meetup_number,
