@@ -146,7 +146,7 @@ Versions seen with `pip list` in the local environment. Repo pins are lower boun
 | P11 uploads have no size limit | Confirmed, plus no content check (F4). | main.py:1079 `content = await file.read()`. |
 | API backlog A8: `reset_db` drops all tables unguarded | Confirmed, unchanged. Reachable only through the CLI, not the API. | app/core/database.py:69-76 `Base.metadata.drop_all(bind=eng)`; app/cli/main.py:45, :140. |
 | A1 `raw_text` cut at 2,000 chars | Not re-checked in this pass. | not read |
-| A3 fuzzy auto-merge without review | Not re-checked in this pass. | not read |
+| A3 automatic merge without review | Not re-checked in this pass. Corrected later (2026-10-09): the merges are title-only exact merges; fuzzy detection never runs (`error_handling.md` RC1) | not read |
 | API backlog A3: no gzip | Confirmed: only `CORSMiddleware` is added (main.py:49-58); no `GZipMiddleware` in the lines read. | main.py:49-58 |
 | Spines not keyboard-reachable | Not re-checked (frontend accessibility, outside this review). | not read |
 

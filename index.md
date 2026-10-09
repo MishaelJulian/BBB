@@ -20,6 +20,7 @@ Where everything in this repository lives. Any person or AI model can start here
 | [`docs/health/report_insights.md`](docs/health/report_insights.md) | Measured state of the archive and app, July report findings re-checked, venue analysis, cohesion, coupling, data and product quality, security, FMEA, actions |
 | [`docs/health/security_analysis.md`](docs/health/security_analysis.md) | Security reports, one section per tool run: route inventory, findings with file:line, proposed FMEA rows |
 | [`docs/health/pattern_review_analysis.md`](docs/health/pattern_review_analysis.md) | Code pattern reviews (React, backend), one section per tool run, with a findings register and measured query counts |
+| [`docs/health/error_handling.md`](docs/health/error_handling.md) | Error-handling reviews: patterns audit, root-cause runs, silent failures; findings register and proposed policy |
 | [`docs/health/SESSION_LOG.md`](docs/health/SESSION_LOG.md) | What each work session did |
 | [`docs/book_count&details_issues.md`](docs/book_count&details_issues.md) | Known data problems and the repair order |
 | [`docs/meetup_index.md`](docs/meetup_index.md) | Meetup list with venues and book counts |

@@ -160,7 +160,7 @@ Open point: venue is a single link per meetup. A meetup held in two places, or a
 |---|---|---|---|
 | A1 | Remove the two `[:2000]` slices. SQLite `TEXT` has no practical length limit | 2 lines | Now |
 | A2 | Re-read the 30 cut sources from `sources/` and store their full text | Data write: back up first (AGENT_RULES §5), founder approval | After A1 |
-| A3 | Send fuzzy matches to `possible_duplicates` for review; keep automatic merge only for exact normalized-title matches | Pipeline change, controlled | Before the next full import |
+| A3 | Fix fuzzy detection first (`error_handling.md` RC1, RC2: today it never runs), so near-duplicates reach `possible_duplicates` for review; keep automatic merge only for exact normalized-title matches, and only with the same author (C6) | Pipeline change, controlled | Before the next full import |
 | A4 | Resolve the 16 duplicate groups and 369 unlinked imports through that queue | Data work, founder review | With the tabled book repair |
 | A5 | One noise rule list, used by parser and pipeline | Small refactor | Next time either file changes |
 | A6 | Let a meetup exist with a date and no number yet, so the 11 PDFs can link | Schema decision, architectural | With the book repair (F5) |
@@ -304,7 +304,7 @@ Scales used: S 10 = archive lost, 7 to 8 = wrong history shown, 4 to 6 = incompl
 
 | # | Failure mode | Effect | Cause | Evidence | S | O | D | RPN | Action |
 |---|---|---|---|---|---:|---:|---:|---:|---|
-| 1 | Two different books merged into one | Wrong history on the card; a book disappears | Fuzzy auto-merge, no review | 218 merges unreviewed; fuzzy path never exercised; 0 pipeline tests | 8 | 5 | 8 | **320** | A3, A7 |
+| 1 | Two different books merged into one | Wrong history on the card; a book disappears | Title-only automatic merge (normalized title, author ignored), no review. Corrected 2026-10-09: the fuzzy path never merged anything (`error_handling.md` RC1) | 218 merges unreviewed; fuzzy path never exercised; 0 pipeline tests | 8 | 5 | 8 | **320** | A3, A7 |
 | 2 | Imported rows unlinked by a merge | Book histories lose entries | Known merge bug | 369 unlinked now; bug documented in `book_count&details_issues.md` | 7 | 6 | 6 | **252** | A4, A7 |
 | 3 | New PDF layout parsed partly | Meetup shows a fraction of its books | Layout-specific parser | #96 showed 4 of 54 in July | 7 | 6 | 5 | **210** | A7; per-meetup count check after import |
 | 4 | Name edits overwrite authors and members | Old forms lost; re-imports stop matching | No authority control | 218 author names changed in `6af556d`; `aliases` holds 1 row | 6 | 5 | 6 | **180** | Use `aliases` (`flow_comparison.md` §6.2 item 5) |
@@ -365,7 +365,7 @@ The top three rows all sit in the import pipeline. A7 (one fixture test) lowers 
 ## 11. Order of work
 
 1. **A1** now: two lines, stops further provenance loss.
-2. **A7** then **A3** before any new full import: a test first, then the review queue in place of fuzzy auto-merge.
+2. **A7** then **A3** before any new full import: a test first, then working fuzzy detection feeding the review queue (RC1), with the title-only merge limited to same-author groups.
 3. **B8** before the next schema change (A6 needs it).
 4. **A2, A4, A6** together with the tabled book repair, once the founders confirm the inferred meetup numbers.
 5. **A5** and the cohesion splits (§10.1) before OCR work begins.
@@ -482,7 +482,7 @@ Every task that writes to `book_club_archivist.db` follows these steps. They ext
 - **Alternatives:** a snapshot test that imports all of `sources/` into a scratch database and compares counts with the §13 baseline. It catches more regressions but is slower and breaks on every legitimate data change.
 - **Data at risk:** none (in-memory database).
 
-#### A3: Review queue in place of fuzzy auto-merge
+#### A3: Review queue for near-duplicates (corrected 2026-10-09: fuzzy detection never ran, see `error_handling.md` RC1)
 
 - **Evidence:** `possible_duplicates` holds 0 rows; 218 merges in July with none reviewed (§6.1); the fuzzy path has never run on real data.
 - **Procedure:** in `_detect_duplicates`, link exact normalized-title matches as today; for fuzzy matches at or above the threshold, insert a `possible_duplicates` row and leave the book unlinked. Limit `_merge_canonical_duplicates` to exact groups. Add a CLI command to list, approve (merge) and reject queue rows. Update A7's assertion for the near pair to expect a queue row.

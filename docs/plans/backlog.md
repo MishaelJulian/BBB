@@ -28,3 +28,15 @@ Open items from the review of `docs/architecture/`. Each one touches the databas
 | R4 | API: Swagger docs, flexibility, security | FastAPI already serves Swagger UI at `/docs` and the schema at `/openapi.json`; Pydantic response models (build phase) make them accurate. Quantum-resistant security belongs to the TLS layer of the host (hybrid post-quantum key exchange), independent of REST or GraphQL; confirm on the chosen host | `bbb-library-architecture.md` |
 | R5 | Protect writes beyond CORS | CORS only limits which browser pages may call the API; it does not stop other clients. Admin login (P12) and the database backup rule protect create, update and delete | `bbb-library-architecture.md` |
 | R6 | Hosting and database | Founder position: SQLite stays for simplicity; PostgreSQL when statistics, RAG or MCP work needs it (SQLAlchemy makes it a connection-string change plus a data migration). Vercel for testing and demo; final home is the project's own website | `bbb-library-architecture.md` |
+
+## Open decisions from the reviews (2026-10-09)
+
+Source: `docs/health/security_analysis.md`, `docs/health/pattern_review_analysis.md`, `docs/health/report_insights.md` §10.8.
+
+Open decisions from the reviews:
+- F8: the database is in the public repo.
+- The dead-code deletion list (1,050 lines).
+- Whether to merge the 27 title and 106 author duplicate groups (C1).
+- The fuzzy threshold: 0.75 in the code vs 85% in the spec.
+- Whether full_import.py will run again. If yes, fix C4–C6, C8 and K1 first.
+- The deferred container rebuild.
