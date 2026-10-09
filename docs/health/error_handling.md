@@ -4,7 +4,7 @@ Error-handling reviews of the BBB app, one section per tool run. Each section st
 
 ## Findings register
 
-EH = error-handling patterns, RC = root cause (systematic debugging). Details in the sections below.
+EH = error-handling patterns, RC = root cause (systematic debugging), S = silent failures. Details in the sections below.
 
 | ID | Severity | Finding | Where | Status (2026-10-09) |
 |---|---|---|---|---|
@@ -26,6 +26,12 @@ EH = error-handling patterns, RC = root cause (systematic debugging). Details in
 | RC3 | Medium | Threshold and measure differ from the spec: `SequenceMatcher >= 0.75` vs "Levenshtein ≥ 85%" | `full_import.py:462`; `imperative_decisions.md:74, 336` | Founder decision |
 | RC4 | Medium | The merge leaves the moved imported book unlinked (known C6, A4) | `full_import.py:515-526`; `models.py:240-242` | Reproduced; part of A4 |
 | RC5 | Low | Docstring describes a two-phase design that cannot happen | `full_import.py:412-418` | Update with the fix |
+| S1 | High | Import reads `source.id` before the row is flushed, so 52 of 53 meetups and 2,541 of 2,686 discussions have no source; the job still reports COMPLETED | `full_import.py:243-275` | Open (verified) |
+| S2 | High | Public `GET /books/{id}/synopsis` writes Apple Books' first hit into empty fields with no title or author match | `main.py:548-586`, `:480-560` | Open |
+| S3 | High | Enrichment accepts the first candidate when no author matches; Goodreads timeouts fall through to Apple; toast says "Matched on Goodreads" | `main.py:2133-2155`, `:1612-1638` | Open |
+| S4 | High | A corrupt PDF yields zero records with no warning; job COMPLETED, 0 WARNING logs | `pdf_parser.py:35-37, 331-333`; `full_import.py:90-96` | Open |
+| S5 to S12 | Medium | Empty suggest results cached 10 min; URL stub saved as a title (7 such books); scripts and the meetup enrich loop continue without rollback or honest counts; add-book attaches a same-title different-author book; BBB 99 photo used as a fallback group picture; dropped import rows never counted | see section | Open |
+| S13 to S17 | Low / Info | New venue gets "Bangalore" vs "Bengaluru"; error toasts vanish after 3 s; Hero stats stay "..." on failure; synopsis placeholder looks real; one-off scripts take no backup | see section | Open |
 
 ---
 
@@ -146,7 +152,7 @@ One place turns unexpected errors into a fixed message plus a full log, and the 
 | C14 | Confirmed | No `app/error.tsx`; `ErrorBoundary` has 0 importers (EH13) |
 | B5, P4, E5 | Confirmed, with a measured input | No retry, so no retry storm. Timeouts are per socket operation, not a total deadline. Meetup #24 has 100 discussions (read-only SQL); 53 meetups have discussions, median 51. Meetup enrich calls `search_external_books` per discussion, up to twice, at up to 3 s + 3 s each: a computed (not measured) upper bound of 100 × 12 s = 1,200 s for #24 |
 
-### Proposed FMEA rows (not yet merged into report_insights.md §10.8)
+### Proposed FMEA rows (merged into report_insights.md §10.8 on 2026-10-09: rows 41 and 54 to 67; S3 into row 39, S4 into row 47)
 
 S, O and D are judgment calls on the §10.8 scales. Rows 24 (B6), 29 (R5), 30 (R10), 32 (B2) and 18 (F5) already cover the known issues.
 
@@ -407,7 +413,7 @@ At 0.75 three pairs of different books would go to review; at 0.85 none do, and 
 | RC4 | Medium (known: C6, A4) | `full_import.py:515-526`; `models.py:240-242` | The merge leaves the moved imported book unlinked | `after merge: [('Skin in the Game', 'Nassim Nicholas Taleb')]`, before and after the fix | Book histories lose entries (369 unlinked live) | Remove the book from the old collection or delete with a query before the flush; part of A4 | S |
 | RC5 | Low | `full_import.py:412-418` | Docstring describes a design that cannot happen with this phase order | Root cause above | Misleads readers; part of why K1 went unnoticed | Update with the fix | S |
 
-### Proposed FMEA rows (not yet merged into report_insights.md §10.8)
+### Proposed FMEA rows (merged into report_insights.md §10.8 on 2026-10-09: rows 41 and 54 to 67; S3 into row 39, S4 into row 47)
 
 | Failure mode | Effect | Cause | S | O | D | RPN |
 |---|---|---|---:|---:|---:|---:|
@@ -423,3 +429,92 @@ Overlap: row 41 in §10.8 (K1, RPN 240) describes the same failure from the comm
 2. Same normalized title, different authors (the Taleb pair): merge automatically as now, or send to review? Today the merge ignores author (C6).
 3. Who reviews `possible_duplicates`, and where? No admin screen exists.
 4. Will `full_import.py` run again on the full archive? If not, RC1 is low priority and the scratch harness can become the A7 test only.
+
+---
+
+## Silent failures (ecc:silent-failure-hunter)
+
+**Date:** 2026-10-09
+**Commit:** `9535f04`
+**Run by:** ecc:silent-failure-hunter agent, read-only.
+**Scope:** `app/` (all), `frontend/src/` (the 10 kept closet components skipped), `scripts/ingest_meetup_25.py`, `scripts/ingest_meetup_99.py`, `scripts/batch_enrich_all_meetups.py`; `scripts/enrich_meetup_25.py` read for its commit pattern only.
+**Method:** every `except` and `catch` handler in scope read, plus the fallback paths (`grep -rnE "except|\.catch\(|catch"`); read-only SQL on `file:book_club_archivist.db?mode=ro` (each figure names its query); `grep -c logger` and `grep -c "detail=str(e)"` on `main.py` for known issues.
+**Verified after the run:** S1 (`full_import.py:243-269` builds the `Source`, calls `session.add(source)`, then passes `source_id=source.id` to the `Meetup` before any flush; the first flush is at `:275`, after the loop; the primary key default `generate_uuid` (`app/database/base.py:42`) fires only at flush). Read-only counts: meetups 53, with no `source_id` 52; discussions 2,686, with no `source_id` 2,541; canonical titles starting with `http`: 7.
+**Not checked:** no server, browser, route call or script was run; S5, S8 and S14 rest on code reading only; external services were not called, so failure and wrong-match rates are not measured; the origin of the 7 URL-titled books (resolve stub or hand entry) is not proven; `scripts/audit_*`, `fix_meetup_45.py`, `readme_images.py` and the report generator were not read.
+
+### Summary
+
+- **Provenance is lost at import and nobody was told.** The pipeline reads `source.id` before it exists: 52 of 53 meetups and 2,541 of 2,686 discussions have a NULL `source_id`, and the job is recorded as COMPLETED with `error_count` 0 (S1).
+- **Two read paths write wrong data without a check.** `GET /books/{id}/synopsis` writes on a public GET and takes the first Apple Books hit with no title match (S2); enrichment can take a cover from the first hit when the author does not match (S3). Both are reachable during a Goodreads outage.
+- **Several failures look like "no data":** corrupt PDFs give zero records with no warning (S4); a suggest outage is cached as an empty list for 10 minutes (S5); a failed URL resolve returns a stub that can be saved as a book title (S6).
+- **Batch writers continue after a failure without a rollback or an honest count** (`ingest_meetup_99.py:253`, the batch enrich script, the meetup enrich route: S7 to S9).
+- Most items are one-line fixes with the standard library. Best value: flush before reading ids (S1), and a rollback plus a failure counter in the enrich loops (S8, S9).
+
+### Findings
+
+| ID | Severity | file:line | Finding | Evidence | Impact | Smallest fix | Effort |
+|---|---|---|---|---|---|---|---|
+| S1 | High | `app/pipeline/full_import.py:243-275` (also `:572`) | `Source` is added and not flushed, then `source.id` is read for the `Meetup`; the primary key default fires at flush (`app/database/base.py:42`). Meetups get `source_id=None`; discussions copy it | `self.session.add(source)` ... `source_id=source.id,`; `source_id=meetup.source_id,`. Read-only: `select count(*), sum(source_id is null) from meetups` gives 53, 52; `from discussions` gives 2,686, 2,541; `import_jobs`: COMPLETED, `error_count` 0. Meetup 97 is the only meetup with a source id. **Verified** | Wrong data saved: provenance lost for 52 meetups. User cannot tell: the job reports success | `self.session.flush()` after `session.add(source)` (and after a new venue) before reading `.id`. A backfill is a data repair and needs founder approval | S |
+| S2 | High | `app/api/main.py:548-586` with `:480-560` | `GET /books/{id}/synopsis` writes to the database. The Apple fallback takes `results[0]` with `limit=1` and no title or author match, then stores its cover, description and rating into any empty field. Goodreads parse failures fall into the same fallback | `url = ...term={q}&entity=ebook&limit=1` ... `first = results[0]` ... `book.description = meta["description"]` ... `db.commit()` | Wrong data saved permanently, triggered by anyone opening a book modal. Read-only: 198 of 2,783 canonical books have an Apple (`mzstatic`) cover; 181 have a cover and no `goodreads_id`. Whether any are the wrong book is not measured | Check the Apple result's title and author before accepting; do not write on GET (return the metadata; let the admin enrich route persist) | M |
+| S3 | High | `app/api/main.py:2133-2155`, `:1612-1638` | Enrichment accepts `candidates[0]` when no result matches the author, and the Apple fallback runs whenever Goodreads returns nothing, including on timeout; cover, rating, year and `goodreads_id` are then overwritten (C2/K7 extended) | `best = candidates[0]` ... `book.cover_url = best["cover_url"]` ... `except Exception as e: # Fall through to Apple Books fallback ... pass` | Wrong data saved (another book's cover or rating). The admin toast says "Matched ... on Goodreads!" (`admin/page.tsx:437`) even for an Apple result | Require an author-token or title match before writing; return `source` in the response; fill empty fields only (also closes C2) | M |
+| S4 | High | `app/parsers/pdf_parser.py:35-37, 331-333`; `app/pipeline/full_import.py:90-96` | A corrupt or unreadable PDF produces empty text, then `return []`; the pipeline's per-file warning only fires on exceptions (C8 extended to its effect) | `except Exception: pass` ... `if not text.strip(): return []` ... `self.stats.warnings.append(f"Failed to parse ...")`. Read-only: WARNING rows in `import_logs` = 0 | Data lost: a meetup's books silently missing. User cannot tell: COMPLETED, no warnings | Let `_extract_text_from_pdf` raise, or return a flag; warn when a PDF yields no text | S |
+| S5 | Medium | `app/api/main.py:1941-1952, 2005` | Suggestion results cached for 600 s, including an empty list from a failed upstream call; no size cap | `_SUGGESTION_CACHE[cache_key] = (now, results)`; inner functions end with `except Exception: pass` | An outage, once seen, looks like "no results" for 10 minutes after recovery (code reading) | Do not cache empty results; cap the dict | S |
+| S6 | Medium | `app/api/main.py:1784-1797` | The failed-resolve stub uses the URL as the title; the admin can save it (EH5 extended to its effect) | `"title": clean_url,` ... `"source": "url"`. Read-only: 7 canonical books have a title starting with `http`, all `media_type` 'book' | Wrong data saved: URL strings shown as titles. Origin of the 7 rows not proven | Return a `resolved: false` flag (or 502); the form refuses a URL as a title | S |
+| S7 | Medium | `scripts/ingest_meetup_99.py:248-255` | Enrichment errors swallowed with `pass`, no rollback, no failure count | `except Exception as e: pass`, then `print(f"[OK] Enriched {enriched} books ...")` | Nobody can tell which books failed; a failed flush leaves the session unusable for the rest of the loop | Count and print failures; `db.rollback()` in the handler | S |
+| S8 | Medium | `scripts/batch_enrich_all_meetups.py:32-79` (`:73-76`) | No `db.rollback()` in the handler; outage and no-match both count as "Skipped / Unmatched"; no backup; overwrites curated fields (C2); commits per book | `except Exception as ex: total_skipped += 1 ... print(...)` | An outage looks like a real no-match; after a database error later books may fail with a pending-rollback error (code reading) | Roll back in the handler; count errors separately; back up first (report_insights §14.0) | S |
+| S9 | Medium | `app/api/main.py:2204-2216` | The meetup enrich loop has no per-book error handling and reports `"success": True` even when `enriched_count` is 0; books already enriched stay committed, the rest untouched, the client gets a 500 with no count | `res = enrich_canonical_book_from_goodreads(...)` with no try; `return {"success": True, ... "enriched_count": enriched_count`; admin shows `✓ ${data.message}` (`admin/page.tsx:420`) | A partial write reported as all or nothing; "✓ Enriched 0 of 12" reads as success | Per-book try/except with rollback; return `failed` and `skipped` counts; set `success` from them | S |
+| S10 | Medium | `app/api/main.py:1420` (and `:2104-2124`) | Add-book matches an existing canonical by normalized title only; a same-title, different-author book attaches to the existing row and its author is ignored when the row has one | `book = db.query(CanonicalBook).filter(CanonicalBook.normalized_title == title_clean.lower()).first()` | Wrong data saved: two different books merge, with a success message. Frequency not measured | Compare authors when both are present; return 409 on a mismatch | S |
+| S11 | Medium | `app/services/pdf_generator.py:236-248` | The group-photo fallback list ends with the BBB 99 template photo, so any meetup with no photo gets meetup 99's picture | `os.path.join("templates", "bbb99", "page_12_img_1.jpeg")` as the last candidate | Wrong content in a generated PDF, served by the download route, which reuses an existing file (`main.py:1168-1169`) | Drop the template candidate, or skip the photo page | S |
+| S12 | Medium | `full_import.py:292-293, 556-558, 567`; `txt_parser.py:299-301`; `pdf_parser.py:171-220` | Records dropped with `continue` and never counted: short titles, discussions whose meetup or canonical is missing, book lines that fail to parse (EH9 covers `stats.errors`; the dropped-row counts are new) | `if not meetup: continue`; `if canonical and canonical.id in valid_canonical_ids:` with no else; `if not book_data: continue` | Data lost at import with no trace (the 369 unlinked imports are A4/C6, not claimed here) | Count skipped rows in `stats.warnings` | S |
+| S13 | Low | `app/api/main.py:1056-1062` | An unknown venue name on meetup update creates a new `Venue` with `city="Bangalore"`; the pipeline uses "Bengaluru" (`full_import.py:193`); a typo makes a new venue | `venue_obj = Venue(name=req.venue.strip(), city="Bangalore")`. Venues today: Bookworm 29, Atta Galatta 19, Online 4, Art Studio 1 | Duplicate venues | Return 404 for an unknown venue, or confirm in the UI | S |
+| S14 | Low | `frontend/src/app/admin/page.tsx:104-107, 421` | Admin failure toasts vanish after 3 s, same as success | `setTimeout(() => setToast(null), 3000)` | Easy to miss on a long enrich (judgment) | Keep error toasts until dismissed | S |
+| S15 | Low | `components/home/Hero.tsx:36-50`; `components/layout/Footer.tsx:19` | Hero stats stay "..." forever on failure; the footer hides silently. `Hero.tsx` is dead code (D11), so only the footer is live | `.catch(() => {})` | Permanent placeholders | Show "unavailable" in the catch | S |
+| S16 | Low | `CriterionDetailModal.tsx:520`; `CriterionListDetailModal.tsx:84`; `lib/api.ts:266-275` | The synopsis fetch swallows errors twice, and the backend can return a made-up description ("Featured and discussed by the Bangalore Book Club community", `main.py:594`) labelled `source: "archive"` (EH6 extended) | `fallback_desc = f"Featured and discussed by ..."`. Read-only: 0 stored descriptions match, so it is returned, never saved | A reader cannot tell a real synopsis from a placeholder | Return `description: null`; let the UI show its empty state | S |
+| S17 | Info | `scripts/ingest_meetup_25.py:633-780`; `scripts/ingest_meetup_99.py:20-264` | Both scripts use one transaction, commit at the end, roll back and re-raise on failure (good). Neither backs up first; script 99 hard-codes `2026-08-23` and overwrites an existing meetup 99; file copies happen before the commit and are not undone on failure | `db.commit()` after the loop; `meetup.date = date(2026, 8, 23)` | Low (judgment): one-off scripts, already run | Note in the script header; back up first | S |
+
+**Checked and not a finding:** the default year "2026" (`pdf_generator.py:120`; 0 of 53 meetups have no date, so the branch is not reached today); the default venue "Bookworm" (`pdf_parser.py:342`; applies only to PDFs with no venue text, not tested further); a cover download returning None (graceful fallback card; EH12 covers the missing log); `fetchBook`, `fetchMeetup`, `fetchMember`, `fetchAuthor` (`null` only on 404, otherwise throw, and the pages show `ErrorState`: correct); `get_db_session` (`app/core/database.py:50`; rolls back, logs, re-raises: correct); parser `except ValueError` blocks (control flow for parsing).
+
+### Already-known issues
+
+| ID | Status | Evidence |
+|---|---|---|
+| F5 | Confirmed | `grep -c "detail=str(e)" app/api/main.py` = 8 |
+| B2 | Confirmed | `main.py:1056, 1151, 1326, 1367, 1391`: `except Exception` with no `except HTTPException`; the 404 inside each becomes a 500 |
+| B6 | Confirmed | `grep -c "logger\|logging" app/api/main.py` = 0 |
+| R5 | Confirmed | `CriterionBookCloset.tsx:888` `console.error` only |
+| R6 | Confirmed | `loadBooks` catches its own error (`:888`), so `handleSyncDatabase`'s catch (`:909`) never fires; stale `books.length` |
+| R10, K16 | Confirmed | `admin/page.tsx:108-120` |
+| C8, K28 | Confirmed | `pdf_parser.py:35`; S4 adds the pipeline effect |
+| C17 | Confirmed | `full_import.py:145-148` |
+| C2, K7 | Confirmed | `main.py:2145-2155`; S3 adds the unmatched-author and outage paths |
+| C6, RC4 | Not re-checked | Out of this pass |
+| K1, RC1 | Not re-checked | Out of this pass |
+| EH1 to EH3, EH5 to EH12 | Confirmed | No `exception_handler`; `main.py:2108`; `:1608-1610, 1637-1638, 2123-2124`; `:1784-1797` (S6 adds the saved title); `api.ts:271-274` (S16 adds the placeholder); `cli/main.py:71-72, 113-115, 224-225`; `admin/page.tsx:275-276, 465-466, 493-494`; `full_import.py:53, 138`; `CriterionBookCloset.tsx:570-581`; `main.py:1056-1062`; `pdf_generator.py:30-45, 87-94, 312-313` |
+| EH4 | Confirmed | `CommandPalette.tsx:83` catch |
+| A7 counts | Partly re-counted | `grep` counts lines, not handlers, so the AST count of 51 Python handlers was not reproduced; about 40 frontend handler lines including `.catch` chains, not reconciled with 32 |
+
+### Proposed FMEA rows (merged into report_insights.md §10.8 on 2026-10-09: rows 41 and 54 to 67; S3 into row 39, S4 into row 47)
+
+S, O, D are judgment (1 to 10); RPN = S × O × D.
+
+| Failure mode | Effect | Cause | S | O | D | RPN |
+|---|---|---|---:|---:|---:|---:|
+| Source ids not stored on import | Provenance lost for 52 of 53 meetups; records cannot be traced to their file | `source.id` read before flush (S1) | 6 | 10 | 8 | 480 |
+| Apple Books top hit written into a book record on a GET | Wrong description, cover or rating saved permanently | No match check; write on read (S2) | 7 | 4 | 8 | 224 |
+| Enrichment takes the first result when the author does not match | Another book's cover or rating overwrites a curated one | `candidates[0]` fallback (S3) | 7 | 4 | 7 | 196 |
+| Corrupt PDF gives zero records | A meetup's books missing; job shows COMPLETED | Swallowed extraction error (S4) | 8 | 2 | 9 | 144 |
+| Same-title, different-author book merged on add | Two books become one | Title-only match (S10) | 6 | 3 | 7 | 126 |
+| Template photo reused as a group picture | Another meetup's photo in a magazine | Fallback candidate list (S11) | 4 | 4 | 7 | 112 |
+| Suggest outage cached as empty | Admin sees "no results" for 10 minutes | Empty list cached (S5) | 3 | 4 | 6 | 72 |
+| Failed resolve stub saved as a title | URL shown as a book title | Stub returned with HTTP 200 (S6) | 4 | 3 | 5 | 60 |
+| Enrich loop fails mid-way | Partly enriched meetup; 500 with no count | No per-book handling (S9) | 4 | 3 | 5 | 60 |
+
+### Open questions for the founders
+
+1. S1: backfill the 52 missing `source_id` values (a data repair, needs approval), or is provenance unused today? Nothing in the UI reads it as far as seen (not exhaustively checked).
+2. S2: may opening a book modal write to the database? If not, synopsis fetches stop persisting and saving moves to the admin enrich button.
+3. S3: for books with no author match, should enrichment skip, or ask the admin to pick?
+4. S4: should an unreadable PDF stop the import, or continue with a warning (suggested: warn)?
+5. S6: are the 7 URL-titled books meant to be there (links added as items)?
+6. S11: should a meetup with no photo produce a magazine without a photo page, or is meetup 99's photo intended as a placeholder?
+7. S10: is the same title by a different author a separate book ("1984", "Meditations")?
