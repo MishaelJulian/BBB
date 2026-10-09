@@ -868,7 +868,7 @@ export default function AdminDatabasePage() {
                                               🌐 Tangent
                                             </span>
                                           )}
-                                          {book.url && (
+                                          {book.url && safeHttpUrl(book.url) && (
                                             <a
                                               href={book.url}
                                               target="_blank"

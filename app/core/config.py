@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     # localhost and private-LAN addresses used in development.
     CORS_ORIGINS: str = ""
 
+    # Shared secret that the Vercel proxy adds as the x-origin-secret header (D35).
+    # Empty = check off (local development). Set it in production so the API refuses direct traffic.
+    ORIGIN_SECRET: str = ""
+
     def model_post_init(self, __context) -> None:
         """Ensure required directories exist."""
         self.DATA_DIR.mkdir(parents=True, exist_ok=True)

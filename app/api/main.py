@@ -5,14 +5,17 @@ This module exposes the BBB archive as REST endpoints.
 It reuses the existing SQLAlchemy models and database layer.
 """
 
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File
+from fastapi import FastAPI, HTTPException, Query, Request, UploadFile, File
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.gzip import GZipMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
 from collections import defaultdict
 from datetime import date, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 import urllib.error
 import urllib.request
 import urllib.parse
@@ -22,6 +25,9 @@ import json
 import re
 import time
 import os
+import hmac
+import logging
+from collections import deque
 
 from sqlalchemy import func, text
 
@@ -51,11 +57,98 @@ app.add_middleware(
     # Dev: localhost + private LAN (the admin page calls :8000 directly from phones on the LAN).
     # Production origins come from CORS_ORIGINS. No cookies are used, so credentials stay off.
     allow_origins=[o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|10(\.\d{1,3}){3}|192\.168(\.\d{1,3}){2}|172\.(1[6-9]|2\d|3[01])(\.\d{1,3}){2})(:\d+)?$",
+    # LAN origins only in development; in production the browser reaches the API through the
+    # same-origin Vercel proxy, so no cross-origin access is needed (F3).
+    allow_origin_regex=(
+        r"^https?://(localhost|127\.0\.0\.1|10(\.\d{1,3}){3}|192\.168(\.\d{1,3}){2}|172\.(1[6-9]|2\d|3[01])(\.\d{1,3}){2})(:\d+)?$"
+        if settings.ENV == "development" else None
+    ),
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)  # D22
+
+logger = logging.getLogger("bbb.api")
+
+_ERROR_TYPES = {
+    400: "validation_error", 401: "auth_error", 403: "permission_error", 404: "not_found",
+    409: "conflict", 413: "validation_error", 422: "validation_error", 429: "rate_limited",
+}
+
+
+def _error(status: int, message, code: str = "", headers=None) -> JSONResponse:
+    """One error envelope (PRD §11.2). `detail` stays for existing clients; `error` is the standard."""
+    etype = _ERROR_TYPES.get(status, "server_error" if status >= 500 else "validation_error")
+    text_msg = message if isinstance(message, str) else "Invalid request."
+    return JSONResponse(
+        status_code=status,
+        content={"detail": message, "error": {"type": etype, "code": code or etype, "message": text_msg}},
+        headers=headers,
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def _http_error(request: Request, exc: StarletteHTTPException):
+    if exc.status_code >= 500:
+        logger.error("%s %s failed", request.method, request.url.path, exc_info=exc.__cause__ or exc)
+        return _error(exc.status_code, "Something went wrong on the server.")
+    return _error(exc.status_code, exc.detail, headers=getattr(exc, "headers", None))
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_error(request: Request, exc: RequestValidationError):
+    return _error(422, exc.errors(), code="invalid_parameters")
+
+
+@app.exception_handler(Exception)
+async def _unhandled_error(request: Request, exc: Exception):
+    logger.exception("%s %s failed", request.method, request.url.path)
+    return _error(500, "Something went wrong on the server.")
+
+
+# ponytail: in-memory sliding window, correct for one API process; move to Redis if we ever run several.
+_RATE_LIMITS = {"read": (300, 60.0), "write": (30, 60.0)}  # requests per window (seconds)
+_hits: dict = defaultdict(deque)
+
+
+def _rate_limited(key: str, kind: str) -> bool:
+    limit, window = _RATE_LIMITS[kind]
+    now = time.monotonic()
+    q = _hits[(key, kind)]
+    while q and now - q[0] > window:
+        q.popleft()
+    if len(q) >= limit:
+        return True
+    q.append(now)
+    return False
+
+
+_PRIVATE_PREFIXES = ("/admin", "/api/admin", "/api/auth", "/auth")
+
+
+@app.middleware("http")
+async def _edge_guard(request: Request, call_next):
+    """Origin lock (D35), per-IP rate limit, security headers, no caching of private routes."""
+    secret = settings.ORIGIN_SECRET
+    path = request.url.path
+    if secret and path != "/health":
+        if not hmac.compare_digest(request.headers.get("x-origin-secret", ""), secret):
+            return _error(403, "Direct access is not allowed.", code="origin_required")
+    # Trust the proxy's visitor IP only when the request proved it came through the proxy.
+    ip = (request.headers.get("x-real-ip") if secret else None) or (request.client.host if request.client else "unknown")
+    kind = "read" if request.method in ("GET", "HEAD", "OPTIONS") else "write"
+    if _rate_limited(ip, kind):
+        return _error(429, "Too many requests. Please wait a minute and try again.", headers={"Retry-After": "60"})
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    if kind == "write" or path.startswith(_PRIVATE_PREFIXES):
+        response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 # ============================================
@@ -250,17 +343,50 @@ def batch_books_to_dict(books: list, db) -> list:
 
 def meetup_to_dict(meetup: Meetup, db) -> dict:
     """Convert Meetup to API response dict."""
-    venue = None
-    if meetup.venue_id:
-        venue_obj = db.query(Venue).filter(Venue.id == meetup.venue_id).first()
-        if venue_obj:
-            venue = venue_obj.name
+    return meetups_to_dicts([meetup], db)[0]
 
-    # Get books discussed, grouped by canonical_book_id to avoid duplicate book rows
-    discussions = db.query(Discussion).filter(
-        Discussion.meetup_id == meetup.id
-    ).all()
+
+def meetups_to_dicts(meetups: list, db) -> list:
+    """Batch version of meetup_to_dict: 5 queries for any number of meetups (fixes B1's N+1)."""
     from collections import defaultdict
+
+    meetup_ids = [m.id for m in meetups]
+    venue_names = {
+        v.id: v.name
+        for v in db.query(Venue).filter(Venue.id.in_({m.venue_id for m in meetups if m.venue_id})).all()
+    }
+    discs_by_meetup = defaultdict(list)
+    for d in db.query(Discussion).filter(Discussion.meetup_id.in_(meetup_ids)).all():
+        discs_by_meetup[d.meetup_id].append(d)
+    all_discs = [d for ds in discs_by_meetup.values() for d in ds]
+    books_by_id = {
+        b.id: b
+        for b in db.query(CanonicalBook).filter(
+            CanonicalBook.id.in_({d.canonical_book_id for d in all_discs if d.canonical_book_id})
+        ).all()
+    }
+    author_names = {
+        a.id: a.full_name
+        for a in db.query(Author).filter(
+            Author.id.in_({b.author_id for b in books_by_id.values() if b.author_id})
+        ).all()
+    }
+    members_by_id = {
+        m.id: m
+        for m in db.query(Member).filter(Member.id.in_({d.member_id for d in all_discs if d.member_id})).all()
+    }
+    return [
+        _meetup_dict(m, venue_names, discs_by_meetup[m.id], books_by_id, author_names, members_by_id)
+        for m in meetups
+    ]
+
+
+def _meetup_dict(meetup, venue_names, discussions, books_by_id, author_names, members_by_id) -> dict:
+    from collections import defaultdict
+
+    venue = venue_names.get(meetup.venue_id) if meetup.venue_id else None
+
+    # Group by canonical_book_id to avoid duplicate book rows
     grouped_discs = defaultdict(list)
     for disc in discussions:
         if disc.canonical_book_id:
@@ -271,22 +397,16 @@ def meetup_to_dict(meetup: Meetup, db) -> dict:
     member_ids = set()
 
     for book_id, disc_list in grouped_discs.items():
-        book = db.query(CanonicalBook).filter(
-            CanonicalBook.id == book_id
-        ).first()
+        book = books_by_id.get(book_id)
         if not book:
             continue
 
-        author = None
-        if book.author_id:
-            author_obj = db.query(Author).filter(Author.id == book.author_id).first()
-            if author_obj:
-                author = author_obj.full_name
+        author = author_names.get(book.author_id) if book.author_id else None
 
         member_names = []
         for disc in disc_list:
             if disc.member_id:
-                member = db.query(Member).filter(Member.id == disc.member_id).first()
+                member = members_by_id.get(disc.member_id)
                 if member and member.display_name:
                     if member.display_name not in member_names:
                         member_names.append(member.display_name)
@@ -383,8 +503,9 @@ def get_books(
     year: Optional[int] = None,
     sort_by: str = "title",
     sort_order: str = "asc",
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
+    # E6: every list has a maximum. 3,000 covers the whole archive today (2,783 books); Flow E paging replaces this.
+    limit: int = Query(3000, ge=1, le=3000),
+    offset: int = Query(0, ge=0),
     only_discussed: Optional[bool] = False,
     exclude_general: Optional[bool] = False,
 ):
@@ -631,7 +752,7 @@ def get_meetups(
         query = query.order_by(Meetup.date.desc())
 
         meetups = query.all()
-        return [meetup_to_dict(m, db) for m in meetups]
+        return meetups_to_dicts(meetups, db)
     finally:
         db.close()
 
@@ -682,7 +803,7 @@ def search(q: str = Query(..., min_length=1)):
 
         return {
             "books": [book_to_dict(b, db) for b in books],
-            "meetups": [meetup_to_dict(m, db) for m in meetups],
+            "meetups": meetups_to_dicts(meetups, db),
         }
     finally:
         db.close()
@@ -902,12 +1023,23 @@ def to_title_case_name(name: str) -> str:
     return " ".join(title_words)
 
 
+class _LinkFields(BaseModel):
+    """F2: stored links must be http(s); javascript:, data: and other schemes are refused."""
+
+    @field_validator("url", "cover_url", "thumbnail_url", check_fields=False)
+    @classmethod
+    def _http_only(cls, v):
+        if v and urllib.parse.urlparse(v.strip()).scheme not in ("http", "https"):
+            raise ValueError("must be an http or https link")
+        return v.strip() if v else v
+
+
 class MeetupUpdateRequest(BaseModel):
     date: Optional[str] = None
     venue: Optional[str] = None
     title: Optional[str] = None
 
-class BookUpdateRequest(BaseModel):
+class BookUpdateRequest(_LinkFields):
     title: str
     author: Optional[str] = None
     member: Optional[str] = None
@@ -923,7 +1055,7 @@ class BookUpdateRequest(BaseModel):
     media_type: Optional[str] = "book"
     url: Optional[str] = None
 
-class AddBookToMeetupRequest(BaseModel):
+class AddBookToMeetupRequest(_LinkFields):
     title: str
     author: Optional[str] = None
     member: Optional[str] = None
@@ -1055,7 +1187,7 @@ def update_admin_meetup(meetup_number: int, req: MeetupUpdateRequest):
         return {"success": True, "message": f"Meetup #{meetup_number} updated successfully"}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
     finally:
         db.close()
 
@@ -1103,7 +1235,7 @@ async def upload_meetup_photo(meetup_number: int, file: UploadFile = File(...)):
         raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
     finally:
         db.close()
 
@@ -1150,7 +1282,7 @@ def generate_meetup_pdf_endpoint(meetup_number: int):
         }
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
     finally:
         db.close()
 
@@ -1325,7 +1457,7 @@ def update_admin_book(book_id: str, req: BookUpdateRequest):
         return {"success": True, "message": f"Book '{book.title}' updated successfully"}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
     finally:
         db.close()
 
@@ -1366,7 +1498,7 @@ def toggle_admin_discussion_general(discussion_id: str, req: ToggleGeneralDiscus
         }
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
     finally:
         db.close()
 
@@ -1390,7 +1522,7 @@ def delete_admin_discussion(discussion_id: str):
         return {"success": True, "message": "Book removed from meetup successfully"}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
     finally:
         db.close()
 
@@ -1535,7 +1667,7 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
         raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
     finally:
         db.close()
 
@@ -2005,7 +2137,7 @@ def suggest_books(
         _SUGGESTION_CACHE[cache_key] = (now, suggestions)
         return suggestions
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
     finally:
         db.close()
 

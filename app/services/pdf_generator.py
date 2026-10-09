@@ -1,6 +1,7 @@
 import os
 import re
 import urllib.request
+import urllib.parse
 import hashlib
 from datetime import date
 from collections import defaultdict
@@ -56,12 +57,28 @@ COVERS_CACHE_DIR = os.path.join(os.getcwd(), "assets", "cache", "covers")
 os.makedirs(COVERS_CACHE_DIR, exist_ok=True)
 
 
+# F1/F11: covers come only from these image hosts over HTTPS (all 2,173 stored cover URLs on
+# 2026-10-09 use them). Anything else, including local file paths, is refused.
+COVER_HOSTS = ("gr-assets.com", "mzstatic.com", "media-amazon.com", "duckduckgo.com")
+ASSETS_ROOT = os.path.realpath(os.path.join(os.getcwd(), "assets"))
+
+
+def is_allowed_cover_url(url: str) -> bool:
+    parsed = urllib.parse.urlparse(url)
+    host = (parsed.hostname or "").lower()
+    return parsed.scheme == "https" and any(host == h or host.endswith("." + h) for h in COVER_HOSTS)
+
+
 def download_and_cache_image(url: str) -> str:
-    """Download an image from URL and cache locally."""
+    """Download an image from an allowed cover host and cache locally."""
     if not url:
         return None
     if os.path.exists(url):
-        return url
+        # Local files only from inside assets/ (images the app itself stored).
+        real = os.path.realpath(url)
+        return real if real.startswith(ASSETS_ROOT + os.sep) else None
+    if not is_allowed_cover_url(url):
+        return None
     
     url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()
     cached_path = os.path.join(COVERS_CACHE_DIR, f"{url_hash}.jpg")
