@@ -1216,6 +1216,8 @@ def update_admin_meetup(meetup_number: int, req: MeetupUpdateRequest):
                 meetup.venue_id = venue_obj.id
         db.commit()
         return {"success": True, "message": f"Meetup #{meetup_number} updated successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
@@ -1311,6 +1313,8 @@ def generate_meetup_pdf_endpoint(meetup_number: int):
             "meetup_number": meetup_number,
             "message": f"Magazine PDF for Meetup #{meetup_number} generated successfully!"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
@@ -1505,6 +1509,8 @@ def update_admin_book(book_id: str, req: BookUpdateRequest):
 
         db.commit()
         return {"success": True, "message": f"Book '{book.title}' updated successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
@@ -1546,6 +1552,8 @@ def toggle_admin_discussion_general(discussion_id: str, req: ToggleGeneralDiscus
             "is_general_discussion": req.is_general_discussion,
             "notes": disc.notes,
         }
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
@@ -1570,6 +1578,8 @@ def delete_admin_discussion(discussion_id: str):
             db.delete(disc)
         db.commit()
         return {"success": True, "message": "Book removed from meetup successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
@@ -2186,6 +2196,8 @@ def suggest_books(
 
         _SUGGESTION_CACHE[cache_key] = (now, suggestions)
         return suggestions
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
     finally:

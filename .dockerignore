@@ -25,3 +25,12 @@ docs/media
 assets/cache
 assets/uploads
 assets/generated_pdfs
+
+# Databases are mounted at runtime (/data on the droplet), never baked into the image
+book_club_archivist.db*
+*.db-wal
+*.db-shm
+auth
+auth-data
+deploy
+.env*

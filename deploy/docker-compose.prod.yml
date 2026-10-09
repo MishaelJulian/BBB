@@ -1,0 +1,59 @@
+# Production on the DigitalOcean droplet (D1, D6). The frontend runs on Vercel, not here.
+# Run from deploy/:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# Archive DB in /srv/bbb/data, auth.db in /srv/bbb/auth (whole directories mounted, so WAL files persist: DB4).
+services:
+  api:
+    build: ..
+    restart: unless-stopped
+    environment:
+      ENV: production
+      DATABASE_URL: sqlite:////data/book_club_archivist.db
+      ORIGIN_SECRET: ${ORIGIN_SECRET:?set ORIGIN_SECRET in .env.prod}
+      AUTH_INTERNAL_URL: http://auth:3001
+    volumes:
+      - /srv/bbb/data:/data
+      - /srv/bbb/assets:/app/assets
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  auth:
+    build: ../auth
+    restart: unless-stopped
+    environment:
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env.prod}
+      BETTER_AUTH_URL: ${PUBLIC_SITE_URL:?set PUBLIC_SITE_URL (the Vercel address) in .env.prod}
+      AUTH_DB_PATH: /data/auth.db
+    volumes:
+      - /srv/bbb/auth:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS (e.g. 203-0-113-7.sslip.io) in .env.prod}
+      ORIGIN_SECRET: ${ORIGIN_SECRET}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+
+volumes:
+  caddy_data:
+  caddy_config:

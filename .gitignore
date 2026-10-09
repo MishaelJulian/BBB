@@ -80,3 +80,4 @@ graphify-out/*
 auth-data/
 *.auth.db
 auth.db
+deploy/.env.prod

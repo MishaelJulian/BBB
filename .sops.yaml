@@ -1,0 +1,9 @@
+# SOPS + age (D7): every listed public key can decrypt the encrypted secrets in git.
+# Replace the placeholders with real age public keys (age1...); see deploy/README.md section 6.
+creation_rules:
+  - path_regex: deploy/env\.prod\.sops$
+    input_type: dotenv
+    age: >-
+      AGE_PUBLIC_KEY_FOUNDER_1,
+      AGE_PUBLIC_KEY_FOUNDER_2,
+      AGE_PUBLIC_KEY_DROPLET

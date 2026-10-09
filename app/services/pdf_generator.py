@@ -59,7 +59,8 @@ os.makedirs(COVERS_CACHE_DIR, exist_ok=True)
 
 # F1/F11: covers come only from these image hosts over HTTPS (all 2,173 stored cover URLs on
 # 2026-10-09 use them). Anything else, including local file paths, is refused.
-COVER_HOSTS = ("gr-assets.com", "mzstatic.com", "media-amazon.com", "duckduckgo.com")
+COVER_HOSTS = ("gr-assets.com", "mzstatic.com", "media-amazon.com", "duckduckgo.com",
+               "tvmaze.com", "ytimg.com", "scdn.co")  # last three: media suggestions (shows, YouTube, Spotify)
 ASSETS_ROOT = os.path.realpath(os.path.join(os.getcwd(), "assets"))
 
 

@@ -1,0 +1,26 @@
+# TLS (Let's Encrypt; X25519MLKEM768 key exchange by default in Caddy 2.10+) and routing (D35).
+{$SITE_ADDRESS} {
+	# Only the Vercel proxy knows the secret; everything else is refused (the API checks it again).
+	@direct not header X-Origin-Secret {$ORIGIN_SECRET}
+	respond @direct "Direct access is not allowed." 403
+
+	request_body {
+		max_size 5MB
+	}
+
+	handle /api/auth/* {
+		reverse_proxy auth:3001
+	}
+	handle {
+		reverse_proxy api:8000
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	log {
+		output stdout
+		format console
+	}
+}

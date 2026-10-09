@@ -3,6 +3,8 @@ services:
   backend:
     build: .
     restart: unless-stopped
+    # Local dev: run as your own user so the mounted DB and assets stay writable (prod uses uid 10001).
+    user: "${UID:-1000}:${GID:-1000}"
     environment:
       DATABASE_URL: ${DATABASE_URL:-sqlite:///./book_club_archivist.db}
       AUTH_INTERNAL_URL: http://auth:3001

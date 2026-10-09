@@ -31,9 +31,14 @@ Deferred, not dropped:
 | T1 | API safety: one error envelope (F5), list `limit` cap (E6), `/meetups` N+1 fix (B1), gzip (D22), F1 cover allow-list, F2 link scheme check, security headers, tightened CORS, simple per-IP rate limit | F1, F2, F5, E6, B1 | [x] 2026-10-09: `/meetups` 6,278 queries / 6.89 s down to 6 / 0.29 s (identical output); 40 tests pass; F6 moves to T4 |
 | T2 | Auth: Better Auth sidecar (`auth/`, own `auth.db`), email + password (passkeys deferred), plain who/when write log, JWT plugin (JWKS); FastAPI verifies tokens; router split by audience (public / admin / health); every write needs role `admin` or `presenter` | E1, E2, D5, D12 | [x] 2026-10-09: `auth/` (Better Auth 1.7.7 on Node 24 SQLite), login/account pages, admin gate, middleware check + write log (D37); 43 tests pass; live sign-in verified. Router split moved to after launch |
 | T3 | Frontend: login page; admin pages gated; error and loading states (PRD §17.1); keyboard-reachable closet (R1 to R4) + labels; privacy page + footer link; footer version (SemVer + build number) | WCAG AA, D8, D14 | [x] 2026-10-09: login/account, admin gate, closet R1 to R5 (keyboard, dialog focus, shortcut modifiers, load error + retry), /privacy, footer `0.1.0-beta · build <sha>`, repo link; production build passes |
-| T4 | Deploy: non-root backend image (F6), production compose (API + auth + Caddy), Caddyfile (TLS, origin-secret check), `vercel.json` (rewrites + origin secret header + no caching of auth/admin), SOPS + age secrets | D1, D6, D7, D35 | [ ] |
+| T4 | Deploy: non-root backend image (F6), production compose (API + auth + Caddy), Caddyfile (TLS, origin-secret check), `vercel.json` (rewrites + origin secret header + no caching of auth/admin), SOPS + age secrets | D1, D6, D7, D35 | [x] 2026-10-09: non-root API image (uid 10001, F6); `deploy/` (prod compose, Caddyfile, setup script, runbook, SOPS steps); Next.js middleware proxy adds the origin secret; CSP and security headers; B2 404s fixed; local prod-mode rehearsal passed (origin lock 403, admin 401 then 200 after sign-in, write log). Founder steps: `deploy/README.md` |
 | T5 | Tests: pytest kept green; Playwright smoke (closet opens, pull a book, book page, API failure state, login); React Testing Library closet test; axe checks on public pages; CI updated | D20, D34 | [ ] |
 | T6 | Club test: test URL, phone checklist (Android Chrome, iPhone Safari), feedback channel | Testing | [ ] |
+
+## Open items found during T4
+
+- **Large PDFs and Vercel's 4.5 MB limit.** Meetup #99's PDF is 10.6 MB. Whether the limit applies to proxied responses is unverified; test on the first deploy. Fallback: compress the generated PDFs, or serve them from Vercel's static files.
+- **Seeding the droplet:** the setup script copies the repo's database once; from then on the droplet is the archive of record.
 
 ## Known constraints
 
