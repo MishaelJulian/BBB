@@ -1,0 +1,48 @@
+human > Foundation Prompt > BUILD_GUIDE > RULES > UI > PLAYBOOK.
+Davidov Curicullum
+
+ADMIN / PRESENTER MODULE:
+
+Setting up the meet:
+Date details
+venue; 9preset options [drop down meny]
+Presenter Name: [Name Field]
+
+
+input rows and columns
+
+1,2,3, stands for rows
+i,ii, iii stands for columns
+
+1. Attendee Information
+
+i)Attende/Member choice
+
+(Members are frequent goers to bbb the presenter will have the option to add them in. Each member will have their own unique Id)
+But in the menu where the presenter module is adding a Member we can put a note that says that a Member is someone who's
+
+attended bbb meet for 2 timees  AND  is Part of the Whatsapp Group chat
+
+(We can even have an option where after this form/process is filled. We submit it to the db right? the stats updated, api's fetched bla bla? If it detects that a attendee has come to bbb for 2 or more times. it will say to the presenter something along the lines "Hey, x attended BBB for y times, should we make them as a bbb member? ") this notificatiion information shall be cutsey notification with an animation and a mascot?)
+
+ofcourse we can't automate if a mere member name is present in whatsapp but the presenter will know it beforehand
+
+Therefore if Member option is selected the place in which the members drop down menu there'll instead be a name field where the presenter can put their names.
+
+2. Book Details
+
+i) book name
+
+ii) Author name
+
+iii) Then using goodreads api we locate the book and based upon which we autofill the ISBN number, published date and Genre of the book
+
+speaking which; despite the goodreads api doing all this; we can still allow the user to change the details in the populated fields even if the data doesn't match or fit the goodreads api.
+
+Future plan or immediate next plan if it works:
+So we usually ask in either whatsapp or a social media site for people to sign up a google form to register for a meet.
+So we can just sync up with the google forms to populate some of the fields not within this form/process but beforehand. Like sort of a menu card that shows hey, x number of people registered for the bbb meet of [date] and it will show the full list of people who's attending.
+
+Now after this is showed. Behind the scenes it will compute with known members and the newly joined attendees. So in the same report it will show x new attendees are coming for this meet with their names in the next sentence if this is a new atendee name fresh (not even 2nd time registration)
+
+Then it will show the "X Rejoiners have come" i.e people who attended one meet and then this is their second meet.

@@ -1,0 +1,142 @@
+
+Main SYSTEM DESIGN
+The app is slow to load many details especially since Api's are at constant work; it doesn't have a pre defined protocol for server side processing and lcient side processing as well.
+
+It doesn't have standard  security practices like we have here
+
+/home/audoli/Documents/Work | Projects/security_more
+/home/audoli/Documents/Work | Projects/RTIH/proj01/docs/notes/security-backlog.txt
+/home/audoli/Documents/MLCP Scheming/security-immediate.txt
+
+
+with this in mind I want to see if any software/tooling from RTIH folder can help us better help make the app. I want you to go through its docker file for the ones we setup like clickhouse and the other files which are important within such as
+
+/home/audoli/Documents/RTIH/proj01/Files_files
+
+and its docuentation folder
+
+don't dismiss any options or possibilities of features and implementation; discuss them with me. Talk to me essentially.
+Follow the system design glossary and view the methodoligies for how it was implemented in RTIH's documentation and platform_ repository.
+
+Stuff like Caching, Sharding, API endpoint management etc.... Basically we need to dedicate a whole session to fixing up the muck ups after
+
+The basic ideals for that is to make sure
+
+1)optimal speed
+2) Scalability
+3) security
+
+
+What others are there? Just go pragamtic programmer's Guide and hellinterview guide
+
+
+Copy exactly and do a case by case study for which aspects of these files can be implemented in our existing docs files within BBB:
+/home/audoli/Documents/Work | Projects/RTIH/proj01/docs/harness/instructions.md
+/home/audoli/Documents/Work | Projects/RTIH/proj01/docs/harness/ecc_commands.txt
+/home/audoli/Documents/Work | Projects/RTIH/proj01/docs/harness/ecc_commands.txt
+/home/audoli/Documents/Work | Projects/RTIH/proj01/docs/analysis/harness-ecosystem.md
+/home/audoli/Documents/Work | Projects/RTIH/primer_files/claude-code-usage.md
+/home/audoli/Documents/Work | Projects/RTIH/primer_files/debugging.md
+
+Mimic:
+docs/harness/tooling-reference.md
+specs/backup-dr.md
+/home/audoli/Documents/Work | Projects/RTIH/primer_files/onboarding.md
+/home/audoli/Documents/Work | Projects/RTIH/primer_files/qa.md
+/home/audoli/Documents/Work | Projects/RTIH/primer_files/agentic-patterns.md
+/home/audoli/Documents/Work | Projects/RTIH/primer_files/performance.md
+
+FEATURES:
+
+-------------------------------------------------------------------------------------------------------
+
+Footer:
+the footer should include a privacy policy, link to this github repository
+Version number should be named as per convention i.e alpha release or beta release with the specified version number.
+
+Ex:
+Follow the x.y.z format
+
+x- Major updates. Manually specified by me
+
+y- every 10 commits counts adds up as 1 for every 10 commits +1 occurs. i.e if there are 20 commits then it becomes x.2.y
+
+z- the commits after every 10 commits for example if there are 35 commmits then it shall be x.3.5 | if there are 23 commits then x.2.3
+
+The meet counter should update after the meet details/process/form is filled. Also the 52 meets must be updated to the current number that being 99 meets in the footer. Do not fake the count.
+Same goes for Foot counter.
+
+
+Also shorten the footer i.e scrolling animation thing I don't how to explain it.
+
+Rn the footer is bare with no designs or artwork but we'll put it later. Remind me to do so.
+
+-------------------------------------------------------------------------------------------------------------------
+
+Header:
+
+
+
+Make the full screen button work in the top right corner.
+Allow there to be a dark mode/light mode button to work
+Let there be a command pallete like search bar like we used in the investor module for RTIH instead of the search bar being in the header itself. Keep the search bar a floating icon/compoenent on top of the page (not the header)
+
+Look through online guides "How to make wesbite headers more functional and customisation + UIUX + Design + system Design"
+Show me examples
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
+We need to have a
+about us page
+Gallery page
+Also a ScoreCard page
+
+We;ll take the content from this page: https://brokebibliophilesbangalore.com/
+
+that page will have like member with the most books read, most read book etc... and newly trending book
+
+Let it be empty for the momment and marked in the index or whatever. but have the page be there (don't make it appear in the header just yet)
+
+--------------------------------------------------------------------------------------------------------------------------------------
+
+
+So we're going to have to make a distinction for two modules or two user types of the same app.
+
+There has to be an admin mode i.e the presenter mode
+
+Then there can be a user mode.
+
+Stuff like Databse Admin page can't be viewed by general public (users) amongst other stuff.
+The scorecard can be viewed by public but they themselves can't set up the page i.e make new scorecards, manipulate etc....
+
+-----------------------------------------------
+
+ScoreCard/ statistics but the ADMIN view of the app. (no using terminal, programs etc... in app processing, changning and deletion)
+
+We have to utilise this but for the actual score card page. Utilise this in a much more UIUX friendly manner
+
+archive_summary.md
+ingestion_report.md
+missing_meetups.md
+duplicate_review_queue.md
+archive_manifest.json
+archive_statistics.json
+timeline.json
+
+
+public version:
+timeline.json
+archive_statistics.json
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+
+the closet:
+
+a literal physical hand that reaches out to a book. The hand movement across the grid of its movements will be synced with the hand.
+When the user selects a book the hand will move forward and touch the book.
+
+When the floating card "the book" is in effect; you can see the thumb covering/ holding one of its pages.
+
+
+

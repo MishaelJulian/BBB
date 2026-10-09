@@ -1,0 +1,55 @@
+Pages to try first:
+
+http://localhost:3000/library-room
+
+ http://localhost:3000/library-room?meetup=97
+
+ http://localhost:3000/members/Abhiram
+
+ http://localhost:3000/meetups/97
+
+ http://localhost:3000/admin
+
+
+ To stop this happening: run the frontend container as a production build (next build once, then next start). Pages are compiled ahead of time, so there's no first-visit compile and no half-written files, and pages load in milliseconds. The cost is no live reload when code changes, so you rebuild the container after edits. Three ways to do it:
+- a) Add a production setup next to the dev one, e.g. docker compose -f docker-compose.yml -f docker-compose.prod.yml up. (Recommended)
+- b) Switch the container to production entirely.
+- c) Leave dev mode as it is, and hard-refresh after the first compile
+
+┌──────────────────────────────────┬───────────────────────────────────────────┬──────────────────────────────────────────────────────────────┐
+│              Domain              │                What it is                 │                   Why the page talks to it                   │
+├──────────────────────────────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ localhost                        │ Your own BBB app (frontend on 3000, which │ The site itself                                              │
+│                                  │  forwards to the API)                     │                                                              │
+├──────────────────────────────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ i.gr-assets.com / gr-assets.com  │ Goodreads' image server (Amazon-owned)    │ 1,943 books have a Goodreads cover URL, added by the         │
+│                                  │                                           │ Goodreads enrichment                                         │
+├──────────────────────────────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ mzstatic.com                     │ Apple's media server (Apple Books         │ 198 books have an Apple Books cover URL                      │
+│ (is1-ssl.mzstatic.com)           │ artwork)                                  │                                                              │
+├──────────────────────────────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ d3201w7qr60x0r.cloudfront.net    │ Amazon's CDN                              │ Almost certainly the network that actually delivers the      │
+│                                  │                                           │ Goodreads images behind i.gr-assets.com                      │
+├──────────────────────────────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ apple.map.fastly.net             │ Fastly's CDN                              │ Almost certainly the network that delivers Apple's           │
+│                                  │                                           │ mzstatic.com images                                          │
+└──────────────────────────────────┴───────────────────────────────────────────┴──────────────────────────────────────────────────────────────┘
+
+unpkg
+cloudflare
+
+
+claude
+open claw
+supabase
+vercel
+namecheap
+stripe
+github
+Clerk
+Cloudfare DNS
+Post hog
+Sentry Error tracking
+Pine cone
+nanoclaw
+Shadcn - components

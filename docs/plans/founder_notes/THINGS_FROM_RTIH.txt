@@ -1,0 +1,111 @@
+Swagger API
+Posthog
+FriendlyCaptcha
+
+
+--) Modules
+
+1) Unstructured-IO  [ File management, Documents to Structured Data pipeline] {TICKET 15}
+2) perspective-dev  [ Real Time Data viz based on calc and compute for the software, not premade like ours]
+3) glide/apps       [ Real Time Canvas based data grid managing data more GUI friendly]
+4) ory/keto 	    [ RBAC model Zanzibar model's Alternative]
+5) trillian 	    [ Google's OSS Data Store model, Uses Merkel Trees]
+6) Semgrep          [ Static analysis Tool, add to CI/CD pipeline alternative To rabbit Code]
+
+) Friendly Captcha
+
+- Good for Registration time or for any major event taking place which requires 100% human Interaction
+
+Vs code Style Command Pallete + General Search bar
+
+
+
+1.Unstructured-IO/unstructured
+Convert documents to structured data effortlessly. Unstructured is open-source ETL solution for transforming complex documents into clean, structured formats for language models
+
+Transform is available as a Model Context Protocol (MCP) server
+You can then use your AI tools to have Transform ingest your local files and output the results as partitioned, enriched, chunked, and embedded data, ready for your immediate use.
+
+https://docs.unstructured.io/transform/supported-file-types
+
+MAIN: Write up a standard Document of how Documents will be processed. inflow,outflows,stakeholders, levels of document handling at all levels. ACID,BASE compatibility and other software
+
+
+2.perspective-dev/perspective
+
+A data visualization and analytics component, especially well-suited for large and/or streaming datasets.
+
+It doesn't necessarily compete with our existing blkit as that's just primitive data representation. Also it'd pretty much lag the damn thing
+This will be used for dedicated sections of compute, data read and analysis of different pages.
+
+FEATURES:
+-connects to a Data Model in-browser (via WebAssembly)
+remotely (via WebSocket, with integration in Python, Node.js and Rust).
+-Includes a data grid, 10+ chart types line, bar, area, scatter, heatmap, treemap, sunburst etc...
+
+-A JupyterLab widget and Python client library for interactive data analysis in notebooks.
+-fast, memory-efficient streaming Data Model built-in, written in C++ and compiled for WebAssembly, Python, and Rust. Supports read/write/streaming for Apache Arrow, with a columnar expression language based on ExprTK.
+
+
+AESTHETIC MIMICS WITH OURS: https://perspective-dev.github.io/guide/index.html#examples
+
+
+HTML canvas; since privacy concerns are involved; let's not keep it as compulsory and have it default to normal if html canvas is not provided.
+
+Think like Zen browser and Librewolf for all web pages, browser based Stuff
+
+Also stuff like SSO, 2FA, IP Allowlist, Secure Hositng,Access provision, 2FA,
+
+Device verification,SAML SSO, biometric Authentication
+
+Also for this.... take note for account management: https://gologin.com/
+
+(OWASP/CheatSheetSeries)
+
+ It contains the definitive best practices for preventing CSRF, securing JWTs, and configuring secure HTTP headers.
+
+semgrep/semgrep)
+
+    Why use it: A fast, open-source static analysis tool. You can add it to your CI/CD pipeline to continuously scan your React/Node/Python code for security flaws, hardcoded secrets, or logic that violates secure coding standards.
+
+**SFTP.** Secure File Transfer Protocol — a way to move files over an encrypted connection. *RTIH: not used anywhere in the current stack.*
+
+Load balancer and caching:
+
+The Problem: PostgreSQL creates a dedicated OS process for every single connection. If you scale to 50 Next.js instances, you might accidentally open 1,000 connections, exhausting your database RAM.  The Solution (PgBouncer): You must put PgBouncer between Prisma and PostgreSQL. PgBouncer is a lightweight connection poole
+
+n a cap table application, caching is dangerous. If an investor buys shares and the UI shows a cached, outdated ownership percentage, it is a critical failure.
+
+    Next.js Data Cache (Proceed with Caution): Next.js App Router aggressively caches data fetches by default. For financial data, disable this on sensitive routes by using export const dynamic = 'force-dynamic' or revalidate = 0.
+
+    Redis L2 Caching (The Right Way): Instead of caching whole pages, use Redis to cache expensive mathematical calculations.
+
+        Example: Calculating the "Fully Diluted Cap Table" across 1,000 SAFEs and option pools takes heavy compute. Cache the result of this calculation in Redis with a key like captable:fully_diluted:startup_id.
+
+        Cache Invalidation: Because you are using Prisma, you can write a Prisma Middleware or Prisma Extension. Whenever a stock_issuances or safes row is created/updated, intercept it and immediately run
+
+
+ecause Next.js renders the React UI and handles API routes, it must be completely stateless to scale horizontally.
+
+    The Architecture: Place an Application Load Balancer (ALB) like AWS ALB, Cloudflare, or Vercel's edge network in front of your Next.js instances.
+
+    Session State: Never store user sessions in memory. Since Next.js instances will be scaled up and down, use Redis to store session tokens (via libraries like NextAuth/Auth.js with a Redis adapter), or use stateless JWTs.
+
+    Sticky Sessions: You do not need sticky sessions if your session state is in Redis. The load balancer can route any user's request to any Next.js container (Round Robin or Least Connections routing) seamlessly.
+
+
+. Scaling Background Jobs (BullMQ + Redis)Financial apps have heavy asynchronous tasks: Generating 409A valuation PDFs, sending out K-1 tax documents, or recalculating equity dilution matrices. This is where BullMQ shines.Worker Isolation: Do not run BullMQ workers inside your Next.js web instances. If a worker is busy generating a heavy PDF, it will block the Node.js event loop, causing your API routes to time out.Dedicated Worker Fleet: Deploy your BullMQ workers as a separate microservice (e.g., running on distinct AWS ECS containers, Railway, or Render worker environments).Horizontal Scaling: BullMQ scales horizontally by design. Because BullMQ uses Redis to maintain atomic locks on jobs, you can spin up 10, 50, or 100 worker containers. They will all connect to the same Redis instance and pull jobs off the queue safely without executing the same task twice.  Concurrency vs. Sandboxing: BullMQ defaults to processing one job per worker instance at a time. For I/O heavy tasks (like sending emails), increase the worker concurrency setting (e.g., concurrency: 50). For CPU-heavy tasks (like generating complex PDFs or running Monte Carlo financial simulations), use BullMQ's Sandboxed Processors, which spin up separate Node threads so the main worker loop doesn't freeze.
+
+
+4.BLOGS/SITES:
+https://brandur.org/about
+https://tomtunguz.com/
+https://blog.pragmaticengineer.com/author/gergely/
+https://stripe.dev/blog/topic/engineering
+
+
+
+What: The frontend runs npm run dev in the container
+Why: The frontend Dockerfile's CMD is the dev server, with ./frontend mounted for live reload
+Impact: Fine for development. The first visit to each page compiles on the spot and is slow. This setup isn't fit for production
+Fix: Leave it for now, and say "development setup" in the README

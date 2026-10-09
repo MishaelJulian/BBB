@@ -1,0 +1,24 @@
+
+
+thinking-five-whys-plus
+thinking-map-territory
+thinking-socratic
+thinking-oppurtunity-cost
+thinking-steel-manning
+thinking-triz
+
+
+
+ecc:security-scan
+ecc:test-coverage-scan
+/backend-patterns
+/frontend-patterns
+
+
+/ecc:update-docs
+
+
+eventually knowledge ops will have to take place
+superpowers:verification-before-completion
+
+

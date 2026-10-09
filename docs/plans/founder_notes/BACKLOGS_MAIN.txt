@@ -1,0 +1,224 @@
+2. API (backlog A1–A8, to do together later)
+
+- A1 Shelf payload (flow D):
+  - a slim list endpoint (fields=shelf)
+  - draw only the shelves in view
+  - fetch a book's details on hover
+  - share the cached details with /books/[id]
+
+  Measured 82.9% smaller (raw). The drawing-time saving isn't measured. Waiting on the founders' decision.
+- A2 /books returns all 2.4 MB when no limit is given.
+- A3 FastAPI doesn't compress responses (no gzip).
+- A4 The API never returns discussion notes (191 rows have them), and the card's "Why" needs them.
+- A5 Replace PRD §11 with a standard API guide, chosen through deep research.
+- A6 Add a GET /health route and a docker compose health check. There's no /health route today; omega reminder due 2026-10-08.
+- A7 The 5 relationship tables behind the PRD §3.1 tree are empty: recommendations, current reads, mentions, quotes, related books.
+- A8 reset_db and import-full --reset wipe the database with no backup or confirmation.
+------------------------------------------------------------------------------------------------------------------------------------------
+3. UI/UX (Library Room)
+
+Build the pulled-book card (§2A). Sub-tasks:
+  - floating card over a blurred closet
+  - show "Why" first, sourced from notes (needs A4)
+  - introducers labelled "first recorded", with the formula in §2A
+  - discussers
+  - "which" shown as the meetup number
+  - "when" shown as MM,YYYY
+  - show "unavailable" when there's no introducer
+- Tabled: blur strength, opacity, and lighting of the floating card.
+- PRD §6 visual goals: mostly not built yet, as you said.
+- Unconfirmed: the "Failed to fetch books" state in the browser (PRD §16).
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+4. Book data repair (tabled; order from book_count&details_issues.md §14)
+
+1. Fix the merge bug that unlinks 255 imported rows, and add a test for it.
+2. Give meetup numbers to the 11 unnumbered PDFs:
+   - #92 is stated in its PDF.
+   - #62, 63, 66, 67 and 87–91 are guesses that need your confirmation.
+   - Drop the duplicate July 2025 file.
+3. Write a repair script that does a dry run first and changes nothing without --apply plus a backup.
+4. Make admin and scripts use the same title normalization, then add unique indexes.
+5. Store real meetup dates, set media_type, and stop hardcoding language and confidence.
+6. Never re-run import-full --reset on the live database.
+
+No response schemas: main.py uses response_model 0 times, so the API contract exists only in code. PRD Rule 2 assumes a schema to inspect.
+- No frontend tests at all: 0 test files under frontend/src. Nothing automatically tests the Library Room flow.
+- No rate limiting: no limiter in main.py or requirements.txt. That includes /admin/media/resolve-url, which fetches outside URLs.
+- Migrations aren't used: Alembic is empty and the schema comes from create_all. That means PRD §5.2's migration checklist has no tool to run it with.
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+1. Features you've made the immediate priority
+
+These are listed in the README now; each will be marked "(in progress)" until it ships.
+
+┌────────────────────────────────┬─────────────────────────────────────┬──────────────────────────────────────────────────────────────────────┐
+│            Feature             │          Today (verified)           │                      What building it involves                       │
+├────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ Search across titles, authors  │ Searches titles (ilike) and meetup  │ Add author and discussions.notes matching to /search; the notes      │
+│ and discussion text            │ numbers only                        │ overlap with A4                                                      │
+├────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ OCR                            │ Not in the pipeline; only           │ Choose an OCR library and put it through the PRD §7.1 admission rule │
+│                                │ pdfplumber text extraction          │  first                                                               │
+├────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ Genre filtering                │ genres table has 0 rows; no genre   │ Genre data has to exist before any filter UI. Where does it come     │
+│                                │ code in the frontend                │ from (Goodreads enrichment)?                                         │
+├────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ Lucide React                   │ Not installed                       │ Install through PRD §7.1; replace inline icons                       │
+├────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ React Testing Library          │ Not installed; 0 frontend tests     │ Install, plus at least one test of the Library Room                  │
+├────────────────────────────────┼─────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┤
+│ Pydantic v2 response models    │ 0 response_model on any route       │ Add models per route. This changes the contract, so it's             │
+│                                │                                     │ ARCHITECTURAL under PRD §23 and needs an explanation first           │
+└────────────────────────────────┴─────────────────────────────────────┴──────────────────────────────────────────────────────────────────────┘
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+
+2. Flow D in detail
+
+What the closet does today (checked in the code and on a live server just now):
+- One big request. CriterionBookCloset.tsx:869 asks for /books?limit=3000&only_discussed=true&exclude_general=true. That returns 2,018 books in 2,151,353 bytes (2.15 MB), uncompressed because the API has no gzip, in 0.51 s locally.
+- Rows carry far more than the shelf shows. Every row includes description, rating, members, meetups and Goodreads data. The closet's spines use only id, title, author, covers, discussion count, first-discussed date, year, and the first two meetup numbers (CriterionBookCloset.tsx:2040–2057).
+- The modal reuses those heavy rows. CriterionDetailModal.tsx shows the same data, plus one fetchBookSynopsis call.
+- The book page fetches again. /books/[id] calls fetchBook separately, so the same book is downloaded twice.
+- Every book is drawn at once. The closet has no IntersectionObserver and no other way of drawing only what's on screen.
+
+The saving, re-measured on the closet's real request. The 82.9% in PRD §9.2 came from the unfiltered list, so it was too optimistic:
+
+┌───────────────────────────────────────────────────────────┬─────────────┬───────────────┬───────────┬─────────────────┐
+│                       Shelf payload                       │     Raw     │   vs today    │   gzip    │ vs today (gzip) │
+├───────────────────────────────────────────────────────────┼─────────────┼───────────────┼───────────┼─────────────────┤
+│ Today                                                     │ 2,167,473 B │ —             │ 523,519 B │ —               │
+├───────────────────────────────────────────────────────────┼─────────────┼───────────────┼───────────┼─────────────────┤
+│ Shelf fields only                                         │ 311,149 B   │ 85.6% smaller │ 101,910 B │ 80.5% smaller   │
+├───────────────────────────────────────────────────────────┼─────────────┼───────────────┼───────────┼─────────────────┤
+│ + covers + meetup numbers (what the spines actually show) │ 837,940 B   │ 61.3% smaller │ 154,887 B │ 70.4% smaller   │
+└───────────────────────────────────────────────────────────┴─────────────┴───────────────┴───────────┴─────────────────┘
+
+The honest figure for Flow D is 61.3% smaller, because the spines still need covers and meetup numbers. Turning on gzip (A3) would cut the remainder further. PRD §9.2 should be corrected to these numbers.
+
+One gap the API has to close first. The card needs Introducer and Discussers, which means knowing which member discussed the book at which meetup. Today the API returns meetups[] and members[] as two separate lists, with nothing pairing them. So the formula for introducers in PRD §2A cannot be computed from what the API sends.
+
+Flow D broken into tasks, each labelled with its class and size from PRD §23:
+
+┌─────┬───────────────────────────────────────────────────────────────────────────────────────────────┬────────────────┬──────────────────────┐
+│  #  │                                             Task                                              │  Class · size  │      Depends on      │
+├─────┼───────────────────────────────────────────────────────────────────────────────────────────────┼────────────────┼──────────────────────┤
+│ D1  │ /books?fields=shelf (the slim fields plus meetup numbers), and opt-in pagination (page,       │ CONTROLLED · S │ Ideally the Pydantic │
+│     │ page_size, total)                                                                             │                │  ShelfBook model     │
+├─────┼───────────────────────────────────────────────────────────────────────────────────────────────┼────────────────┼──────────────────────┤
+│     │ /books/{id} returns its discussions as (meetup number, date, member) entries, ordered by      │ ARCHITECTURAL  │ Pydantic BookDetail  │
+│ D2  │ meetup number. Introducers and discussers are computed per PRD §2A, and the optional notes go │ · M            │ model                │
+│     │  in the same response (A4)                                                                    │                │                      │
+├─────┼───────────────────────────────────────────────────────────────────────────────────────────────┼────────────────┼──────────────────────┤
+│ D3  │ Frontend: a detail cache keyed by book ID, fetched on hover (after ~150 ms), shared by the    │ CONTROLLED · M │ D1, D2               │
+│     │ modal and /books/[id], with loading and error states (PRD §17.1)                              │                │                      │
+├─────┼───────────────────────────────────────────────────────────────────────────────────────────────┼────────────────┼──────────────────────┤
+│ D4  │ Draw only the closet rows in view                                                             │ CONTROLLED · M │ D1                   │
+├─────┼───────────────────────────────────────────────────────────────────────────────────────────────┼────────────────┼──────────────────────┤
+│ D5  │ The card in PRD §2A order: When, Which, Introducer ("first recorded"), Discussers … Why       │ SAFE · S       │ D2, D3               │
+│     │ greyed last                                                                                   │                │                      │
+├─────┼───────────────────────────────────────────────────────────────────────────────────────────────┼────────────────┼──────────────────────┤
+│ D6  │ Measure before and after (payload, time, number of drawn elements) and run the PRD §11.6      │ —              │ All                  │
+│     │ checklist                                                                                     │                │                      │
+└─────┴───────────────────────────────────────────────────────────────────────────────────────────────┴────────────────┴──────────────────────┘
+
+D1 and D2 are where the Pydantic response models (section 1) naturally start, because they define the new contract anyway.
+
+all_meetups_and_books.csv (2,532 rows, 300 KB, committed 2026-09-12):
+- Columns: Meetup Number, Date, Title, Venue, Book ID, Book Title, Author, Brought By, Notes. It covers 52 meetups.
+- The admin page's "Export Excel / CSV" button links to it (admin/page.tsx:557), but nothing regenerates it. It's frozen at 52 meetups and predates Meetup #25.
+- Its "Brought By" column pairs member, book and meetup on each row. That's exactly the data the introducer calculation needs and the API doesn't return (Flow D task D2). Its "Notes" column is the "Why" data.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                      SECOND SET
+                                                                        BACKLOGS
+1. Backlog: docs/plans/backlog.md. The five optional closet ideas, each with the file it came from and a note:
+- the A–Z index
+- the "most discussed" opening shelf
+- lighting moods (flagged to go with the lighting discussion you tabled)
+- mounting shelves only when they scroll into view
+- the hardcover look as a reference for WebGL
+
+It starts with the measured comparison, so it's clear why the live closet stays the base. (Yes this is a referral to the other system made backlog generator)
+
+2. PRD rewritten for the live closet:
+- §9.1 data path: Closet state (360 books per section) → SerionDetailModal → Book detail page. Shelf and Book3D aregone from it.
+- §9.2: Flow D now keeps the closet's paging, replacing thep.
+- §12.2 is now "Closet components":
+  - CriterionBookCloset is the container and the only plac
+  - ShelfWall and ClosetSpine only draw. I checked: they fetch nothing.
+  - The detail modal fetches only the synopsis.
+  - The old components are named as not reachable, with a pointer to the backlog.
+
+Correction: there are 10 components no page can reach, not 8. I'd missed AmbientLighting and BookCover. CURRENT_STATE.md and the PRD now list all
+10.
+
+3. Master prompt: docs/MASTER_PROMPT.md. One page to give a session. If it ever disagrees with the PRD orAGENT_RULES, those two win.
+- Goals in priority order: closet correctness, then Flow Deatures, and the WebGL closet as the showpiece.
+- Hard rules: never push, no AI attribution, no made-up numbers, deletion approval, hands off the founders' text, nothing invented.
+- Constraints table: stack, 3D, database, API, admin, file
+- Consequence levels:
+
+┌────────────┬────────────────────────────────────────────────────┬───────────────────────┬───────────────────────────────────────────────────┐
+│   Level    │                      Touches                  │                       After                       │
+├────────────┼────────────────────────────────────────────────────┼───────────────────────┼───────────────────────────────────────────────────┤
+│ File       │ one file                                      │ lines changed; that file's check                  │
+│            │                                                    │ callers               │                                                   │
+├────────────┼───────────────────────────────────────────────┼───────────────────────────────────────────────────┤
+│ Module     │ several files in one of 10 named modules (API,     │ list the files to     │ module tests; one live check                      │               │ data model, pipeline, closet, infra…)         │                                                   │
+├────────────┼────────────────────────────────────────────────────┼───────────────────────┼───────────────────────────────────────────────────┤    Whole      │ more than one module, or the API contract,    │ full tests, build, verify scripts, the §11.6      │
+│ program    │  data, dependencies, Docker or CI                  │ plan, backup          │ checklist, before-and-after numbers               │    ───────────┴───────────────────────────────────────────────┴───────────────────────────────────────────────────┘
+                                                                                                                                                   Each task states its level next to the PRD class and siz M.
+- Operational metrics reported on every task: files and lines changed, modules touched, test and build results, database rows changed, whether the API contract or dependencies changed, and the measured p
+- Session steps and a reference table of every key doc.
+
+The README's Contributing section now links to it.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+The first session name: basics_cleanup
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+───────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│             Area              │                                                    Path                                                     │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ API (all routes)              │ app/api/main.py                                                                                             │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Database models               │ app/database/models.py, app/database/base.py                                                                │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Config, DB engine, asset      │ app/core/config.py, app/core/database.py, app/core/paths.py                                                 │
+│ paths                         │                                                                                                             │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ CLI (import, reset, reports)  │ app/cli/main.py                                                                                             │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Import pipeline and parsers   │ app/pipeline/full_import.py, app/parsers/txt_parser.py, pdf_parser.py, utils.py                             │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Reports and the meetup PDF    │ app/reports/generator.py, app/services/pdf_generator.py                                                     │
+│ generator                     │                                                                                                             │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Database                      │ book_club_archivist.db                                                                                      │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Frontend API client           │ frontend/src/lib/api.ts                                                                                     │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Library Room                  │ frontend/src/app/library-room/page.tsx → components/library/CriterionBookCloset.tsx,                        │
+│                               │ CriterionDetailModal.tsx, Book3D.tsx, Shelf3D.tsx                                                           │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Book detail page              │ frontend/src/app/books/[id]/page.tsx                                                                        │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Admin                         │ frontend/src/app/admin/page.tsx                                                                             │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Infrastructure                │ docker-compose.yml, Dockerfile, frontend/next.config.ts, .github/workflows/                                 │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Main doc                      │ BBB_PRD_TRD.md                                                                                              │
+└───────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
