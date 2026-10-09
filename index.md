@@ -42,6 +42,7 @@ Older design write-ups; the PRD is the current source.
 | [`docs/architecture/universal_app_flow.md`](docs/architecture/universal_app_flow.md) | Roadmap: logical flow of the full archive pipeline (future features, not current code) |
 | [`docs/architecture/imperative_decisions.md`](docs/architecture/imperative_decisions.md) | Entity specifications (required) with founder review notes; data flow section is roadmap |
 | [`docs/architecture/flow_comparison.md`](docs/architecture/flow_comparison.md) | Data flows compared with the code: cost per flow, schools of thought, Flow E option, lessons from the ISI DRTC library science syllabus |
+| [`docs/CODEMAPS/`](docs/CODEMAPS/) | Token-lean code maps: architecture, backend routes, frontend tree, data tables, dependencies and external services, coupling (generated 2026-10-09) |
 | [`docs/architecture/domain_model.md`](docs/architecture/domain_model.md) | Domain model |
 | [`docs/architecture/DatabaseSchema.md`](docs/architecture/DatabaseSchema.md) | Database schema notes |
 | [`frontend/ARCHITECTURE.md`](frontend/ARCHITECTURE.md) | Frontend architecture |

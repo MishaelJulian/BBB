@@ -14,7 +14,7 @@ Every finding from both runs, with its status. Details are in the sections below
 | E2 | High | All admin writes open: books, meetups, photos, flags, enrichment | `main.py` admin routes | Scheduled with login (P12) |
 | F1 / E3 | High / Medium | Cover download during PDF generation fetches any URL (blind SSRF; internal images served back) | `pdf_generator.py:72-78`, `main.py:1303-1305` | Fix scheduled later |
 | F3 | Medium | CORS regex admits the whole LAN with all methods | `main.py:54-57` | Scheduled with login |
-| F2 / E8 | Medium / Low | Stored links rendered as `href` without a scheme check | `ResourceList.tsx:25`, `admin/page.tsx:873` | Fix scheduled later |
+| F2 / E8 | Medium / Low | Stored links rendered as `href` without a scheme check | `admin/page.tsx:873` (live); `ResourceList.tsx:25` is dead code (`pattern_review_analysis.md` D7) | Fix scheduled later |
 | F4 | Medium | Uploads: no size limit, no image check | `main.py:1068` | Size capped at 30 MB (`33f4c8d`); image check open |
 | F5 | Medium | `detail=str(e)` returns raw errors on 8 routes | `main.py:1095` and 7 more | Fix scheduled later |
 | F6 | Medium | Backend container runs as root | `Dockerfile` | Fix scheduled later |
