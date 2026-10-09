@@ -10,6 +10,7 @@ const footerLinks = [
   { href: '/meetups', label: 'Meetups' },
   { href: '/members', label: 'Readers Archive' },
   { href: '/admin', label: 'Database Admin' },
+  { href: '/privacy', label: 'Privacy' },
 ]
 
 export function Footer() {
@@ -56,7 +57,9 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-medium text-ink mb-4">Archive</h4>
             <ul className="space-y-2 text-sm text-muted">
-              <li>Version 1.0.0</li>
+              <li>
+                Version {process.env.NEXT_PUBLIC_APP_VERSION} · build {process.env.NEXT_PUBLIC_BUILD_ID}
+              </li>
               {stats && (
                 <>
                   <li>
@@ -78,11 +81,11 @@ export function Footer() {
             </p>
             <div className="flex items-center space-x-4">
               <a
-                href="https://github.com"
+                href="https://github.com/MishaelJulian/BBB"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted hover:text-ink transition-colors"
-                aria-label="GitHub"
+                aria-label="Source code on GitHub"
               >
                 <svg
                   className="h-5 w-5"

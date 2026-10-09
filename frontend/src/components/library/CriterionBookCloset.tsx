@@ -104,7 +104,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
 
   return (
     <div
-      className={`relative select-none transition-all duration-200 cursor-pointer ${
+      className={`relative select-none transition-all duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
         rowIsFull ? 'flex-1 min-w-[18px] max-w-[42px]' : 'shrink-0'
       }`}
       style={{
@@ -131,6 +131,19 @@ const ClosetSpine = React.memo(function ClosetSpine({
         e.stopPropagation()
         onSelect(book)
       }}
+      // R1: keyboard and screen-reader access, same as a click; focus shows the hover preview.
+      role="button"
+      tabIndex={0}
+      aria-label={`${book.title}${book.author_name ? `, by ${book.author_name}` : ''}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          e.stopPropagation()
+          onSelect(book)
+        }
+      }}
+      onFocus={() => onHover(book)}
+      onBlur={() => onHover(null)}
       onTouchEnd={(e) => {
         e.stopPropagation()
       }}
@@ -702,6 +715,7 @@ export function CriterionBookCloset() {
 
   const [books, setBooks] = React.useState<Book[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [loadError, setLoadError] = React.useState<string | null>(null)
   const [isSyncing, setIsSyncing] = React.useState(false)
   const [selectedBook, setSelectedBook] = React.useState<Book | null>(null)
   const [hoveredBook, setHoveredBook] = React.useState<Book | null>(null)
@@ -873,6 +887,7 @@ export function CriterionBookCloset() {
   const loadBooks = React.useCallback(async (silent = false) => {
     try {
       if (!silent) setLoading(true)
+      setLoadError(null)
       const data = await fetchBooks({
         limit: 3000,
         onlyDiscussed: true,
@@ -887,6 +902,8 @@ export function CriterionBookCloset() {
       setBooks(discussedBooks)
     } catch (err) {
       console.error('Failed to load books for closet:', err)
+      // R5 / PRD §17.1: say the archive could not load, never show an empty library.
+      setLoadError('The archive could not be loaded. The Library Room is still here.')
     } finally {
       if (!silent) setLoading(false)
     }
@@ -930,8 +947,12 @@ export function CriterionBookCloset() {
   // Keyboard shortcuts
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return
+      const target = e.target as HTMLElement
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return
       if (selectedBook) return // modal handles its own arrows
+      // R4: leave browser shortcuts (Ctrl/Cmd+R, F, S, V ...) alone; only Ctrl/Cmd+K is ours.
+      const modified = e.ctrlKey || e.metaKey || e.altKey
+      if (modified && !(e.key === 'k' && (e.ctrlKey || e.metaKey))) return
 
       if (e.key === 'ArrowRight' || e.key === ']' || e.key === 'PageDown') {
         if (viewMode === 'closet') {
@@ -1577,8 +1598,19 @@ export function CriterionBookCloset() {
             </div>
           )}
 
-          {loading ? (
-            <div className="text-center space-y-3 z-10">
+          {loadError && !loading ? (
+            <div role="alert" className="text-center space-y-3 z-10 px-6">
+              <p className="font-serif text-sm text-amber-100">{loadError}</p>
+              <button
+                type="button"
+                onClick={() => loadBooks()}
+                className="px-4 py-2 rounded-lg bg-amber-700 hover:bg-amber-600 text-white text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+              >
+                Try again
+              </button>
+            </div>
+          ) : loading ? (
+            <div className="text-center space-y-3 z-10" role="status" aria-live="polite">
               <div className="inline-block w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
               <p className="font-serif text-xs text-amber-200/60 uppercase tracking-widest">
                 Shelving the collection…
@@ -1975,7 +2007,16 @@ export function CriterionBookCloset() {
                 <div
                   key={book.id}
                   onClick={() => setSelectedBook(book)}
-                  className="group flex flex-col cursor-pointer text-left select-none transition-all duration-200 hover:-translate-y-1.5"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${book.title}${book.author_name ? `, by ${book.author_name}` : ''}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelectedBook(book)
+                    }
+                  }}
+                  className="group flex flex-col cursor-pointer text-left select-none transition-all duration-200 hover:-translate-y-1.5 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
                 >
                   {/* Card Front Cover with Criterion Spine Badge */}
                   <div className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden shadow-md group-hover:shadow-2xl transition-all duration-300 border border-[#DDD6C7] bg-[#1E1B18]">

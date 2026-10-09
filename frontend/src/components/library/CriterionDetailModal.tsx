@@ -535,6 +535,13 @@ export function CriterionDetailModal({
     }
   }, [book.id])
 
+  // R3: move focus into the dialog when it opens, give it back to the spine when it closes.
+  React.useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null
+    modalScrollRef.current?.focus()
+    return () => previous?.focus?.()
+  }, [])
+
   // Keyboard navigation: Escape closes, Left/Right arrows navigate
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -580,7 +587,11 @@ export function CriterionDetailModal({
   return (
     <div
       ref={modalScrollRef}
-      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain"
+      role="dialog"
+      aria-modal="true"
+      aria-label={book.title}
+      tabIndex={-1}
+      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain outline-none"
     >
       {/* Dark Blurred Backdrop: Clicking puts the book back on the shelf */}
       <motion.div

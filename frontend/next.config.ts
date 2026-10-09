@@ -1,7 +1,24 @@
 import type { NextConfig } from 'next'
+import { execSync } from 'node:child_process'
+import pkg from './package.json'
+
+// D14: release version is set by hand in package.json; the build ID is the commit it was built from.
+function buildId(): string {
+  const sha = process.env.VERCEL_GIT_COMMIT_SHA
+  if (sha) return sha.slice(0, 7)
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+  } catch {
+    return 'dev'
+  }
+}
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+    NEXT_PUBLIC_BUILD_ID: buildId(),
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
   },
