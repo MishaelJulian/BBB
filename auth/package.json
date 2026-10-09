@@ -1,0 +1,14 @@
+{
+  "name": "bbb-auth",
+  "private": true,
+  "type": "module",
+  "description": "BBB login service: Better Auth on Node's built-in SQLite (decision D5)",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "node server.mjs",
+    "user": "node server.mjs user"
+  },
+  "dependencies": {
+    "better-auth": "1.7.7"
+  }
+}

@@ -75,3 +75,8 @@ WhatsApp Image *.jpeg
 graphify-out/*
 !graphify-out/rebuild.py
 !graphify-out/labels.json
+
+# Login service data (auth.db holds personal data; never commit)
+auth-data/
+*.auth.db
+auth.db

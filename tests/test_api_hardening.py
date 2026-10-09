@@ -19,11 +19,11 @@ class _Resp:
         return json.loads(self._body)
 
 
-def _get(target, headers=None):
-    """Minimal ASGI GET (avoids adding httpx just for TestClient)."""
+def _get(target, headers=None, method="GET"):
+    """Minimal ASGI request (avoids adding httpx just for TestClient)."""
     path, _, query = target.partition("?")
     scope = {
-        "type": "http", "http_version": "1.1", "method": "GET", "scheme": "http",
+        "type": "http", "http_version": "1.1", "method": method, "scheme": "http",
         "path": path, "raw_path": path.encode(), "query_string": query.encode(), "root_path": "",
         "headers": [(k.lower().encode(), v.encode()) for k, v in (headers or {}).items()],
         "client": ("127.0.0.1", 5000), "server": ("test", 80),
@@ -86,3 +86,24 @@ def test_cover_host_allow_list():
     assert not is_allowed_cover_url("http://i.gr-assets.com/images/x.jpg")
     assert not is_allowed_cover_url("https://169.254.169.254/latest/meta-data")
     assert not is_allowed_cover_url("https://evil-gr-assets.com/x.jpg")
+
+
+def test_writes_and_admin_need_login(monkeypatch):
+    monkeypatch.setattr(main.settings, "AUTH_REQUIRED", True)
+    monkeypatch.setattr(main, "_session_user", lambda cookie: None)
+    assert _get("/admin/meetups").status_code == 401
+    assert _get("/no-such-route", method="POST").status_code == 401
+
+
+def test_admin_role_required(monkeypatch):
+    monkeypatch.setattr(main.settings, "AUTH_REQUIRED", True)
+    monkeypatch.setattr(main, "_session_user", lambda cookie: {"email": "p@x", "role": "presenter"})
+    assert _get("/no-such-route", method="POST").status_code == 403
+    monkeypatch.setattr(main, "_session_user", lambda cookie: {"email": "a@x", "role": "admin"})
+    assert _get("/no-such-route", method="POST").status_code in (404, 405)
+
+
+def test_session_lookup_fails_closed(monkeypatch):
+    monkeypatch.setattr(main.settings, "AUTH_INTERNAL_URL", "http://127.0.0.1:9")  # nothing listens
+    assert main._session_user("better-auth.session_token=abc") is None
+    assert main._session_user("") is None

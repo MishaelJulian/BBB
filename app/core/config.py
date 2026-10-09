@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     # Empty = check off (local development). Set it in production so the API refuses direct traffic.
     ORIGIN_SECRET: str = ""
 
+    # Login service (Better Auth, D5). Every write and every /admin request is checked against it.
+    # AUTH_REQUIRED=false only for local work without the auth service running.
+    AUTH_INTERNAL_URL: str = "http://127.0.0.1:3001"
+    AUTH_REQUIRED: bool = True
+
     def model_post_init(self, __context) -> None:
         """Ensure required directories exist."""
         self.DATA_DIR.mkdir(parents=True, exist_ok=True)

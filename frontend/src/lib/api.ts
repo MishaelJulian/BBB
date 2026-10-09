@@ -9,12 +9,12 @@ export function getApiBase(): string {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL
   }
+  // Browser: same origin. Next.js (locally) or Vercel (production) rewrites /api/* to the backend,
+  // so login cookies stay first-party and no backend port is exposed (D1, D35).
   if (typeof window !== 'undefined') {
-    const host = window.location.hostname
-    const protocol = window.location.protocol
-    return `${protocol}//${host}:8000`
+    return '/api'
   }
-  return 'http://localhost:8000'
+  return process.env.BACKEND_INTERNAL_URL || 'http://localhost:8000'
 }
 
 export const API_BASE =

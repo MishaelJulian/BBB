@@ -406,6 +406,7 @@ Dated architecture decisions, ADR style. Each entry gives the decision, the opti
 | D34 | Static analysis: Opengrep + CodeQL in CI | Semgrep CE; CodeQL only | GitHub licence fields (LGPL-2.1) |
 | D35 | The proxy hardening checklist (`bbb-library-architecture.md`) is part of the launch gate | n/a | vercel.com/docs/rewrites; vercel.com/kb/guide/enhancing-security-for-redirects-and-rewrites |
 | D36 | Upload cap 4.5 MB (4,500,000 bytes), the same as Vercel's request-body limit, so uploads pass through the proxy. Replaces the 30 MB cap of `33f4c8d` | 30 MB with direct-to-VPS uploads | vercel.com/docs/functions/limitations; `app/api/main.py`, `tests/test_upload_limit.py` (32 tests pass) |
+| D37 | FastAPI checks each write and `/admin` request by asking the login service (`/api/auth/get-session`) with the request's cookie, instead of verifying JWTs. Accounts are admin-managed at launch (no public sign-up; first admin and resets via `auth/server.mjs user ...`). The router split (D12) moves to after launch: one middleware already enforces the boundary for every `/admin` path and every write. Replaces the JWKS part of D5 | JWT + JWKS (needs a Python crypto dependency; revocation waits for token expiry) | `app/api/main.py` `_edge_guard`, `_session_user`; `auth/server.mjs`; `tests/test_api_hardening.py` |
 
 **Data and inflow**
 

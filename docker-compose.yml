@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: ${DATABASE_URL:-sqlite:///./book_club_archivist.db}
+      AUTH_INTERNAL_URL: http://auth:3001
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
@@ -18,11 +19,27 @@ services:
       retries: 5
       start_period: 15s
 
+  # Login service (Better Auth, D5). auth.db lives in ./auth-data, outside git.
+  auth:
+    build: ./auth
+    restart: unless-stopped
+    environment:
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in .env (openssl rand -base64 32)}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+    volumes:
+      - ./auth-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   frontend:
     build: ./frontend
     restart: unless-stopped
     environment:
       BACKEND_INTERNAL_URL: http://backend:8000
+      AUTH_INTERNAL_URL: http://auth:3001
       NEXT_TELEMETRY_DISABLED: "1"
     ports:
       - "${FRONTEND_PORT:-3000}:3000"

@@ -8,6 +8,7 @@ It reuses the existing SQLAlchemy models and database layer.
 from fastapi import FastAPI, HTTPException, Query, Request, UploadFile, File
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.gzip import GZipMiddleware
+from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -72,6 +73,11 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=1000)  # D22
 
 logger = logging.getLogger("bbb.api")
+if not logger.handlers:  # B6: the API had no log output of its own
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+    logger.addHandler(_h)
+    logger.setLevel(logging.INFO)
 
 _ERROR_TYPES = {
     400: "validation_error", 401: "auth_error", 403: "permission_error", 404: "not_found",
@@ -129,6 +135,22 @@ def _rate_limited(key: str, kind: str) -> bool:
 _PRIVATE_PREFIXES = ("/admin", "/api/admin", "/api/auth", "/auth")
 
 
+def _session_user(cookie: str):
+    """Ask the login service who this cookie belongs to. None = not signed in or service down (fail closed)."""
+    if "session_token" not in cookie:
+        return None
+    req = urllib.request.Request(
+        settings.AUTH_INTERNAL_URL.rstrip("/") + "/api/auth/get-session", headers={"cookie": cookie}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = json.loads(resp.read() or b"null")
+    except Exception:
+        logger.exception("login service check failed")
+        return None
+    return (data or {}).get("user")
+
+
 @app.middleware("http")
 async def _edge_guard(request: Request, call_next):
     """Origin lock (D35), per-IP rate limit, security headers, no caching of private routes."""
@@ -142,7 +164,16 @@ async def _edge_guard(request: Request, call_next):
     kind = "read" if request.method in ("GET", "HEAD", "OPTIONS") else "write"
     if _rate_limited(ip, kind):
         return _error(429, "Too many requests. Please wait a minute and try again.", headers={"Retry-After": "60"})
+    user = None
+    if settings.AUTH_REQUIRED and (kind == "write" or path.startswith(("/admin", "/api/admin"))) and request.method != "OPTIONS":
+        user = await run_in_threadpool(_session_user, request.headers.get("cookie", ""))
+        if user is None:
+            return _error(401, "Please sign in.", code="login_required")
+        if user.get("role") != "admin":  # presenter routes arrive with the presenter form (P3)
+            return _error(403, "Your account cannot do this.", code="admin_only")
     response = await call_next(request)
+    if kind == "write" and user:
+        logger.info("write %s %s by %s -> %s", request.method, path, user.get("email"), response.status_code)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -1283,6 +1314,25 @@ def generate_meetup_pdf_endpoint(meetup_number: int):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
+    finally:
+        db.close()
+
+
+@app.get("/meetups/{meetup_number}/pdf")
+def public_meetup_pdf(meetup_number: int):
+    """Public PDF download. Generates into the file cache when missing, never writes the database
+    (public GETs stay read-only; the admin route records pdf_url)."""
+    from app.services.pdf_generator import generate_meetup_pdf
+    db = SessionLocal()
+    try:
+        if not db.query(Meetup.id).filter(Meetup.meetup_number == meetup_number).first():
+            raise HTTPException(status_code=404, detail="Meetup not found")
+        pdf_path = asset_path("generated_pdfs", f"bbb_meetup_{meetup_number}.pdf")
+        if not os.path.exists(pdf_path):
+            pdf_path = asset_path(os.path.relpath(generate_meetup_pdf(meetup_number, db), ASSETS_DIR))
+            db.rollback()  # discard anything the generator may have staged
+        return FileResponse(pdf_path, media_type="application/pdf",
+                            filename=f"BBB_{meetup_number}_Books_Discussed.pdf")
     finally:
         db.close()
 

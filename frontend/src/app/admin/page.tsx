@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { BookAutocompleteInput, BookSuggestion, MediaTypeOption } from '@/components/admin/BookAutocompleteInput'
 import { MemberAutocompleteInput } from '@/components/admin/MemberAutocompleteInput'
 import { getApiBase } from '@/lib/api'
+import { getSession, type SessionUser } from '@/lib/auth'
+import { useRouter } from 'next/navigation'
 
 // Only http(s) links are rendered, so a stored javascript:/data: URL can't run on click.
 const safeHttpUrl = (u: string) => (/^https?:\/\//i.test(u.trim()) ? u.trim() : null)
@@ -50,6 +52,9 @@ function normalizeBookTitle(title: string): string {
 }
 
 export default function AdminDatabasePage() {
+  const router = useRouter()
+  // undefined = checking, null = not allowed
+  const [authUser, setAuthUser] = React.useState<SessionUser | null | undefined>(undefined)
   const [meetups, setMeetups] = React.useState<MeetupAdminItem[]>([])
   const [loading, setLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState('')
@@ -102,23 +107,16 @@ export default function AdminDatabasePage() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  // Resilient fetch helper: tries direct backend port first, falls back to Next.js reverse-proxy
+  // Same-origin API calls (Next.js / Vercel rewrite /api/* to the backend) so the login cookie is sent.
   const apiFetch = React.useCallback(async (path: string, init?: RequestInit): Promise<Response> => {
-    const base = getApiBase()
     const cleanPath = path.startsWith('/') ? path : `/${path}`
-    try {
-      const res = await fetch(`${base}${cleanPath}`, init)
-      if (res.ok) return res
-    } catch {}
-
-    // Fallback through Next.js rewrite proxy (/api/admin/... or /api/...)
-    const proxyPath = cleanPath.startsWith('/admin')
-      ? `/api${cleanPath}`
-      : cleanPath.startsWith('/api')
-      ? cleanPath
-      : `/api${cleanPath}`
-    return fetch(proxyPath, init)
-  }, [])
+    const res = await fetch(cleanPath.startsWith('/api') ? cleanPath : `/api${cleanPath}`, {
+      credentials: 'same-origin',
+      ...init,
+    })
+    if (res.status === 401) router.replace('/login?next=/admin')
+    return res
+  }, [router])
 
   // Load all meetups with full book discussions
   const loadData = async () => {
@@ -140,7 +138,16 @@ export default function AdminDatabasePage() {
   }
 
   React.useEffect(() => {
-    loadData()
+    getSession()
+      .then((u) => {
+        if (!u) return router.replace('/login?next=/admin')
+        setAuthUser(u.role === 'admin' ? u : null)
+        if (u.role === 'admin') loadData()
+      })
+      .catch(() => {
+        setAuthUser(null)
+        showToast('The login service is not reachable')
+      })
   }, [])
 
   // Filtered meetups list
@@ -523,6 +530,19 @@ export default function AdminDatabasePage() {
       console.error(err)
       showToast(`Failed to remove photo: ${err.message || 'Error'}`)
     }
+  }
+
+  if (authUser === undefined) {
+    return <main className="min-h-screen flex items-center justify-center text-sm text-[#6B6458]" aria-busy="true">Checking sign-in…</main>
+  }
+  if (authUser === null) {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center gap-3 px-4 text-center">
+        <h1 className="text-xl font-semibold">Admins only</h1>
+        <p className="text-sm text-[#6B6458]">This account cannot open the database admin. Ask a founder if you need access.</p>
+        <Link href="/account" className="underline text-sm">Your account</Link>
+      </main>
+    )
   }
 
   return (
