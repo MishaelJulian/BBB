@@ -506,7 +506,7 @@ def health():
 
 
 @app.get("/stats")
-def get_stats():
+def get_stats(response: Response):
     """Get archive statistics."""
     db = SessionLocal()
     try:
@@ -523,6 +523,7 @@ def get_stats():
             "discussions": db.query(Discussion).count(),
             "resources": db.query(Resource).count(),
         }
+        response.headers["Cache-Control"] = "public, max-age=30, s-maxage=60, stale-while-revalidate=120"
         return stats
     finally:
         db.close()
@@ -612,7 +613,7 @@ def get_books(
 
         books = query.all()
         if not search and not author and not year:
-            response.headers["Cache-Control"] = "public, max-age=5, s-maxage=30, stale-while-revalidate=60"
+            response.headers["Cache-Control"] = "public, max-age=15, s-maxage=60, stale-while-revalidate=120"
         return batch_books_to_dict(books, db)
     finally:
         db.close()
@@ -620,14 +621,15 @@ def get_books(
 
 @app.get("/books/{book_id}")
 @app.get("/api/books/{book_id}")
-def get_book(book_id: str):
+def get_book(book_id: str, response: Response):
     """Get a single book by ID."""
     db = SessionLocal()
     try:
         book = db.query(CanonicalBook).filter(CanonicalBook.id == book_id).first()
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
-        return book_to_dict(book, db)
+        response.headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+        return batch_books_to_dict([book], db)[0]
     finally:
         db.close()
 
@@ -790,14 +792,14 @@ def get_meetups(
 
         meetups = query.all()
         if not search and not year:
-            response.headers["Cache-Control"] = "public, max-age=5, s-maxage=30, stale-while-revalidate=60"
+            response.headers["Cache-Control"] = "public, max-age=15, s-maxage=60, stale-while-revalidate=120"
         return meetups_to_dicts(meetups, db)
     finally:
         db.close()
 
 
 @app.get("/meetups/{meetup_id}")
-def get_meetup(meetup_id: str):
+def get_meetup(meetup_id: str, response: Response):
     """Get a single meetup by ID or number."""
     db = SessionLocal()
     try:
@@ -815,13 +817,14 @@ def get_meetup(meetup_id: str):
         if not meetup:
             raise HTTPException(status_code=404, detail="Meetup not found")
 
+        response.headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
         return meetup_to_dict(meetup, db)
     finally:
         db.close()
 
 
 @app.get("/search")
-def search(q: str = Query(..., min_length=1)):
+def search(response: Response, q: str = Query(..., min_length=1)):
     """Search across books and meetups."""
     db = SessionLocal()
     try:
@@ -840,8 +843,9 @@ def search(q: str = Query(..., min_length=1)):
         except ValueError:
             pass
 
+        response.headers["Cache-Control"] = "public, max-age=15, s-maxage=60, stale-while-revalidate=120"
         return {
-            "books": [book_to_dict(b, db) for b in books],
+            "books": batch_books_to_dict(books, db),
             "meetups": meetups_to_dicts(meetups, db),
         }
     finally:
@@ -854,6 +858,7 @@ def search(q: str = Query(..., min_length=1)):
 
 @app.get("/members")
 def get_members(
+    response: Response,
     search: Optional[str] = None,
     sort_by: str = "books",  # 'books', 'name', 'meetups'
     include_hidden: bool = False,
@@ -868,30 +873,57 @@ def get_members(
             query = query.filter(Member.display_name.ilike(f"%{search}%"))
 
         members = query.all()
+        if not members:
+            return []
+
+        member_ids = {m.id for m in members}
+
+        # 1. Fetch all discussions for these members in ONE query
+        discussions = db.query(
+            Discussion.member_id,
+            Discussion.canonical_book_id,
+            Discussion.meetup_id
+        ).filter(Discussion.member_id.in_(member_ids)).all()
+
+        member_books = defaultdict(set)
+        member_meetups = defaultdict(set)
+        needed_book_ids = set()
+        all_meetup_ids = set()
+
+        for mem_id, b_id, m_id in discussions:
+            if b_id:
+                member_books[mem_id].add(b_id)
+                if len(member_books[mem_id]) <= 8:
+                    needed_book_ids.add(b_id)
+            if m_id:
+                member_meetups[mem_id].add(m_id)
+                all_meetup_ids.add(m_id)
+
+        # 2. Fetch meetup dates in ONE query
+        meetup_date_map = {}
+        if all_meetup_ids:
+            meetups = db.query(Meetup.id, Meetup.date).filter(Meetup.id.in_(all_meetup_ids)).all()
+            meetup_date_map = {m.id: m.date.isoformat() for m in meetups if m.date}
+
+        # 3. Fetch book covers in ONE query
+        cover_map = {}
+        if needed_book_ids:
+            books = db.query(CanonicalBook.id, CanonicalBook.cover_url, CanonicalBook.thumbnail_url).filter(
+                CanonicalBook.id.in_(needed_book_ids)
+            ).all()
+            cover_map = {b.id: (b.cover_url or b.thumbnail_url) for b in books if (b.cover_url or b.thumbnail_url)}
 
         results = []
         for m in members:
-            # Query discussions by this member
-            discs = db.query(Discussion).filter(Discussion.member_id == m.id).all()
-            meetup_ids = set()
-            book_ids = set()
-            dates = []
+            book_ids = member_books.get(m.id, set())
+            m_ids = member_meetups.get(m.id, set())
+            dates = [meetup_date_map[mid] for mid in m_ids if mid in meetup_date_map]
 
-            for d in discs:
-                if d.canonical_book_id:
-                    book_ids.add(d.canonical_book_id)
-                if d.meetup_id:
-                    meetup_ids.add(d.meetup_id)
-                    meetup = db.query(Meetup).filter(Meetup.id == d.meetup_id).first()
-                    if meetup and meetup.date:
-                        dates.append(meetup.date.isoformat())
-
-            # Query sample book covers for reader preview
             sample_covers = []
-            for b_id in list(book_ids)[:8]:
-                cb = db.query(CanonicalBook).filter(CanonicalBook.id == b_id).first()
-                if cb and (cb.cover_url or cb.thumbnail_url):
-                    sample_covers.append(cb.cover_url or cb.thumbnail_url)
+            for b_id in book_ids:
+                c = cover_map.get(b_id)
+                if c:
+                    sample_covers.append(c)
                 if len(sample_covers) >= 4:
                     break
 
@@ -900,7 +932,7 @@ def get_members(
                 "display_name": m.display_name,
                 "is_hidden": bool(m.is_hidden),
                 "book_count": len(book_ids),
-                "meetup_count": len(meetup_ids),
+                "meetup_count": len(m_ids),
                 "first_active_date": min(dates, default=None),
                 "last_active_date": max(dates, default=None),
                 "covers": sample_covers,
@@ -913,13 +945,16 @@ def get_members(
         else:
             results.sort(key=lambda x: (x["book_count"], x["meetup_count"]), reverse=True)
 
+        if not search:
+            response.headers["Cache-Control"] = "public, max-age=30, s-maxage=120, stale-while-revalidate=300"
+
         return results
     finally:
         db.close()
 
 
 @app.get("/members/{member_id}")
-def get_member(member_id: str):
+def get_member(member_id: str, response: Response):
     """Get detailed archival dossier for a single member."""
     db = SessionLocal()
     try:
@@ -934,35 +969,49 @@ def get_member(member_id: str):
         # Get all discussions
         discussions = db.query(Discussion).filter(Discussion.member_id == member.id).all()
 
+        meetup_ids = {d.meetup_id for d in discussions if d.meetup_id}
+        book_ids = {d.canonical_book_id for d in discussions if d.canonical_book_id}
+
+        # Batch query meetups and venues
+        meetup_map = {}
+        venue_map = {}
+        if meetup_ids:
+            meetups = db.query(Meetup).filter(Meetup.id.in_(meetup_ids)).all()
+            meetup_map = {m.id: m for m in meetups}
+            venue_ids = {m.venue_id for m in meetups if m.venue_id}
+            if venue_ids:
+                venues = db.query(Venue).filter(Venue.id.in_(venue_ids)).all()
+                venue_map = {v.id: v.name for v in venues}
+
+        # Batch query books and authors
+        book_map = {}
+        author_map = {}
+        if book_ids:
+            books = db.query(CanonicalBook).filter(CanonicalBook.id.in_(book_ids)).all()
+            book_map = {b.id: b for b in books}
+            author_ids = {b.author_id for b in books if b.author_id}
+            if author_ids:
+                authors = db.query(Author).filter(Author.id.in_(author_ids)).all()
+                author_map = {a.id: a.full_name for a in authors}
+
         books_map = {}
         meetups_map = {}
 
         for disc in discussions:
-            meetup = None
-            venue_name = None
-            if disc.meetup_id:
-                meetup = db.query(Meetup).filter(Meetup.id == disc.meetup_id).first()
-                if meetup:
-                    if meetup.id not in meetups_map:
-                        if meetup.venue_id:
-                            v = db.query(Venue).filter(Venue.id == meetup.venue_id).first()
-                            venue_name = v.name if v else None
-                        meetups_map[meetup.id] = {
-                            "id": meetup.id,
-                            "number": meetup.meetup_number,
-                            "date": meetup.date.isoformat() if meetup.date else None,
-                            "venue": venue_name,
-                        }
+            meetup = meetup_map.get(disc.meetup_id) if disc.meetup_id else None
+            venue_name = venue_map.get(meetup.venue_id) if (meetup and meetup.venue_id) else None
+            if meetup and meetup.id not in meetups_map:
+                meetups_map[meetup.id] = {
+                    "id": meetup.id,
+                    "number": meetup.meetup_number,
+                    "date": meetup.date.isoformat() if meetup.date else None,
+                    "venue": venue_name,
+                }
 
             if disc.canonical_book_id:
-                book = db.query(CanonicalBook).filter(CanonicalBook.id == disc.canonical_book_id).first()
+                book = book_map.get(disc.canonical_book_id)
                 if book:
-                    author_name = None
-                    if book.author_id:
-                        a = db.query(Author).filter(Author.id == book.author_id).first()
-                        if a:
-                            author_name = a.full_name
-
+                    author_name = author_map.get(book.author_id) if book.author_id else None
                     if book.id not in books_map:
                         books_map[book.id] = {
                             "id": book.id,
@@ -983,6 +1032,8 @@ def get_member(member_id: str):
 
         meetup_list = sorted(meetups_map.values(), key=lambda x: x["number"] if x["number"] else 0, reverse=True)
         dates = [m["date"] for m in meetup_list if m["date"]]
+
+        response.headers["Cache-Control"] = "public, max-age=30, s-maxage=120, stale-while-revalidate=300"
 
         return {
             "id": member.id,
@@ -1170,7 +1221,7 @@ def restore_member(member_id: str):
 # ============================================
 
 @app.get("/authors/{author_id}")
-def get_author(author_id: str):
+def get_author(author_id: str, response: Response):
     """Get author archival record and books discussed at BBB."""
     db = SessionLocal()
     try:
@@ -1183,17 +1234,14 @@ def get_author(author_id: str):
 
         # Get all canonical books by this author
         books = db.query(CanonicalBook).filter(CanonicalBook.author_id == author.id).all()
+        book_records = batch_books_to_dict(books, db)
 
-        book_records = []
-        total_discussions = 0
-
-        for b in books:
-            book_dict = book_to_dict(b, db)
-            total_discussions += book_dict["discussion_count"]
-            book_records.append(book_dict)
+        total_discussions = sum(b.get("discussion_count", 0) for b in book_records)
 
         # Sort books by discussion count desc
-        book_records.sort(key=lambda x: x["discussion_count"], reverse=True)
+        book_records.sort(key=lambda x: x.get("discussion_count", 0), reverse=True)
+
+        response.headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
 
         return {
             "id": author.id,

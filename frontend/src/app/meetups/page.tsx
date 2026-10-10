@@ -18,11 +18,27 @@ export default function MeetupsPage() {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
+  // Load cached meetups immediately on mount for 0ms instant display!
+  React.useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('bbb_archive_meetups')
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMeetups(parsed)
+          setLoading(false)
+        }
+      }
+    } catch {}
+  }, [])
+
   // Fetch meetups
   React.useEffect(() => {
     async function fetchMeetupsData() {
       try {
-        setLoading(true)
+        if (meetups.length === 0) {
+          setLoading(true)
+        }
         setError(null)
 
         const data = await fetchMeetups({
@@ -31,8 +47,15 @@ export default function MeetupsPage() {
         })
 
         setMeetups(data)
+        if (!search && !year) {
+          try {
+            sessionStorage.setItem('bbb_archive_meetups', JSON.stringify(data))
+          } catch {}
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
+        if (meetups.length === 0) {
+          setError(err instanceof Error ? err.message : 'An error occurred')
+        }
       } finally {
         setLoading(false)
       }

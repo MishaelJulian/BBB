@@ -980,6 +980,8 @@ export function CriterionBookCloset() {
     try {
       try {
         sessionStorage.removeItem('bbb_archive_books')
+        sessionStorage.removeItem('bbb_archive_members')
+        sessionStorage.removeItem('bbb_archive_meetups')
       } catch {}
       const count = await loadBooks(true, true)
       setSelectedBook((prev) => (prev && !(books || []).some((b) => b.id === prev.id) ? null : prev))

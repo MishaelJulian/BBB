@@ -60,19 +60,42 @@ export default function MembersPage() {
     }, 4000)
   }
 
+  // Load cached members immediately on mount for 0ms instant display!
+  React.useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('bbb_archive_members')
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMembers(parsed)
+          setLoading(false)
+        }
+      }
+    } catch {}
+  }, [])
+
   // Load members
   React.useEffect(() => {
     async function loadMembers() {
       try {
-        setLoading(true)
+        if (members.length === 0) {
+          setLoading(true)
+        }
         setError(null)
         const data = await fetchMembers({
           search: search || undefined,
           sortBy,
         })
         setMembers(data)
+        if (!search) {
+          try {
+            sessionStorage.setItem('bbb_archive_members', JSON.stringify(data))
+          } catch {}
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load members directory')
+        if (members.length === 0) {
+          setError(err instanceof Error ? err.message : 'Failed to load members directory')
+        }
       } finally {
         setLoading(false)
       }
@@ -80,7 +103,7 @@ export default function MembersPage() {
 
     const timer = setTimeout(() => {
       loadMembers()
-    }, 200)
+    }, search ? 250 : 0)
 
     return () => clearTimeout(timer)
   }, [search, sortBy])
@@ -97,6 +120,9 @@ export default function MembersPage() {
     setActionLoadingId(member.id)
     try {
       await deleteMember(member.id)
+      try {
+        sessionStorage.removeItem('bbb_archive_members')
+      } catch {}
       showNotification(`✓ "${member.display_name}" removed from archive.`)
       setMembers((prev) => prev.filter((m) => m.id !== member.id))
       loadRemovedList()
@@ -112,11 +138,17 @@ export default function MembersPage() {
     setActionLoadingId(removed.id)
     try {
       await restoreMember(removed.id)
+      try {
+        sessionStorage.removeItem('bbb_archive_members')
+      } catch {}
       showNotification(`✓ "${removed.display_name}" restored to archive!`)
       setRemovedList((prev) => prev.filter((r) => r.id !== removed.id))
       // Refresh active members list
-      const data = await fetchMembers({ search: search || undefined, sortBy })
+      const data = await fetchMembers({ search: search || undefined, sortBy, forceRefresh: true })
       setMembers(data)
+      try {
+        sessionStorage.setItem('bbb_archive_members', JSON.stringify(data))
+      } catch {}
     } catch (err: any) {
       alert(`Failed to restore member: ${err.message || 'Error'}`)
     } finally {

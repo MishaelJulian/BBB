@@ -105,9 +105,7 @@ export interface BookReference {
  * Fetch archive statistics
  */
 export async function fetchStats(): Promise<ArchiveStats> {
-  const res = await fetch(`${API_BASE}/stats`, {
-    cache: 'no-store',
-  })
+  const res = await fetch(`${API_BASE}/stats`)
 
   if (!res.ok) {
     throw new Error('Failed to fetch archive stats')
@@ -159,9 +157,7 @@ export async function fetchBooks(options?: {
  * Fetch a single book
  */
 export async function fetchBook(id: string): Promise<Book | null> {
-  const res = await fetch(`${API_BASE}/books/${id}`, {
-    cache: 'no-store',
-  })
+  const res = await fetch(`${API_BASE}/books/${id}`)
 
   if (res.status === 404) {
     return null
@@ -180,14 +176,16 @@ export async function fetchBook(id: string): Promise<Book | null> {
 export async function fetchMeetups(options?: {
   search?: string
   year?: number
+  forceRefresh?: boolean
 }): Promise<Meetup[]> {
   const params = new URLSearchParams()
 
   if (options?.search) params.set('search', options.search)
   if (options?.year) params.set('year', options.year.toString())
+  if (options?.forceRefresh) params.set('_t', Date.now().toString())
 
   const res = await fetch(`${API_BASE}/meetups?${params.toString()}`, {
-    cache: 'no-store',
+    cache: options?.forceRefresh ? 'no-store' : 'default',
   })
 
   if (!res.ok) {
@@ -201,9 +199,7 @@ export async function fetchMeetups(options?: {
  * Fetch a single meetup
  */
 export async function fetchMeetup(id: string): Promise<Meetup | null> {
-  const res = await fetch(`${API_BASE}/meetups/${id}`, {
-    cache: 'no-store',
-  })
+  const res = await fetch(`${API_BASE}/meetups/${id}`)
 
   if (res.status === 404) {
     return null
@@ -335,14 +331,16 @@ export async function fetchMembers(options?: {
   search?: string
   sortBy?: 'books' | 'name' | 'meetups'
   includeHidden?: boolean
+  forceRefresh?: boolean
 }): Promise<MemberSummary[]> {
   const params = new URLSearchParams()
   if (options?.search) params.set('search', options.search)
   if (options?.sortBy) params.set('sort_by', options.sortBy)
   if (options?.includeHidden) params.set('include_hidden', 'true')
+  if (options?.forceRefresh) params.set('_t', Date.now().toString())
 
   const res = await fetch(`${API_BASE}/members?${params.toString()}`, {
-    cache: 'no-store',
+    cache: options?.forceRefresh ? 'no-store' : 'default',
   })
 
   if (!res.ok) {
@@ -413,9 +411,7 @@ export async function restoreMember(memberId: string): Promise<{ success: boolea
  * Fetch a single member dossier
  */
 export async function fetchMember(id: string): Promise<MemberDetail | null> {
-  const res = await fetch(`${API_BASE}/members/${id}`, {
-    cache: 'no-store',
-  })
+  const res = await fetch(`${API_BASE}/members/${id}`)
 
   if (res.status === 404) {
     return null
@@ -432,9 +428,7 @@ export async function fetchMember(id: string): Promise<MemberDetail | null> {
  * Fetch an author archival record
  */
 export async function fetchAuthor(id: string): Promise<AuthorDetail | null> {
-  const res = await fetch(`${API_BASE}/authors/${id}`, {
-    cache: 'no-store',
-  })
+  const res = await fetch(`${API_BASE}/authors/${id}`)
 
   if (res.status === 404) {
     return null
