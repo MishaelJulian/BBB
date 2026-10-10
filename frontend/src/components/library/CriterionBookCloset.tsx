@@ -81,6 +81,7 @@ interface ClosetSpineProps {
   onHover: (book: Book | null) => void
   isMobile?: boolean
   rowIsFull?: boolean
+  hasDraggedRef?: React.MutableRefObject<boolean>
 }
 
 const ClosetSpine = React.memo(function ClosetSpine({
@@ -92,15 +93,15 @@ const ClosetSpine = React.memo(function ClosetSpine({
   onHover,
   isMobile = false,
   rowIsFull = false,
+  hasDraggedRef,
 }: ClosetSpineProps) {
   const [isMouseHovered, setIsMouseHovered] = React.useState(false)
-  const isTargeted = !isMobile && (isMouseHovered || isHoveredByReticle)
+  const isTargeted = isHoveredByReticle || (!isMobile && isMouseHovered)
   const styleInfo = React.useMemo(() => getBookSpineStyle(book.title, book.id), [book.title, book.id])
   const { palette, spineNo, height, width } = styleInfo
 
-  // On mobile devices, make spines wider & taller so titles are immediately legible without zooming
-  const spineWidth = isMobile ? Math.max(34, Math.round(width * 1.25)) : width
-  const spineHeight = isMobile ? Math.max(190, Math.round(height * 1.1)) : height
+  const spineWidth = width
+  const spineHeight = height
 
   return (
     <div
@@ -109,10 +110,10 @@ const ClosetSpine = React.memo(function ClosetSpine({
       }`}
       style={{
         width: rowIsFull ? undefined : spineWidth,
-        height: isMobile ? 240 : 220,
+        height: 220,
         display: 'flex',
         alignItems: 'flex-end',
-        transformStyle: isMobile ? 'flat' : 'preserve-3d',
+        transformStyle: 'preserve-3d',
       }}
       onMouseEnter={() => {
         if (!isMobile) {
@@ -129,9 +130,19 @@ const ClosetSpine = React.memo(function ClosetSpine({
       onClick={(e) => {
         e.preventDefault()
         e.stopPropagation()
-        onSelect(book)
+        if (hasDraggedRef?.current) return
+
+        if (isMobile) {
+          if (isTargeted) {
+            onSelect(book)
+          } else {
+            onHover(book)
+          }
+        } else {
+          onSelect(book)
+        }
       }}
-      // R1: keyboard and screen-reader access, same as a click; focus shows the hover preview.
+      // Keyboard and screen-reader access, same as a click; focus shows the hover preview.
       role="button"
       tabIndex={0}
       aria-label={`${book.title}${book.author_name ? `, by ${book.author_name}` : ''}`}
@@ -158,7 +169,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
         }}
       />
 
-      {/* Physical Spine (Flat transform on mobile saves 540 GPU layers) */}
+      {/* Physical Spine with 3D lift & emerald targeted glow */}
       <div
         className="relative rounded-t-[3px] rounded-b-[1px] overflow-hidden shadow-lg transition-transform duration-200 w-full"
         style={{
@@ -168,9 +179,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
           transform: isSelected
             ? 'translateZ(36px) translateY(-18px) scale(1.08)'
             : isTargeted
-            ? 'translateZ(24px) translateY(-12px) scale(1.05)'
-            : isMobile
-            ? 'none'
+            ? (isMobile ? 'translateY(-12px) scale(1.06)' : 'translateZ(24px) translateY(-12px) scale(1.05)')
             : 'translateZ(0px) translateY(0px) scale(1)',
           transformOrigin: 'bottom center',
           boxShadow: isTargeted
@@ -186,7 +195,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
         {/* Top Spine Number Box (Criterion Style) */}
         <div className="absolute top-0 inset-x-0 pt-1 pb-1 flex flex-col items-center border-b border-black/40 bg-black/30">
           <span
-            className={`${isMobile ? 'text-[9.5px]' : 'text-[7.5px]'} font-mono font-bold tracking-wider leading-none px-0.5`}
+            className="text-[7.5px] font-mono font-bold tracking-wider leading-none px-0.5"
             style={{ color: palette.foil, textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}
           >
             {spineNo}
@@ -203,7 +212,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
           style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
         >
           <span
-            className={`${isMobile ? 'text-[10px]' : 'text-[8.5px]'} font-display font-semibold tracking-wide truncate ${isMobile ? 'max-h-[140px]' : 'max-h-[110px]'}`}
+            className="text-[8.5px] font-display font-semibold tracking-wide truncate max-h-[110px]"
             style={{
               color: palette.spineText,
               textShadow: '0 1px 3px rgba(0,0,0,0.9)',
@@ -214,7 +223,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
 
           {book.author_name && (
             <span
-              className={`${isMobile ? 'text-[8px]' : 'text-[7px]'} font-serif uppercase tracking-widest truncate ${isMobile ? 'max-h-[75px]' : 'max-h-[65px]'} opacity-85`}
+              className="text-[7px] font-serif uppercase tracking-widest truncate max-h-[65px] opacity-85"
               style={{ color: palette.foil }}
             >
               {book.author_name}
@@ -251,6 +260,7 @@ interface ShelfWallProps {
   onSelectBook: (book: Book) => void
   onHoverBook: (book: Book | null) => void
   isMobile?: boolean
+  hasDraggedRef?: React.MutableRefObject<boolean>
 }
 
 const ShelfWall = React.memo(function ShelfWall({
@@ -263,6 +273,7 @@ const ShelfWall = React.memo(function ShelfWall({
   onSelectBook,
   onHoverBook,
   isMobile = false,
+  hasDraggedRef,
 }: ShelfWallProps) {
   const totalBooksOnWall = rows.reduce((acc, r) => acc + r.length, 0)
 
@@ -287,7 +298,7 @@ const ShelfWall = React.memo(function ShelfWall({
         return (
           <div key={`shelf-${shelfNumber}-row-${rIdx}`} className="relative flex flex-col">
             {/* Spines on Row (Sitting closely touching on the shelf plank) */}
-            <div className={`flex items-end px-2 space-x-[1px] w-full ${isMobile ? 'min-h-[240px]' : 'min-h-[220px]'} overflow-hidden`}>
+            <div className="flex items-end px-2 space-x-[1px] w-full min-h-[220px] overflow-hidden">
               {rowBooks.map((book) => (
                 <ClosetSpine
                   key={`b-${book.id}`}
@@ -299,6 +310,7 @@ const ShelfWall = React.memo(function ShelfWall({
                   onHover={onHoverBook}
                   isMobile={isMobile}
                   rowIsFull={isFull}
+                  hasDraggedRef={hasDraggedRef}
                 />
               ))}
               {rowBooks.length === 0 && (
@@ -786,7 +798,15 @@ export function CriterionBookCloset() {
   const smoothTouchYaw = useSpring(touchYawMotion, { stiffness: 320, damping: 32 })
   const smoothTouchPitch = useSpring(touchPitchMotion, { stiffness: 320, damping: 32 })
   const touchStartRef = React.useRef({ x: 0, y: 0, startYaw: 0, startPitch: 0 })
+  const hasDraggedRef = React.useRef(false)
   const [currentWallIndex, setCurrentWallIndex] = React.useState<0 | 1 | 2>(1) // 0: Left (+38°), 1: Main (0°), 2: Right (-38°)
+
+  // Dynamic responsive scale for mobile: fits the complete 3-wall curved bookshelf comfortably
+  const mobileScale = React.useMemo(() => {
+    if (!isMobile) return 1
+    // For mobile portrait screens (320px - 500px width), scale dynamically so all 3 wings fit
+    return Math.min(1, Math.max(0.52, (windowWidth - 20) / 640))
+  }, [isMobile, windowWidth])
 
   // Unified camera rotation combining desktop mouse parallax and mobile touch pan
   const camRotateY = useTransform(
@@ -806,11 +826,17 @@ export function CriterionBookCloset() {
       stiffness: 240,
       damping: 26,
     })
+    animate(touchPitchMotion, 0, {
+      type: 'spring',
+      stiffness: 240,
+      damping: 26,
+    })
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (selectedBook || e.touches.length !== 1) return
     const touch = e.touches[0]
+    hasDraggedRef.current = false
     touchStartRef.current = {
       x: touch.clientX,
       y: touch.clientY,
@@ -821,19 +847,25 @@ export function CriterionBookCloset() {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (selectedBook || e.touches.length !== 1) return
-    if (e.cancelable) e.preventDefault()
     const touch = e.touches[0]
     const dx = touch.clientX - touchStartRef.current.x
     const dy = touch.clientY - touchStartRef.current.y
 
-    // Swipe right pans towards Left Wing (+), swipe left pans towards Right Wing (-)
-    const newYaw = Math.max(-46, Math.min(46, touchStartRef.current.startYaw + dx * 0.22))
-    const newPitch = Math.max(-12, Math.min(12, touchStartRef.current.startPitch - dy * 0.08))
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+      hasDraggedRef.current = true
+    }
+
+    if (e.cancelable) e.preventDefault()
+
+    // Smooth, responsive free-look panning up/down/left/right across all shelves
+    const newYaw = Math.max(-52, Math.min(52, touchStartRef.current.startYaw + dx * 0.24))
+    const newPitch = Math.max(-22, Math.min(22, touchStartRef.current.startPitch - dy * 0.16))
     touchYawMotion.set(newYaw)
     touchPitchMotion.set(newPitch)
   }
 
   const handleTouchEnd = () => {
+    // Update wall index highlight based on camera direction without violent snapping
     const yaw = touchYawMotion.get()
     let targetIdx: 0 | 1 | 2 = 1
     if (yaw > 18) targetIdx = 0
@@ -841,12 +873,7 @@ export function CriterionBookCloset() {
     else targetIdx = 1
 
     setCurrentWallIndex(targetIdx)
-    const targetYaws = [38, 0, -38]
-    animate(touchYawMotion, targetYaws[targetIdx], {
-      type: 'spring',
-      stiffness: 240,
-      damping: 26,
-    })
+    // Camera smoothly stays at current pan angle for continuous inspection
   }
 
   // Sync hash #closet / #list
@@ -1527,15 +1554,20 @@ export function CriterionBookCloset() {
           ======================================================= */}
       {viewMode === 'closet' && (
         <main
-          className="relative w-full h-[calc(100vh-64px)] overflow-hidden flex items-center justify-center select-none"
+          className="relative w-full h-[calc(100dvh-64px)] overflow-hidden flex items-center justify-center select-none"
           style={{
-            perspective: isMobile ? '950px' : '1150px',
+            perspective: isMobile ? '1000px' : '1150px',
             touchAction: 'none',
             overscrollBehavior: 'none',
           }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          onClick={() => {
+            if (!hasDraggedRef.current && isMobile) {
+              setHoveredBook(null)
+            }
+          }}
         >
           {/* Ambient Lighting & Room Vignette */}
           <div
@@ -1684,43 +1716,39 @@ export function CriterionBookCloset() {
                 transformStyle: 'preserve-3d',
                 rotateY: camRotateY,
                 rotateX: camRotateX,
-                translateZ: isMobile ? -160 : -320,
-                translateY: isMobile ? -8 : -20,
-                scale: isMobile ? 1.25 : 1,
+                translateZ: isMobile ? -280 : -320,
+                translateY: isMobile ? -12 : -20,
+                scale: mobileScale,
               }}
             >
-              {/* FLOOR PLANE (Polished library dark walnut parquet) - desktop only */}
-              {!isMobile && (
-                <div
-                  className="absolute pointer-events-none"
-                  style={{
-                    width: '2600px',
-                    height: '1800px',
-                    left: '-1300px',
-                    top: '620px',
-                    transform: 'rotateX(90deg)',
-                    transformOrigin: 'top center',
-                    background: 'radial-gradient(ellipse 60% 50% at 50% 25%, #18110B 0%, #080503 70%, #000 100%)',
-                    boxShadow: 'inset 0 0 120px rgba(0,0,0,0.95)',
-                  }}
-                />
-              )}
+              {/* FLOOR PLANE (Polished library dark walnut parquet) */}
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  width: isMobile ? '1800px' : '2600px',
+                  height: isMobile ? '1400px' : '1800px',
+                  left: isMobile ? '-900px' : '-1300px',
+                  top: isMobile ? '560px' : '620px',
+                  transform: 'rotateX(90deg)',
+                  transformOrigin: 'top center',
+                  background: 'radial-gradient(ellipse 60% 50% at 50% 25%, #18110B 0%, #080503 70%, #000 100%)',
+                  boxShadow: 'inset 0 0 120px rgba(0,0,0,0.95)',
+                }}
+              />
 
-              {/* CEILING SPOTLIGHT PLANE - desktop only */}
-              {!isMobile && (
-                <div
-                  className="absolute pointer-events-none"
-                  style={{
-                    width: '2600px',
-                    height: '1800px',
-                    left: '-1300px',
-                    bottom: '660px',
-                    transform: 'rotateX(-90deg)',
-                    transformOrigin: 'bottom center',
-                    background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(250, 220, 160, 0.12) 0%, transparent 70%)',
-                  }}
-                />
-              )}
+              {/* CEILING SPOTLIGHT PLANE */}
+              <div
+                className="absolute pointer-events-none"
+                style={{
+                  width: isMobile ? '1800px' : '2600px',
+                  height: isMobile ? '1400px' : '1800px',
+                  left: isMobile ? '-900px' : '-1300px',
+                  bottom: isMobile ? '600px' : '660px',
+                  transform: 'rotateX(-90deg)',
+                  transformOrigin: 'bottom center',
+                  background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(250, 220, 160, 0.12) 0%, transparent 70%)',
+                }}
+              />
 
               {/* ========================================================
                   WALL 1: LEFT SHELVING WALL (Shelf 3*section + 1)
@@ -1733,7 +1761,7 @@ export function CriterionBookCloset() {
                   right: '360px',
                   transformOrigin: 'right center',
                   transform: 'translateZ(-360px) rotateY(38deg)',
-                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
+                  transformStyle: 'preserve-3d',
                 }}
               >
                 <ShelfWall
@@ -1746,6 +1774,7 @@ export function CriterionBookCloset() {
                   onSelectBook={(b) => setSelectedBook(b)}
                   onHoverBook={(b) => setHoveredBook(b)}
                   isMobile={isMobile}
+                  hasDraggedRef={hasDraggedRef}
                 />
               </div>
 
@@ -1775,7 +1804,7 @@ export function CriterionBookCloset() {
                 style={{
                   width: '720px',
                   transform: 'translateX(-50%) translateZ(-360px)',
-                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
+                  transformStyle: 'preserve-3d',
                 }}
               >
                 <ShelfWall
@@ -1788,6 +1817,7 @@ export function CriterionBookCloset() {
                   onSelectBook={(b) => setSelectedBook(b)}
                   onHoverBook={(b) => setHoveredBook(b)}
                   isMobile={isMobile}
+                  hasDraggedRef={hasDraggedRef}
                 />
               </div>
 
@@ -1819,7 +1849,7 @@ export function CriterionBookCloset() {
                   left: '360px',
                   transformOrigin: 'left center',
                   transform: 'translateZ(-360px) rotateY(-38deg)',
-                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
+                  transformStyle: 'preserve-3d',
                 }}
               >
                 <ShelfWall
@@ -1832,6 +1862,7 @@ export function CriterionBookCloset() {
                   onSelectBook={(b) => setSelectedBook(b)}
                   onHoverBook={(b) => setHoveredBook(b)}
                   isMobile={isMobile}
+                  hasDraggedRef={hasDraggedRef}
                 />
               </div>
             </motion.div>
@@ -1864,33 +1895,51 @@ export function CriterionBookCloset() {
             </button>
           </nav>
 
-          {/* Floating Bottom-Left Hovered Case Card */}
-          <div className="fixed bottom-6 left-6 z-40 pointer-events-none">
+          {/* Floating Hovered / Selected Case Info Card */}
+          <div className="fixed bottom-4 inset-x-3 sm:inset-x-auto sm:right-6 sm:bottom-6 z-40 pointer-events-none flex justify-center sm:justify-end">
             {hoveredBook && !selectedBook && (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-[#120F0D]/95 border border-white/15 rounded-xl p-3.5 shadow-2xl backdrop-blur-xl text-left max-w-xs pointer-events-auto"
+                initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.18 }}
+                onClick={() => setSelectedBook(hoveredBook)}
+                className="bg-[#120F0D]/95 border border-amber-500/35 hover:border-amber-400/70 rounded-2xl p-3.5 sm:p-4 shadow-2xl backdrop-blur-2xl text-left w-full max-w-sm pointer-events-auto cursor-pointer transition-colors group"
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-xs font-mono text-amber-400 font-bold block">
-                    {getBookSpineStyle(hoveredBook.title, hoveredBook.id).spineNo}
-                  </span>
-                  {hoveredBook.meetups && hoveredBook.meetups.length > 0 && (
-                    <span className="text-[10px] font-mono font-medium text-amber-300 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/25">
-                      Meetup #{hoveredBook.meetups.map((m) => m.number).join(', #')}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-amber-400 font-bold block">
+                      {getBookSpineStyle(hoveredBook.title, hoveredBook.id).spineNo}
                     </span>
+                    {hoveredBook.meetups && hoveredBook.meetups.length > 0 && (
+                      <span className="text-[10px] font-mono font-medium text-amber-300 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/25">
+                        Meetup #{hoveredBook.meetups.map((m) => m.number).join(', #')}
+                      </span>
+                    )}
+                  </div>
+                  {isMobile && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setHoveredBook(null)
+                      }}
+                      className="w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 flex items-center justify-center text-xs"
+                      title="Dismiss preview"
+                    >
+                      ✕
+                    </button>
                   )}
                 </div>
-                <h4 className="font-display text-sm font-bold text-white line-clamp-1 leading-snug">
+                <h4 className="font-display text-sm font-bold text-white line-clamp-1 leading-snug group-hover:text-amber-200 transition-colors">
                   {hoveredBook.title}
                 </h4>
                 <p className="text-[11px] text-white/60 font-serif line-clamp-1 mt-0.5">
                   {hoveredBook.author_name || 'BBB Archive'} {hoveredBook.first_discussed_date ? `· ${new Date(hoveredBook.first_discussed_date).getFullYear()}` : ''} {hoveredBook.meetups?.[0]?.venue ? `· ${hoveredBook.meetups[0].venue}` : ''}
                 </p>
-                <div className="flex items-center justify-between gap-2 mt-2">
-                  <span className="text-[9.5px] font-mono text-emerald-400 block">
-                    ● Click to pull from shelf
+                <div className="flex items-center justify-between gap-2 mt-2.5 pt-2 border-t border-white/10">
+                  <span className="text-[10px] font-mono text-emerald-400 font-semibold flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    {isMobile ? 'Tap to pull from shelf ↗' : 'Click to pull from shelf ↗'}
                   </span>
                   <span className="text-[9.5px] font-mono text-neutral-400">
                     {hoveredBook.discussion_count} {hoveredBook.discussion_count === 1 ? 'discussion' : 'discussions'}
