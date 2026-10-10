@@ -21,6 +21,10 @@ def get_engine(db_url: str = None):
             cursor = dbapi_connection.cursor()
             cursor.execute("PRAGMA foreign_keys=ON;")
             cursor.execute("PRAGMA journal_mode=WAL;")
+            cursor.execute("PRAGMA synchronous=NORMAL;")
+            cursor.execute("PRAGMA cache_size=-64000;")
+            cursor.execute("PRAGMA temp_store=MEMORY;")
+            cursor.execute("PRAGMA mmap_size=268435456;")
             cursor.close()
 
     else:
