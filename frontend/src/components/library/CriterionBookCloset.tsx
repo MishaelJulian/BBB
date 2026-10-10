@@ -883,15 +883,32 @@ export function CriterionBookCloset() {
     } catch {}
   }, [userPicks])
 
-  // Fetch books (only keep books discussed in the database, exclude general discussion and tangents)
-  const loadBooks = React.useCallback(async (silent = false) => {
+  // Load cached books immediately on mount for 0ms instant display!
+  React.useEffect(() => {
     try {
-      if (!silent) setLoading(true)
+      const cached = sessionStorage.getItem('bbb_archive_books')
+      if (cached) {
+        const parsed = JSON.parse(cached)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setBooks(parsed)
+          setLoading(false)
+        }
+      }
+    } catch {}
+  }, [])
+
+  // Fetch books (only keep books discussed in the database, exclude general discussion and tangents)
+  const loadBooks = React.useCallback(async (silent = false, force = false) => {
+    try {
+      if (!silent) {
+        setLoading((prev) => books.length === 0 ? true : prev)
+      }
       setLoadError(null)
       const data = await fetchBooks({
         limit: 3000,
         onlyDiscussed: true,
         excludeGeneral: true,
+        forceRefresh: force,
       })
       const discussedBooks = (data || []).filter((b) => {
         const hasDiscussions = Boolean(b.discussion_count && b.discussion_count > 0) || Boolean(b.meetups && b.meetups.length > 0)
@@ -900,19 +917,24 @@ export function CriterionBookCloset() {
         return hasDiscussions && isNotGeneral && isNotTangent
       })
       setBooks(discussedBooks)
+      try {
+        sessionStorage.setItem('bbb_archive_books', JSON.stringify(discussedBooks))
+      } catch {}
       return discussedBooks.length
     } catch (err) {
       console.error('Failed to load books for closet:', err)
-      // R5 / PRD §17.1: say the archive could not load, never show an empty library.
-      setLoadError('The archive could not be loaded. The Library Room is still here.')
+      // Only show error if no books are currently available
+      if (books.length === 0) {
+        setLoadError('The archive could not be loaded. The Library Room is still here.')
+      }
       if (silent) throw err
     } finally {
-      if (!silent) setLoading(false)
+      setLoading(false)
     }
-  }, [])
+  }, [books.length])
 
   React.useEffect(() => {
-    loadBooks()
+    loadBooks(books.length > 0)
   }, [loadBooks])
 
   // Reset to first shelves when filters or sort change
@@ -923,7 +945,7 @@ export function CriterionBookCloset() {
   const handleSyncDatabase = async () => {
     setIsSyncing(true)
     try {
-      const count = await loadBooks(true)
+      const count = await loadBooks(true, true)
       showToast(`Archive synced with database (${(count ?? books.length).toLocaleString()} volumes)`)
     } catch {
       showToast('Failed to sync database')

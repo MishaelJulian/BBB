@@ -5,7 +5,7 @@ This module exposes the BBB archive as REST endpoints.
 It reuses the existing SQLAlchemy models and database layer.
 """
 
-from fastapi import FastAPI, HTTPException, Query, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Query, Request, UploadFile, File, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.concurrency import run_in_threadpool
@@ -530,6 +530,7 @@ def get_stats():
 @app.get("/books")
 @app.get("/api/books")
 def get_books(
+    response: Response,
     search: Optional[str] = None,
     author: Optional[str] = None,
     year: Optional[int] = None,
@@ -609,6 +610,8 @@ def get_books(
             query = query.limit(limit)
 
         books = query.all()
+        if not search and not author and not year:
+            response.headers["Cache-Control"] = "public, max-age=60, s-maxage=3600, stale-while-revalidate=86400"
         return batch_books_to_dict(books, db)
     finally:
         db.close()
@@ -759,6 +762,7 @@ def get_book_synopsis_endpoint(book_id: str):
 
 @app.get("/meetups")
 def get_meetups(
+    response: Response,
     search: Optional[str] = None,
     year: Optional[int] = None,
 ):
@@ -784,6 +788,8 @@ def get_meetups(
         query = query.order_by(Meetup.date.desc())
 
         meetups = query.all()
+        if not search and not year:
+            response.headers["Cache-Control"] = "public, max-age=60, s-maxage=3600, stale-while-revalidate=86400"
         return meetups_to_dicts(meetups, db)
     finally:
         db.close()
