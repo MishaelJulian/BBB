@@ -391,6 +391,41 @@ export default function AdminDatabasePage() {
     }
   }
 
+  // Delete Meetup
+  const handleDeleteMeetup = async () => {
+    if (!currentMeetup) return
+    const bookCount = currentMeetup.books.length
+    const promptMessage =
+      bookCount > 0
+        ? `Are you sure you want to permanently delete Meetup #${currentMeetup.number}?\n\nThis will remove the meetup and its ${bookCount} linked book discussion${bookCount > 1 ? 's' : ''}.`
+        : `Are you sure you want to permanently delete Meetup #${currentMeetup.number}?`
+
+    if (!confirm(promptMessage)) return
+
+    try {
+      const res = await apiFetch(`/admin/meetups/${currentMeetup.number}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.detail || 'Failed to delete meetup')
+      }
+      showToast(`✓ Deleted Meetup #${currentMeetup.number}`)
+
+      // Determine next meetup to select
+      const remaining = meetups.filter((m) => m.number !== currentMeetup.number)
+      if (remaining.length > 0) {
+        setSelectedMeetupNumber(remaining[0].number)
+      } else {
+        setSelectedMeetupNumber(null)
+      }
+      loadData()
+    } catch (err: any) {
+      console.error(err)
+      showToast(err.message || 'Failed to delete meetup')
+    }
+  }
+
   // Toggle General Discussion flag directly in table
   const handleToggleGeneralDiscussion = async (book: BookItem) => {
     const nextState = !book.is_general_discussion
@@ -913,10 +948,21 @@ export default function AdminDatabasePage() {
 
                       <button
                         onClick={handleOpenEditMeetup}
-                        className="px-2.5 py-1.5 rounded-xl border border-[#DDD6C7] bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-800 transition-colors shadow-xs cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl border border-[#DDD6C7] bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-800 transition-colors shadow-xs cursor-pointer flex items-center gap-1"
                       >
-                        ✏️ Edit
+                        <span>✏️</span>
+                        <span>Edit</span>
                       </button>
+
+                      <button
+                        onClick={handleDeleteMeetup}
+                        className="px-2.5 py-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 transition-colors shadow-xs cursor-pointer flex items-center gap-1"
+                        title="Delete this meetup from the database"
+                      >
+                        <span>🗑️</span>
+                        <span>Delete</span>
+                      </button>
+
                       <button
                         onClick={() => setIsAddBookOpen(true)}
                         className="px-3 py-1.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-xs font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
@@ -1320,20 +1366,33 @@ export default function AdminDatabasePage() {
                 />
               </div>
 
-              <div className="pt-3 flex items-center justify-end gap-2">
+              <div className="pt-3 flex items-center justify-between gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsEditMeetupOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-[#DDD6C7] text-neutral-600 hover:bg-neutral-50"
+                  onClick={() => {
+                    setIsEditMeetupOpen(false)
+                    handleDeleteMeetup()
+                  }}
+                  className="px-3 py-2 rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700 font-semibold flex items-center gap-1 transition-colors"
                 >
-                  Cancel
+                  <span>🗑️</span>
+                  <span>Delete Meetup</span>
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm"
-                >
-                  Save Changes
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditMeetupOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-[#DDD6C7] text-neutral-600 hover:bg-neutral-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             </form>
           </div>

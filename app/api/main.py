@@ -1488,6 +1488,37 @@ def update_admin_meetup(meetup_number: int, req: MeetupUpdateRequest):
         db.close()
 
 
+@app.delete("/admin/meetups/{meetup_number}")
+def delete_admin_meetup(meetup_number: int):
+    """Delete a meetup and its associated records from the archive."""
+    db = SessionLocal()
+    try:
+        meetup = db.query(Meetup).filter(Meetup.meetup_number == meetup_number).first()
+        if not meetup:
+            raise HTTPException(status_code=404, detail=f"Meetup #{meetup_number} not found")
+
+        if meetup.photo_url and meetup.photo_url.startswith("/assets/uploads/meetups/"):
+            rel_path = meetup.photo_url.lstrip("/")
+            if os.path.exists(rel_path):
+                try:
+                    os.remove(rel_path)
+                except Exception:
+                    pass
+
+        db.delete(meetup)
+        db.commit()
+        return {"success": True, "message": f"Meetup #{meetup_number} deleted successfully"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting meetup #{meetup_number}: {e}")
+        raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
+    finally:
+        db.close()
+
+
 # ponytail: 4.5 MB cap set by the founders (2026-10-09) to match Vercel's 4.5 MB request-body limit (D36).
 # Multipart headers add a few hundred bytes, so a file right at the cap may be refused by Vercel before it gets here.
 MAX_UPLOAD_BYTES = 4_500_000
