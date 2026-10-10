@@ -167,11 +167,20 @@ export default function AdminDatabasePage() {
   React.useEffect(() => {
     getSession()
       .then((u) => {
-        if (!u) return router.replace('/login?next=/admin')
-        setAuthUser(u.role === 'admin' ? u : null)
-        if (u.role === 'admin') loadData()
+        if (!u) {
+          window.location.href = '/login?next=/admin'
+          return
+        }
+        if (u.role !== 'admin') {
+          setLoading(false)
+          showToast('Admin privileges required')
+          return
+        }
+        setAuthUser(u)
+        loadData()
       })
       .catch(() => {
+        setLoading(false)
         setAuthUser(null)
         showToast('The login service is not reachable')
       })
