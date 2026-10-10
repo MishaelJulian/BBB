@@ -29,9 +29,12 @@ def get_engine(db_url: str = None):
 
     else:
         # PostgreSQL or other engines
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
         engine = create_engine(
             url,
             pool_pre_ping=True,
+            pool_recycle=300,
             pool_size=10,
             max_overflow=20,
             echo=settings.DEBUG,

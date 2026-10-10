@@ -9,7 +9,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        value: sqlite:///./book_club_archivist.db
+        sync: false
       - key: ENV
         value: production
       - key: DEBUG
