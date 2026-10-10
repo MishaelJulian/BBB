@@ -113,7 +113,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
         height: 220,
         display: 'flex',
         alignItems: 'flex-end',
-        transformStyle: 'preserve-3d',
+        transformStyle: isMobile ? 'flat' : 'preserve-3d',
       }}
       onMouseEnter={() => {
         if (!isMobile) {
@@ -169,7 +169,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
         }}
       />
 
-      {/* Physical Spine with 3D lift & emerald targeted glow */}
+      {/* Physical Spine with 3D lift on desktop and lightweight 2D lift on mobile */}
       <div
         className="relative rounded-t-[3px] rounded-b-[1px] overflow-hidden shadow-lg transition-transform duration-200 w-full"
         style={{
@@ -177,9 +177,11 @@ const ClosetSpine = React.memo(function ClosetSpine({
           height: spineHeight,
           backgroundColor: palette.bg,
           transform: isSelected
-            ? 'translateZ(36px) translateY(-18px) scale(1.08)'
+            ? (isMobile ? 'translateY(-16px) scale(1.08)' : 'translateZ(36px) translateY(-18px) scale(1.08)')
             : isTargeted
             ? (isMobile ? 'translateY(-12px) scale(1.06)' : 'translateZ(24px) translateY(-12px) scale(1.05)')
+            : isMobile
+            ? 'none'
             : 'translateZ(0px) translateY(0px) scale(1)',
           transformOrigin: 'bottom center',
           boxShadow: isTargeted
@@ -278,7 +280,10 @@ const ShelfWall = React.memo(function ShelfWall({
   const totalBooksOnWall = rows.reduce((acc, r) => acc + r.length, 0)
 
   return (
-    <div className="flex flex-col justify-center gap-2 select-none">
+    <div
+      className="flex flex-col justify-center gap-2 select-none"
+      style={{ transformStyle: isMobile ? 'flat' : 'preserve-3d' }}
+    >
       {/* Brass Plaque Archival Header at top of each shelf wall */}
       <div className="flex items-center justify-between px-4 pb-1 border-b border-amber-500/30 bg-gradient-to-r from-black/60 via-amber-950/30 to-black/60 rounded-t backdrop-blur-sm">
         <div className="flex items-center gap-2">
@@ -1721,34 +1726,38 @@ export function CriterionBookCloset() {
                 scale: mobileScale,
               }}
             >
-              {/* FLOOR PLANE (Polished library dark walnut parquet) */}
-              <div
-                className="absolute pointer-events-none"
-                style={{
-                  width: isMobile ? '1800px' : '2600px',
-                  height: isMobile ? '1400px' : '1800px',
-                  left: isMobile ? '-900px' : '-1300px',
-                  top: isMobile ? '560px' : '620px',
-                  transform: 'rotateX(90deg)',
-                  transformOrigin: 'top center',
-                  background: 'radial-gradient(ellipse 60% 50% at 50% 25%, #18110B 0%, #080503 70%, #000 100%)',
-                  boxShadow: 'inset 0 0 120px rgba(0,0,0,0.95)',
-                }}
-              />
+              {/* FLOOR PLANE (Polished library dark walnut parquet) - desktop only */}
+              {!isMobile && (
+                <div
+                  className="absolute pointer-events-none hidden md:block"
+                  style={{
+                    width: '2600px',
+                    height: '1800px',
+                    left: '-1300px',
+                    top: '620px',
+                    transform: 'rotateX(90deg)',
+                    transformOrigin: 'top center',
+                    background: 'radial-gradient(ellipse 60% 50% at 50% 25%, #18110B 0%, #080503 70%, #000 100%)',
+                    boxShadow: 'inset 0 0 120px rgba(0,0,0,0.95)',
+                  }}
+                />
+              )}
 
-              {/* CEILING SPOTLIGHT PLANE */}
-              <div
-                className="absolute pointer-events-none"
-                style={{
-                  width: isMobile ? '1800px' : '2600px',
-                  height: isMobile ? '1400px' : '1800px',
-                  left: isMobile ? '-900px' : '-1300px',
-                  bottom: isMobile ? '600px' : '660px',
-                  transform: 'rotateX(-90deg)',
-                  transformOrigin: 'bottom center',
-                  background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(250, 220, 160, 0.12) 0%, transparent 70%)',
-                }}
-              />
+              {/* CEILING SPOTLIGHT PLANE - desktop only */}
+              {!isMobile && (
+                <div
+                  className="absolute pointer-events-none hidden md:block"
+                  style={{
+                    width: '2600px',
+                    height: '1800px',
+                    left: '-1300px',
+                    bottom: '660px',
+                    transform: 'rotateX(-90deg)',
+                    transformOrigin: 'bottom center',
+                    background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(250, 220, 160, 0.12) 0%, transparent 70%)',
+                  }}
+                />
+              )}
 
               {/* ========================================================
                   WALL 1: LEFT SHELVING WALL (Shelf 3*section + 1)
@@ -1761,7 +1770,7 @@ export function CriterionBookCloset() {
                   right: '360px',
                   transformOrigin: 'right center',
                   transform: 'translateZ(-360px) rotateY(38deg)',
-                  transformStyle: 'preserve-3d',
+                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
                 }}
               >
                 <ShelfWall
@@ -1804,7 +1813,7 @@ export function CriterionBookCloset() {
                 style={{
                   width: '720px',
                   transform: 'translateX(-50%) translateZ(-360px)',
-                  transformStyle: 'preserve-3d',
+                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
                 }}
               >
                 <ShelfWall
@@ -1849,7 +1858,7 @@ export function CriterionBookCloset() {
                   left: '360px',
                   transformOrigin: 'left center',
                   transform: 'translateZ(-360px) rotateY(-38deg)',
-                  transformStyle: 'preserve-3d',
+                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
                 }}
               >
                 <ShelfWall
@@ -1896,7 +1905,7 @@ export function CriterionBookCloset() {
           </nav>
 
           {/* Floating Hovered / Selected Case Info Card */}
-          <div className="fixed bottom-4 inset-x-3 sm:inset-x-auto sm:right-6 sm:bottom-6 z-40 pointer-events-none flex justify-center sm:justify-end">
+          <div className="fixed bottom-4 inset-x-3 sm:inset-x-auto sm:left-6 sm:bottom-6 z-40 pointer-events-none flex justify-center sm:justify-start">
             {hoveredBook && !selectedBook && (
               <motion.div
                 initial={{ opacity: 0, y: 15, scale: 0.95 }}
