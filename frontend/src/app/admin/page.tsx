@@ -59,6 +59,7 @@ export default function AdminDatabasePage() {
   const [loading, setLoading] = React.useState(true)
   const [searchQuery, setSearchQuery] = React.useState('')
   const [selectedMeetupNumber, setSelectedMeetupNumber] = React.useState<number | null>(null)
+  const [mobileDetailView, setMobileDetailView] = React.useState(false)
   
   // Feedback notification
   const [toast, setToast] = React.useState<string | null>(null)
@@ -66,6 +67,16 @@ export default function AdminDatabasePage() {
   // Enrichment state
   const [isEnrichingMeetup, setIsEnrichingMeetup] = React.useState(false)
   const [enrichingBookId, setEnrichingBookId] = React.useState<string | null>(null)
+
+  // Create Meetup Modal state
+  const [isCreateMeetupOpen, setIsCreateMeetupOpen] = React.useState(false)
+  const [createNumber, setCreateNumber] = React.useState<number>(100)
+  const [createDate, setCreateDate] = React.useState('')
+  const [createVenue, setCreateVenue] = React.useState('Bookworm')
+  const [createTitle, setCreateTitle] = React.useState('')
+  const [createFormat, setCreateFormat] = React.useState('IN_PERSON')
+  const [createDescription, setCreateDescription] = React.useState('')
+  const [isCreatingMeetup, setIsCreatingMeetup] = React.useState(false)
 
   // Edit Meetup Modal state
   const [isEditMeetupOpen, setIsEditMeetupOpen] = React.useState(false)
@@ -97,6 +108,8 @@ export default function AdminDatabasePage() {
 
   // Media & PDF state
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false)
+  const [generatingPdfStyle, setGeneratingPdfStyle] = React.useState<'magazine' | 'classic' | null>(null)
+  const [isPdfStyleModalOpen, setIsPdfStyleModalOpen] = React.useState(false)
   const [isPhotoModalOpen, setIsPhotoModalOpen] = React.useState(false)
   const [isUploadingPhoto, setIsUploadingPhoto] = React.useState(false)
   const [selectedPhotoFile, setSelectedPhotoFile] = React.useState<File | null>(null)
@@ -137,6 +150,20 @@ export default function AdminDatabasePage() {
     }
   }
 
+  const [isSyncing, setIsSyncing] = React.useState(false)
+
+  const handleSyncDatabase = async () => {
+    setIsSyncing(true)
+    try {
+      await loadData()
+      showToast('⚡ Database synced with SQLite (all updates live in Closet & List View)')
+    } catch {
+      showToast('Failed to sync database')
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
   React.useEffect(() => {
     getSession()
       .then((u) => {
@@ -170,6 +197,53 @@ export default function AdminDatabasePage() {
   const currentMeetup = React.useMemo(() => {
     return meetups.find((m) => m.number === selectedMeetupNumber) || null
   }, [meetups, selectedMeetupNumber])
+
+  // Open Create Meetup
+  const handleOpenCreateMeetup = () => {
+    const maxNum = meetups.reduce((max, m) => Math.max(max, m.number), 0)
+    const nextNum = maxNum > 0 ? maxNum + 1 : 1
+    const todayStr = new Date().toISOString().split('T')[0]
+    setCreateNumber(nextNum)
+    setCreateDate(todayStr)
+    setCreateVenue('Bookworm')
+    setCreateTitle(`BBB Meetup #${nextNum}`)
+    setCreateFormat('IN_PERSON')
+    setCreateDescription('')
+    setIsCreateMeetupOpen(true)
+  }
+
+  // Save New Meetup
+  const handleCreateMeetup = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsCreatingMeetup(true)
+    try {
+      const res = await apiFetch('/admin/meetups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          meetup_number: Number(createNumber),
+          date: createDate || null,
+          venue: createVenue || 'Bookworm',
+          title: createTitle || `BBB Meetup #${createNumber}`,
+          format: createFormat || 'IN_PERSON',
+          description: createDescription || null,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.detail || data?.error?.message || 'Failed to create meetup')
+      }
+      showToast(`✓ Created Meetup #${createNumber} in SQLite database`)
+      setIsCreateMeetupOpen(false)
+      await loadData()
+      setSelectedMeetupNumber(Number(createNumber))
+    } catch (err) {
+      console.error(err)
+      showToast(err instanceof Error ? err.message : 'Failed to create meetup')
+    } finally {
+      setIsCreatingMeetup(false)
+    }
+  }
 
   // Open Edit Meetup
   const handleOpenEditMeetup = () => {
@@ -459,27 +533,30 @@ export default function AdminDatabasePage() {
     }
   }
 
-  // Generate Publication PDF (Canva Zine style)
-  const handleGeneratePdf = async () => {
+  // Generate Publication PDF (Canva Zine style or Classic Document style)
+  const handleGeneratePdf = async (style: 'magazine' | 'classic' = 'magazine') => {
     if (!currentMeetup) return
     setIsGeneratingPdf(true)
-    showToast(`📑 Generating Canva-style zine PDF for Meetup #${currentMeetup.number}...`)
+    setGeneratingPdfStyle(style)
+    const styleLabel = style === 'classic' ? 'Classic document' : 'Canva-style magazine'
+    showToast(`📑 Generating ${styleLabel} for Meetup #${currentMeetup.number}...`)
     try {
-      const res = await apiFetch(`/admin/meetups/${currentMeetup.number}/generate-pdf`, {
+      const res = await apiFetch(`/admin/meetups/${currentMeetup.number}/generate-pdf?style=${style}`, {
         method: 'POST',
       })
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}))
         throw new Error(errData.detail || 'Failed to generate PDF')
       }
-      const data = await res.json()
-      showToast(`✓ Generated publication PDF for Meetup #${currentMeetup.number}! (${data.total_pages} pages)`)
+      showToast(`✓ Generated ${styleLabel} for Meetup #${currentMeetup.number}!`)
+      setIsPdfStyleModalOpen(false)
       await loadData()
     } catch (err: any) {
       console.error(err)
       showToast(`Failed to generate PDF: ${err.message || 'Error'}`)
     } finally {
       setIsGeneratingPdf(false)
+      setGeneratingPdfStyle(null)
     }
   }
 
@@ -555,29 +632,45 @@ export default function AdminDatabasePage() {
       )}
 
       {/* Top Navbar */}
-      <header className="sticky top-0 z-30 bg-white/95 border-b border-[#E5E0DB] px-6 py-3.5 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-white/95 border-b border-[#E5E0DB] px-4 sm:px-6 py-3 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Link
               href="/"
-              className="px-3 py-1.5 rounded-lg border border-[#DDD6C7] text-xs font-mono text-neutral-600 hover:text-black hover:bg-neutral-50 transition-colors"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg border border-[#DDD6C7] text-xs font-mono text-neutral-600 hover:text-black hover:bg-neutral-50 transition-colors shrink-0"
             >
-              ← Back to The Closet
+              ← <span className="hidden sm:inline">Back to </span>The Closet
             </Link>
-            <h1 className="font-display font-bold text-lg text-[#14130F]">
-              BBB Archive Database Manager
+            <h1 className="font-display font-bold text-sm sm:text-base md:text-lg text-[#14130F] truncate">
+              BBB Archive Manager
             </h1>
-            <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-mono text-[10px] font-semibold">
+            <span className="hidden md:inline-block px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-mono text-[10px] font-semibold shrink-0">
               SQLite 3 · Live
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <button
+              onClick={handleSyncDatabase}
+              disabled={isSyncing}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-[#DDD6C7] text-xs font-mono text-neutral-700 bg-white hover:border-amber-600 hover:text-black transition-colors"
+              title="Re-query SQLite database to verify all updates are synchronized"
+            >
+              <svg
+                className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-amber-600' : 'text-neutral-500'}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>{isSyncing ? 'Syncing…' : 'Sync DB'}</span>
+            </button>
             <Link
               href="/members"
-              className="px-3 py-1.5 rounded-lg border border-[#DDD6C7] text-xs font-mono text-neutral-600 hover:text-black hover:bg-neutral-50 transition-colors"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg border border-[#DDD6C7] text-xs font-mono text-neutral-600 hover:text-black hover:bg-neutral-50 transition-colors hidden xs:inline-block sm:inline-block"
             >
-              Readers Archive & Visibility →
+              Readers Archive →
             </Link>
           </div>
         </div>
@@ -634,12 +727,26 @@ export default function AdminDatabasePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
             {/* Left Column: All Meetups List */}
-            <div className="lg:col-span-4 bg-white rounded-2xl border border-[#E5E0DB] shadow-sm flex flex-col h-[750px] overflow-hidden">
-              <div className="p-3.5 border-b border-[#E5E0DB] bg-[#FAF8F5] flex items-center justify-between">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-600">
-                  Select Meetup ({filteredMeetups.length})
-                </span>
-                <span className="text-[11px] font-mono text-neutral-400">Click to inspect</span>
+            <div className={`${mobileDetailView ? 'hidden lg:flex' : 'flex'} lg:col-span-4 bg-white rounded-2xl border border-[#E5E0DB] shadow-sm flex-col h-[750px] overflow-hidden`}>
+              <div className="p-3.5 border-b border-[#E5E0DB] bg-[#FAF8F5] flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-600 block">
+                    Select Meetup ({filteredMeetups.length})
+                  </span>
+                  <span className="text-[11px] font-mono text-neutral-400">Click to inspect</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenCreateMeetup}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-semibold text-xs shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-amber-700 focus:ring-offset-1 cursor-pointer"
+                  title="Create a new meetup record"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  New Meetup
+                </button>
               </div>
 
               <div className="flex-1 overflow-y-auto divide-y divide-[#F0EDE8] scrollbar-thin">
@@ -648,7 +755,10 @@ export default function AdminDatabasePage() {
                   return (
                     <button
                       key={`meetup-${m.number}`}
-                      onClick={() => setSelectedMeetupNumber(m.number)}
+                      onClick={() => {
+                        setSelectedMeetupNumber(m.number)
+                        setMobileDetailView(true)
+                      }}
                       className={`w-full p-3.5 text-left transition-colors flex items-center justify-between ${
                         isSelected
                           ? 'bg-amber-50 border-l-4 border-amber-600 text-neutral-900'
@@ -683,12 +793,24 @@ export default function AdminDatabasePage() {
             </div>
 
             {/* Right Column: Selected Meetup Books & Actions */}
-            <div className="lg:col-span-8 bg-white rounded-2xl border border-[#E5E0DB] shadow-sm flex flex-col h-[750px] overflow-hidden">
+            <div className={`${mobileDetailView ? 'flex' : 'hidden lg:flex'} lg:col-span-8 bg-white rounded-2xl border border-[#E5E0DB] shadow-sm flex-col h-[750px] overflow-hidden`}>
               {currentMeetup ? (
                 <>
                   {/* Meetup Header */}
                   <div className="p-5 border-b border-[#E5E0DB] bg-[#FAF8F5] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
+                      {/* Mobile Back Button to list */}
+                      <button
+                        type="button"
+                        onClick={() => setMobileDetailView(false)}
+                        className="inline-flex lg:hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#E5E0DB] hover:bg-neutral-100 text-neutral-800 font-semibold text-xs transition-colors mb-3 w-fit cursor-pointer shadow-sm"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back to All Meetups
+                      </button>
+
                       <div className="flex items-center gap-2">
                         <span className="px-2.5 py-0.5 rounded bg-amber-600 text-white font-mono font-bold text-xs">
                           MEETUP #{currentMeetup.number}
@@ -760,15 +882,15 @@ export default function AdminDatabasePage() {
                       </button>
 
                       <button
-                        onClick={handleGeneratePdf}
+                        onClick={() => setIsPdfStyleModalOpen(true)}
                         disabled={isGeneratingPdf}
                         className="px-2.5 py-1.5 rounded-xl border border-amber-600 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                        title="Generate Canva-styled 4:5 zine PDF for this meetup"
+                        title="Choose PDF layout style (Canva magazine or Classic document) for this meetup"
                       >
                         {isGeneratingPdf ? (
                           <>
                             <span className="animate-spin text-xs">📑</span>
-                            <span>Generating PDF...</span>
+                            <span>Generating {generatingPdfStyle === 'classic' ? 'Classic' : 'Magazine'} PDF...</span>
                           </>
                         ) : (
                           <>
@@ -1020,6 +1142,138 @@ export default function AdminDatabasePage() {
           </div>
         )}
       </div>
+
+      {/* MODAL 0: Create New Meetup */}
+      {isCreateMeetupOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isCreatingMeetup && setIsCreateMeetupOpen(false)} />
+          <div className="relative z-10 w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-[#DDD6C7]">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-display font-bold text-lg text-neutral-900">
+                Create New Meetup
+              </h3>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                Admin
+              </span>
+            </div>
+            <p className="text-xs text-neutral-500 mb-4">
+              Add a new meetup session to the BBB Archive database.
+            </p>
+
+            <form onSubmit={handleCreateMeetup} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-neutral-700 font-semibold mb-1">
+                    Meetup Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={createNumber}
+                    onChange={(e) => {
+                      const num = parseInt(e.target.value, 10) || 0
+                      setCreateNumber(num)
+                      if (!createTitle || createTitle === `BBB Meetup #${createNumber}`) {
+                        setCreateTitle(`BBB Meetup #${num}`)
+                      }
+                    }}
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600 font-mono"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-neutral-700 font-semibold mb-1">
+                    Format
+                  </label>
+                  <select
+                    value={createFormat}
+                    onChange={(e) => setCreateFormat(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600 bg-white"
+                  >
+                    <option value="IN_PERSON">In-person</option>
+                    <option value="ONLINE">Online</option>
+                    <option value="HYBRID">Hybrid</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-neutral-700 font-semibold mb-1">
+                  Meetup Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={createTitle}
+                  onChange={(e) => setCreateTitle(e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                  placeholder="e.g. BBB Meetup #100"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-neutral-700 font-semibold mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={createDate}
+                    onChange={(e) => setCreateDate(e.target.value)}
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-neutral-700 font-semibold mb-1">Venue</label>
+                  <input
+                    type="text"
+                    value={createVenue}
+                    onChange={(e) => setCreateVenue(e.target.value)}
+                    placeholder="e.g. Bookworm, Atta Galatta"
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-neutral-700 font-semibold mb-1">Description (optional)</label>
+                <textarea
+                  value={createDescription}
+                  onChange={(e) => setCreateDescription(e.target.value)}
+                  placeholder="Optional meetup theme or notes..."
+                  rows={2}
+                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600 resize-none"
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={isCreatingMeetup}
+                  onClick={() => setIsCreateMeetupOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-[#DDD6C7] text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingMeetup}
+                  className="px-5 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-semibold shadow-sm disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isCreatingMeetup ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Creating…</span>
+                    </>
+                  ) : (
+                    <span>Create Meetup</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL 1: Edit Meetup Info */}
       {isEditMeetupOpen && (
@@ -1664,6 +1918,137 @@ export default function AdminDatabasePage() {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Style Selection Modal */}
+      {isPdfStyleModalOpen && currentMeetup && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-[#E5E0DB] shadow-2xl max-w-xl w-full overflow-hidden animate-scale-in">
+            <div className="p-6 border-b border-[#E5E0DB] bg-[#FAF8F5] flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-mono text-amber-700 font-bold uppercase tracking-wider block">
+                  Meetup #{currentMeetup.number} Publication
+                </span>
+                <h3 className="font-display font-bold text-xl text-[#14130F]">
+                  Generate Publication PDF
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsPdfStyleModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-white border border-[#DDD6C7] text-neutral-400 hover:text-neutral-700 flex items-center justify-center text-sm font-mono cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-neutral-600 leading-relaxed">
+                Choose the design layout structure for <strong>Meetup #{currentMeetup.number}</strong>. Both formats feature all discussed books, author information, and the club group picture:
+              </p>
+
+              {/* 2 Style Choice Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                {/* Style 1: Canva Magazine Zine */}
+                <div className="rounded-2xl border-2 border-amber-500/50 hover:border-amber-600 bg-amber-50/30 p-4.5 flex flex-col justify-between transition-all shadow-xs group">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded">
+                        4:5 Magazine Zine
+                      </span>
+                      <span className="text-lg">🎨</span>
+                    </div>
+                    <h4 className="font-display font-bold text-sm text-[#14130F] group-hover:text-amber-800 transition-colors">
+                      Canva Zine (Vinay Style)
+                    </h4>
+                    <p className="text-[11px] text-neutral-600 mt-1.5 leading-relaxed">
+                      Inspired by Meetups #97, #98, and #99. Parchment textures, illustrated book covers, author spotlight, and framed polaroid group photo.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-amber-200/60 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      disabled={isGeneratingPdf}
+                      onClick={() => handleGeneratePdf('magazine')}
+                      className="w-full py-2 px-3 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      {generatingPdfStyle === 'magazine' ? (
+                        <>
+                          <span className="animate-spin text-xs">⏳</span>
+                          <span>Generating...</span>
+                        </>
+                      ) : (
+                        <span>Generate Magazine PDF</span>
+                      )}
+                    </button>
+                    <a
+                      href={`${getApiBase()}/admin/meetups/${currentMeetup.number}/pdf?style=magazine`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-center text-[11px] font-semibold text-amber-800 hover:underline py-0.5"
+                    >
+                      View / Download Magazine PDF →
+                    </a>
+                  </div>
+                </div>
+
+                {/* Style 2: Classic Word-Style Document */}
+                <div className="rounded-2xl border-2 border-[#DDD6C7] hover:border-neutral-800 bg-[#FAF8F5] p-4.5 flex flex-col justify-between transition-all shadow-xs group">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-neutral-700 bg-neutral-200/80 px-2 py-0.5 rounded">
+                        A4 Archive Table
+                      </span>
+                      <span className="text-lg">📄</span>
+                    </div>
+                    <h4 className="font-display font-bold text-sm text-[#14130F] group-hover:text-black transition-colors">
+                      Classic Document (Word Style)
+                    </h4>
+                    <p className="text-[11px] text-neutral-600 mt-1.5 leading-relaxed">
+                      Inspired by Meetup #96 and earlier editions. Clean, formal tabular layout with reader assignments, summary paragraph, and crisp printable typography.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-[#E5E0DB] flex flex-col gap-2">
+                    <button
+                      type="button"
+                      disabled={isGeneratingPdf}
+                      onClick={() => handleGeneratePdf('classic')}
+                      className="w-full py-2 px-3 rounded-xl bg-[#14130F] hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      {generatingPdfStyle === 'classic' ? (
+                        <>
+                          <span className="animate-spin text-xs">⏳</span>
+                          <span>Generating...</span>
+                        </>
+                      ) : (
+                        <span>Generate Classic PDF</span>
+                      )}
+                    </button>
+                    <a
+                      href={`${getApiBase()}/admin/meetups/${currentMeetup.number}/pdf?style=classic`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-center text-[11px] font-semibold text-neutral-800 hover:underline py-0.5"
+                    >
+                      View / Download Classic PDF →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-[#FAF8F5] border-t border-[#E5E0DB] flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsPdfStyleModalOpen(false)}
+                className="px-4 py-2 rounded-xl border border-[#DDD6C7] text-neutral-600 hover:bg-neutral-100 text-xs font-medium cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

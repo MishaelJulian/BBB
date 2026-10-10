@@ -7,7 +7,13 @@ from datetime import date
 from collections import defaultdict
 from PIL import Image
 
+from reportlab.lib import colors
 from reportlab.lib.colors import HexColor, white, black
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage, PageBreak
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -167,7 +173,7 @@ def draw_centered_text_with_shadow(
     c.drawString(x, y, text)
 
 
-def generate_meetup_pdf(
+def generate_magazine_meetup_pdf(
     meetup_number: int,
     db,
     output_path: str = None,
@@ -534,3 +540,295 @@ def generate_meetup_pdf(
     # Save PDF
     c.save()
     return output_path
+
+
+class NumberedCanvas(canvas.Canvas):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._saved_page_states = []
+
+    def showPage(self):
+        self._saved_page_states.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        num_pages = len(self._saved_page_states)
+        for state in self._saved_page_states:
+            self.__dict__.update(state)
+            self.draw_page_number(num_pages)
+            canvas.Canvas.showPage(self)
+        canvas.Canvas.save(self)
+
+    def draw_page_number(self, page_count):
+        self.setFont("Helvetica", 9)
+        self.setFillColor(HexColor("#8C8270"))
+        page_w, page_h = landscape(A4)
+        text = f"Broke Bibliophiles Bangalore · Page {self._pageNumber} of {page_count}"
+        self.drawRightString(page_w - 36, 20, text)
+        self.drawString(36, 20, "Archive Document · bbb-library")
+
+
+def generate_classic_meetup_pdf(
+    meetup_number: int,
+    db,
+    output_path: str = None,
+    custom_photo_path: str = None
+) -> str:
+    """
+    Generate a clean, elegant document-style PDF in the classic archive format
+    of Meetup #96 and earlier, with a clean summary, embedded group photo, and books table.
+    """
+    from app.database.models import Meetup, Discussion, CanonicalBook, Author, Member, Venue
+
+    meetup = db.query(Meetup).filter(Meetup.meetup_number == meetup_number).first()
+    if not meetup:
+        raise ValueError(f"Meetup #{meetup_number} not found in database")
+
+    venue_name = "The Bookworm"
+    if meetup.venue_id:
+        v = db.query(Venue).filter(Venue.id == meetup.venue_id).first()
+        if v and v.name:
+            venue_name = v.name
+
+    date_str = format_meetup_date(meetup.date)
+
+    if not output_path:
+        os.makedirs(os.path.join(os.getcwd(), "assets", "generated_pdfs"), exist_ok=True)
+        output_path = os.path.join(
+            os.getcwd(), "assets", "generated_pdfs", f"bbb_meetup_{meetup_number}_classic.pdf"
+        )
+
+    page_w, page_h = landscape(A4)
+    doc = SimpleDocTemplate(
+        output_path,
+        pagesize=(page_w, page_h),
+        leftMargin=36,
+        rightMargin=36,
+        topMargin=36,
+        bottomMargin=36
+    )
+
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        'ClassicTitle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=20,
+        leading=24,
+        textColor=HexColor('#14130F')
+    )
+
+    meta_style = ParagraphStyle(
+        'ClassicMeta',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=11,
+        leading=15,
+        textColor=HexColor('#5A5248')
+    )
+
+    summary_head_style = ParagraphStyle(
+        'SummaryHead',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=11,
+        leading=14,
+        textColor=HexColor('#8B4513')
+    )
+
+    summary_text_style = ParagraphStyle(
+        'SummaryText',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9.5,
+        leading=13.5,
+        textColor=HexColor('#22201D')
+    )
+
+    th_style = ParagraphStyle(
+        'TableHeader',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=9.5,
+        leading=12,
+        textColor=colors.white
+    )
+
+    td_idx_style = ParagraphStyle(
+        'TableIndex',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=12,
+        alignment=1,
+        textColor=HexColor('#5A5248')
+    )
+
+    td_member_style = ParagraphStyle(
+        'TableMember',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=9,
+        leading=12,
+        textColor=HexColor('#14130F')
+    )
+
+    td_book_style = ParagraphStyle(
+        'TableBook',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=12,
+        textColor=HexColor('#14130F')
+    )
+
+    td_author_style = ParagraphStyle(
+        'TableAuthor',
+        parent=styles['Normal'],
+        fontName='Helvetica-Oblique',
+        fontSize=9,
+        leading=12,
+        textColor=HexColor('#4A4238')
+    )
+
+    story = []
+
+    # Title & Subtitle
+    story.append(Paragraph(f"Broke Bibliophiles Bangalore, Meetup #{meetup.meetup_number}", title_style))
+    story.append(Spacer(1, 4))
+    story.append(Paragraph(f"{date_str} @{venue_name} · Church Street, Bangalore", meta_style))
+    story.append(Spacer(1, 10))
+
+    # Summary box if present
+    summary_text = meetup.description or f"Discussion meeting of Broke Bibliophiles Bangalore Meetup #{meetup.meetup_number}."
+    summary_data = [
+        [Paragraph("MEETUP SUMMARY", summary_head_style)],
+        [Paragraph(summary_text, summary_text_style)]
+    ]
+    summary_table = Table(summary_data, colWidths=[page_w - 72])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), HexColor('#FAF8F5')),
+        ('BOX', (0, 0), (-1, -1), 1, HexColor('#E5E0DB')),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+    ]))
+    story.append(summary_table)
+    story.append(Spacer(1, 14))
+
+    # Group Photo if exists
+    photo_path = custom_photo_path
+    if not photo_path and meetup.photo_url:
+        rel = meetup.photo_url.lstrip('/')
+        if os.path.exists(rel):
+            photo_path = rel
+        elif os.path.exists(os.path.join(os.getcwd(), rel)):
+            photo_path = os.path.join(os.getcwd(), rel)
+
+    if photo_path and os.path.exists(photo_path):
+        try:
+            rl_img = RLImage(photo_path, width=320, height=180)
+            photo_table = Table([[rl_img]], colWidths=[page_w - 72])
+            photo_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            story.append(photo_table)
+            story.append(Spacer(1, 10))
+        except Exception as e:
+            print("Failed to embed photo in classic PDF:", e)
+
+    # Discussions list
+    story.append(Paragraph("LIST OF BOOKS DISCUSSED", ParagraphStyle(
+        'SectionHeading',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=12,
+        leading=16,
+        textColor=HexColor('#14130F')
+    )))
+    story.append(Spacer(1, 8))
+
+    discussions = db.query(Discussion).filter(Discussion.meetup_id == meetup.id).all()
+
+    table_rows = [
+        [
+            Paragraph("#", th_style),
+            Paragraph("Member / Reader", th_style),
+            Paragraph("Book Title", th_style),
+            Paragraph("Author(s)", th_style),
+        ]
+    ]
+
+    idx = 1
+    for d in discussions:
+        if not d.canonical_book_id:
+            continue
+        book = db.query(CanonicalBook).filter(CanonicalBook.id == d.canonical_book_id).first()
+        if not book:
+            continue
+        author = db.query(Author).filter(Author.id == book.author_id).first() if book.author_id else None
+        author_name = author.full_name if author else "Unknown"
+
+        member_name = "General Discussion"
+        if d.member_id:
+            m = db.query(Member).filter(Member.id == d.member_id).first()
+            if m and m.display_name:
+                member_name = m.display_name
+
+        table_rows.append([
+            Paragraph(str(idx), td_idx_style),
+            Paragraph(member_name, td_member_style),
+            Paragraph(book.title, td_book_style),
+            Paragraph(author_name, td_author_style),
+        ])
+        idx += 1
+
+    content_w = page_w - 72
+    col_w = [35, 145, 330, content_w - (35 + 145 + 330)]
+
+    books_table = Table(table_rows, colWidths=col_w, repeatRows=1)
+
+    table_style_commands = [
+        ('BACKGROUND', (0, 0), (-1, 0), HexColor('#14130F')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, HexColor('#E5E0DB')),
+    ]
+    for r_idx in range(1, len(table_rows)):
+        if r_idx % 2 == 0:
+            table_style_commands.append(('BACKGROUND', (0, r_idx), (-1, r_idx), HexColor('#FAF8F5')))
+        else:
+            table_style_commands.append(('BACKGROUND', (0, r_idx), (-1, r_idx), colors.white))
+
+    books_table.setStyle(TableStyle(table_style_commands))
+    story.append(books_table)
+
+    doc.build(story, canvasmaker=NumberedCanvas)
+    return output_path
+
+
+def generate_meetup_pdf(
+    meetup_number: int,
+    db,
+    output_path: str = None,
+    custom_photo_path: str = None,
+    style: str = "magazine"
+) -> str:
+    """
+    Main PDF Generator dispatcher:
+    - style='magazine': Full-fidelity Canva/zine style with covers and vintage styling (Vinay style)
+    - style='classic': Clean word-document style table turned to PDF (Meetup #96 style)
+    """
+    if (style or "").lower() == "classic":
+        return generate_classic_meetup_pdf(meetup_number, db, output_path, custom_photo_path)
+    return generate_magazine_meetup_pdf(meetup_number, db, output_path, custom_photo_path)

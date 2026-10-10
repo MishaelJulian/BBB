@@ -1236,6 +1236,15 @@ class _LinkFields(BaseModel):
         return v.strip() if v else v
 
 
+class MeetupCreateRequest(BaseModel):
+    meetup_number: Optional[int] = None
+    date: Optional[str] = None
+    venue: Optional[str] = "Bookworm"
+    title: Optional[str] = None
+    format: Optional[str] = "IN_PERSON"
+    description: Optional[str] = None
+
+
 class MeetupUpdateRequest(BaseModel):
     date: Optional[str] = None
     venue: Optional[str] = None
@@ -1366,6 +1375,78 @@ def get_admin_meetups():
         db.close()
 
 
+@app.post("/admin/meetups")
+def create_admin_meetup(req: MeetupCreateRequest):
+    """Create a new meetup record in the archive."""
+    db = SessionLocal()
+    try:
+        meetup_num = req.meetup_number
+        if meetup_num is None:
+            max_num = db.query(func.max(Meetup.meetup_number)).scalar() or 0
+            meetup_num = max_num + 1
+        elif meetup_num <= 0:
+            raise HTTPException(status_code=400, detail="Meetup number must be greater than 0")
+        else:
+            existing = db.query(Meetup).filter(Meetup.meetup_number == meetup_num).first()
+            if existing:
+                raise HTTPException(status_code=400, detail=f"Meetup #{meetup_num} already exists")
+
+        date_val = None
+        if req.date and req.date.strip():
+            try:
+                date_val = datetime.strptime(req.date.strip(), "%Y-%m-%d").date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+        venue_id = None
+        venue_name = req.venue.strip() if req.venue else ""
+        if venue_name:
+            venue_obj = db.query(Venue).filter(Venue.name.ilike(venue_name)).first()
+            if not venue_obj:
+                venue_obj = Venue(name=venue_name, city="Bangalore")
+                db.add(venue_obj)
+                db.flush()
+            venue_id = venue_obj.id
+
+        title_val = req.title.strip() if req.title and req.title.strip() else f"BBB Meetup #{meetup_num}"
+        fmt_val = req.format.strip() if req.format and req.format.strip() else "IN_PERSON"
+        desc_val = req.description.strip() if req.description and req.description.strip() else None
+
+        new_meetup = Meetup(
+            meetup_number=meetup_num,
+            date=date_val,
+            title=title_val,
+            venue_id=venue_id,
+            format=fmt_val,
+            description=desc_val,
+        )
+        db.add(new_meetup)
+        db.commit()
+        db.refresh(new_meetup)
+
+        return {
+            "success": True,
+            "message": f"Meetup #{meetup_num} created successfully",
+            "meetup": {
+                "id": new_meetup.id,
+                "number": new_meetup.meetup_number,
+                "date": new_meetup.date.isoformat() if new_meetup.date else None,
+                "title": new_meetup.title,
+                "venue": venue_name if venue_name else None,
+                "books_count": 0,
+                "books": [],
+            }
+        }
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Something went wrong on the server.") from e
+    finally:
+        db.close()
+
+
 @app.put("/admin/meetups/{meetup_number}")
 def update_admin_meetup(meetup_number: int, req: MeetupUpdateRequest):
     """Update meetup date, venue, or title."""
@@ -1465,10 +1546,13 @@ def delete_meetup_photo(meetup_number: int):
 
 
 @app.post("/admin/meetups/{meetup_number}/generate-pdf")
-def generate_meetup_pdf_endpoint(meetup_number: int):
+def generate_meetup_pdf_endpoint(
+    meetup_number: int,
+    style: Optional[str] = Query("magazine")
+):
     """
-    Generate a full-fidelity Canva-style PDF magazine for the meetup,
-    incorporating the books discussed, book covers, and group picture.
+    Generate either a full-fidelity Canva-style PDF magazine ('magazine')
+    or a clean classic Word/document table PDF ('classic') for the meetup.
     """
     from app.services.pdf_generator import generate_meetup_pdf
     db = SessionLocal()
@@ -1477,16 +1561,22 @@ def generate_meetup_pdf_endpoint(meetup_number: int):
         if not meetup:
             raise HTTPException(status_code=404, detail="Meetup not found")
 
-        pdf_path = generate_meetup_pdf(meetup_number, db)
-        pdf_url = f"/assets/generated_pdfs/bbb_meetup_{meetup_number}.pdf"
+        style_clean = (style or "magazine").lower().strip()
+        if style_clean not in ["magazine", "classic"]:
+            style_clean = "magazine"
+
+        pdf_path = generate_meetup_pdf(meetup_number, db, style=style_clean)
+        pdf_url = f"/assets/generated_pdfs/bbb_meetup_{meetup_number}_classic.pdf" if style_clean == "classic" else f"/assets/generated_pdfs/bbb_meetup_{meetup_number}.pdf"
         meetup.pdf_url = pdf_url
         db.commit()
 
+        style_label = "Classic document" if style_clean == "classic" else "Canva-style magazine"
         return {
             "success": True,
+            "style": style_clean,
             "pdf_url": pdf_url,
             "meetup_number": meetup_number,
-            "message": f"Magazine PDF for Meetup #{meetup_number} generated successfully!"
+            "message": f"{style_label} PDF for Meetup #{meetup_number} generated successfully!"
         }
     except HTTPException:
         raise
@@ -1498,27 +1588,8 @@ def generate_meetup_pdf_endpoint(meetup_number: int):
 
 
 @app.get("/meetups/{meetup_number}/pdf")
-def public_meetup_pdf(meetup_number: int):
-    """Public PDF download. Generates into the file cache when missing, never writes the database
-    (public GETs stay read-only; the admin route records pdf_url)."""
-    from app.services.pdf_generator import generate_meetup_pdf
-    db = SessionLocal()
-    try:
-        if not db.query(Meetup.id).filter(Meetup.meetup_number == meetup_number).first():
-            raise HTTPException(status_code=404, detail="Meetup not found")
-        pdf_path = asset_path("generated_pdfs", f"bbb_meetup_{meetup_number}.pdf")
-        if not os.path.exists(pdf_path):
-            pdf_path = asset_path(os.path.relpath(generate_meetup_pdf(meetup_number, db), ASSETS_DIR))
-            db.rollback()  # discard anything the generator may have staged
-        return FileResponse(pdf_path, media_type="application/pdf",
-                            filename=f"BBB_{meetup_number}_Books_Discussed.pdf")
-    finally:
-        db.close()
-
-
-@app.get("/admin/meetups/{meetup_number}/pdf")
-def download_meetup_pdf_endpoint(meetup_number: int):
-    """Download the generated PDF for the meetup, generating it on-demand if not already generated."""
+def public_meetup_pdf(meetup_number: int, style: Optional[str] = Query(None)):
+    """Public PDF download. Generates into the file cache when missing."""
     from app.services.pdf_generator import generate_meetup_pdf
     db = SessionLocal()
     try:
@@ -1526,16 +1597,48 @@ def download_meetup_pdf_endpoint(meetup_number: int):
         if not meetup:
             raise HTTPException(status_code=404, detail="Meetup not found")
 
-        pdf_path = asset_path("generated_pdfs", f"bbb_meetup_{meetup_number}.pdf")
+        style_clean = (style or "").lower().strip()
+        if not style_clean:
+            style_clean = "classic" if (meetup.pdf_url and "_classic.pdf" in meetup.pdf_url) else "magazine"
+
+        filename = f"bbb_meetup_{meetup_number}_classic.pdf" if style_clean == "classic" else f"bbb_meetup_{meetup_number}.pdf"
+        pdf_path = asset_path("generated_pdfs", filename)
         if not os.path.exists(pdf_path):
-            pdf_path = asset_path(os.path.relpath(generate_meetup_pdf(meetup_number, db), ASSETS_DIR))
-            meetup.pdf_url = f"/assets/generated_pdfs/bbb_meetup_{meetup_number}.pdf"
+            generate_meetup_pdf(meetup_number, db, style=style_clean)
+            db.rollback()
+
+        download_name = f"BBB_{meetup_number}_Books_Discussed_Classic.pdf" if style_clean == "classic" else f"BBB_{meetup_number}_Books_Discussed.pdf"
+        return FileResponse(pdf_path, media_type="application/pdf", filename=download_name)
+    finally:
+        db.close()
+
+
+@app.get("/admin/meetups/{meetup_number}/pdf")
+def download_meetup_pdf_endpoint(meetup_number: int, style: Optional[str] = Query(None)):
+    """Download the generated PDF for the meetup (supports both magazine and classic styles)."""
+    from app.services.pdf_generator import generate_meetup_pdf
+    db = SessionLocal()
+    try:
+        meetup = db.query(Meetup).filter(Meetup.meetup_number == meetup_number).first()
+        if not meetup:
+            raise HTTPException(status_code=404, detail="Meetup not found")
+
+        style_clean = (style or "").lower().strip()
+        if not style_clean:
+            style_clean = "classic" if (meetup.pdf_url and "_classic.pdf" in meetup.pdf_url) else "magazine"
+
+        filename = f"bbb_meetup_{meetup_number}_classic.pdf" if style_clean == "classic" else f"bbb_meetup_{meetup_number}.pdf"
+        pdf_path = asset_path("generated_pdfs", filename)
+        if not os.path.exists(pdf_path):
+            generate_meetup_pdf(meetup_number, db, style=style_clean)
+            meetup.pdf_url = f"/assets/generated_pdfs/{filename}"
             db.commit()
 
+        download_name = f"BBB_{meetup_number}_Books_Discussed_Classic.pdf" if style_clean == "classic" else f"BBB_{meetup_number}_Books_Discussed.pdf"
         return FileResponse(
             pdf_path,
             media_type="application/pdf",
-            filename=f"BBB_{meetup_number}_Books_Discussed.pdf"
+            filename=download_name
         )
     finally:
         db.close()

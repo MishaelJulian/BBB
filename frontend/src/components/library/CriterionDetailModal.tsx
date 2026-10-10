@@ -289,7 +289,7 @@ function Rotatable3DBook({
           </div>
 
           {/* =========================================================
-              FACE 3: LEFT SPINE (width = D, rotateY = -90deg, translateX = -halfD)
+              FACE 3: LEFT SPINE (width = D, rotateY = -90deg)
               ========================================================= */}
           <div
             className="absolute top-0 bottom-0 overflow-hidden flex flex-col justify-between items-center py-3.5 select-none"
@@ -297,8 +297,8 @@ function Rotatable3DBook({
               width: `${D}px`,
               height: `${H}px`,
               left: `${-halfD}px`,
-              transform: `rotateY(-90deg) translateZ(${halfW - halfD}px)`,
-              WebkitTransform: `rotateY(-90deg) translateZ(${halfW - halfD}px)`,
+              transform: 'rotateY(-90deg)',
+              WebkitTransform: 'rotateY(-90deg)',
               backfaceVisibility: 'hidden',
               WebkitBackfaceVisibility: 'hidden',
               backgroundColor: spineStyle.palette.bg,
@@ -332,16 +332,18 @@ function Rotatable3DBook({
           </div>
 
           {/* =========================================================
-              FACE 4: RIGHT PAGES EDGE (width = D, rotateY = +90deg, translateX = +halfD)
+              FACE 4: RIGHT PAGES EDGE (width = D, rotateY = +90deg)
               ========================================================= */}
           <div
             className="absolute top-0 bottom-0 overflow-hidden"
             style={{
               width: `${D}px`,
               height: `${H}px`,
-              right: `${-halfD}px`,
-              transform: `rotateY(90deg) translateZ(${halfW - halfD}px)`,
-              WebkitTransform: `rotateY(90deg) translateZ(${halfW - halfD}px)`,
+              left: `${W - halfD}px`,
+              transform: 'rotateY(90deg)',
+              WebkitTransform: 'rotateY(90deg)',
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
               background: 'linear-gradient(90deg, #DDD6C7 0%, #FAF8F4 50%, #DDD6C7 100%)',
               boxShadow: 'inset 0 0 10px rgba(0,0,0,0.15)',
             }}
@@ -364,8 +366,10 @@ function Rotatable3DBook({
               width: `${W}px`,
               height: `${D}px`,
               top: `${-halfD}px`,
-              transform: `rotateX(90deg) translateZ(${halfH - halfD}px)`,
-              WebkitTransform: `rotateX(90deg) translateZ(${halfH - halfD}px)`,
+              transform: 'rotateX(90deg)',
+              WebkitTransform: 'rotateX(90deg)',
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
               background: 'linear-gradient(0deg, #DDD6C7 0%, #FAF8F4 50%, #DDD6C7 100%)',
             }}
           >
@@ -385,9 +389,11 @@ function Rotatable3DBook({
             style={{
               width: `${W}px`,
               height: `${D}px`,
-              bottom: `${-halfD}px`,
-              transform: `rotateX(-90deg) translateZ(${halfH - halfD}px)`,
-              WebkitTransform: `rotateX(-90deg) translateZ(${halfH - halfD}px)`,
+              top: `${H - halfD}px`,
+              transform: 'rotateX(-90deg)',
+              WebkitTransform: 'rotateX(-90deg)',
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
               background: 'linear-gradient(0deg, #DDD6C7 0%, #FAF8F4 50%, #DDD6C7 100%)',
             }}
           >

@@ -10,8 +10,9 @@
 //      AUTH_DB_PATH (default ./data/auth.db), TRUSTED_ORIGINS (comma-separated, optional).
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { mkdirSync, existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { betterAuth } from "better-auth";
 import { admin as adminPlugin } from "better-auth/plugins";
@@ -19,9 +20,22 @@ import { createAccessControl } from "better-auth/plugins/access";
 import { defaultStatements, adminAc, userAc } from "better-auth/plugins/admin/access";
 import { getMigrations } from "better-auth/db/migration";
 import { toNodeHandler } from "better-auth/node";
+import { hashPassword } from "better-auth/crypto";
 
 const ROLES = ["admin", "presenter"];
-const dbPath = process.env.AUTH_DB_PATH || "./data/auth.db";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+function resolveDbPath() {
+  if (process.env.AUTH_DB_PATH) {
+    return resolve(process.cwd(), process.env.AUTH_DB_PATH);
+  }
+  const rootDataDb = resolve(__dirname, "../data/auth.db");
+  const localDataDb = resolve(__dirname, "./data/auth.db");
+  if (existsSync(rootDataDb)) return rootDataDb;
+  if (existsSync(localDataDb)) return localDataDb;
+  return rootDataDb;
+}
+const dbPath = resolveDbPath();
 if (!process.env.BETTER_AUTH_SECRET || process.env.BETTER_AUTH_SECRET.length < 32) {
   console.error("BETTER_AUTH_SECRET must be set (32+ characters).");
   process.exit(1);
@@ -42,7 +56,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     disableSignUp: true, // admin-managed accounts until email works (founders, 2026-10-09)
-    minPasswordLength: 10,
+    minPasswordLength: 8,
   },
   session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
   advanced: { useSecureCookies: baseURL.startsWith("https://") },
@@ -54,11 +68,10 @@ await runMigrations();
 
 const tempPassword = () => randomBytes(12).toString("base64url");
 
-async function findUser(email) {
-  const { users } = await auth.api.listUsers({
-    query: { searchField: "email", searchValue: email, searchOperator: "contains", limit: 50 },
-  });
-  const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase());
+function findUser(email) {
+  const db = new DatabaseSync(dbPath);
+  const u = db.prepare("SELECT * FROM user WHERE lower(email) = lower(?)").get(email);
+  db.close();
   if (!u) throw new Error(`no user with email ${email}`);
   return u;
 }
@@ -71,17 +84,21 @@ async function cli([cmd, email, a, b]) {
     console.log(`created ${email} (${b}); temporary password: ${password}`);
   } else if (cmd === "reset") {
     const u = await findUser(email);
-    const password = tempPassword();
-    await auth.api.setUserPassword({ body: { userId: u.id, newPassword: password } });
-    await auth.api.revokeUserSessions({ body: { userId: u.id } });
-    console.log(`reset ${email}; temporary password: ${password} (other sessions signed out)`);
+    const password = a || tempPassword();
+    const hash = await hashPassword(password);
+    const now = new Date().toISOString();
+    const db = new DatabaseSync(dbPath);
+    db.prepare("UPDATE account SET password = ?, updatedAt = ? WHERE userId = ? AND providerId = 'credential'").run(hash, now, u.id);
+    db.prepare("DELETE FROM session WHERE userId = ?").run(u.id);
+    db.close();
+    console.log(`reset ${email}; password: ${password} (other sessions signed out)`);
   } else if (cmd === "role") {
     if (!ROLES.includes(a)) throw new Error(`role must be one of ${ROLES.join(", ")}`);
     const u = await findUser(email);
     await auth.api.setRole({ body: { userId: u.id, role: a } });
     console.log(`${email} is now ${a}`);
   } else {
-    throw new Error("usage: user create <email> <name> <role> | user reset <email> | user role <email> <role>");
+    throw new Error("usage: user create <email> <name> <role> | user reset <email> [password] | user role <email> <role>");
   }
 }
 

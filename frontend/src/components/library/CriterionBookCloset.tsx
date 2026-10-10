@@ -900,10 +900,12 @@ export function CriterionBookCloset() {
         return hasDiscussions && isNotGeneral && isNotTangent
       })
       setBooks(discussedBooks)
+      return discussedBooks.length
     } catch (err) {
       console.error('Failed to load books for closet:', err)
       // R5 / PRD §17.1: say the archive could not load, never show an empty library.
       setLoadError('The archive could not be loaded. The Library Room is still here.')
+      if (silent) throw err
     } finally {
       if (!silent) setLoading(false)
     }
@@ -921,8 +923,8 @@ export function CriterionBookCloset() {
   const handleSyncDatabase = async () => {
     setIsSyncing(true)
     try {
-      await loadBooks(true)
-      showToast(`Archive synced with database (${books.length.toLocaleString()} volumes)`)
+      const count = await loadBooks(true)
+      showToast(`Archive synced with database (${(count ?? books.length).toLocaleString()} volumes)`)
     } catch {
       showToast('Failed to sync database')
     } finally {
@@ -966,7 +968,10 @@ export function CriterionBookCloset() {
 
       if (e.key === '/' || (e.ctrlKey && e.key === 'k') || (e.metaKey && e.key === 'k')) {
         e.preventDefault()
-        document.getElementById('closet-search-input')?.focus()
+        const activeInput = document.getElementById(
+          viewMode === 'closet' ? 'closet-search-input' : 'list-search-input'
+        ) || document.getElementById('closet-search-input')
+        activeInput?.focus()
       } else if (e.key === 'f' || e.key === 'F') {
         e.preventDefault()
         setIsFilterSheetOpen((prev) => !prev)
@@ -1178,6 +1183,7 @@ export function CriterionBookCloset() {
 
   return (
     <div
+      suppressHydrationWarning
       className={`relative min-h-screen w-screen transition-colors duration-500 overflow-x-hidden ${
         viewMode === 'closet' ? 'bg-[#070709] text-paper cursor-crosshair' : 'bg-[#F3EFE6] text-[#14130F]'
       }`}
@@ -1224,10 +1230,10 @@ export function CriterionBookCloset() {
             : 'bg-[#F3EFE6]/90 border-[#DDD6C7] text-[#14130F]'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-col md:flex-row items-center justify-between gap-2.5">
           
           {/* Brand & Left Tools */}
-          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto justify-between md:justify-start flex-wrap">
             <Link href="/" className="flex items-center gap-2 group">
               <span
                 className={`font-black text-xl sm:text-2xl tracking-[0.18em] transition-colors ${
@@ -1238,7 +1244,7 @@ export function CriterionBookCloset() {
               </span>
             </Link>
             <span
-              className={`text-[9px] font-mono tracking-widest px-2 py-0.5 rounded border uppercase ${
+              className={`hidden sm:inline text-[9px] font-mono tracking-widest px-2 py-0.5 rounded border uppercase ${
                 viewMode === 'closet'
                   ? 'border-white/20 text-amber-300 bg-black/40'
                   : 'border-[#DDD6C7] text-neutral-600 bg-white/60'
@@ -1246,6 +1252,47 @@ export function CriterionBookCloset() {
             >
               BBB Bangalore
             </span>
+
+            {/* Quick Navigation Links: Meetups, Readers, DB */}
+            <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Quick Navigation">
+              <Link
+                href="/meetups"
+                className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all ${
+                  viewMode === 'closet'
+                    ? 'bg-black/50 border-white/15 text-white/80 hover:text-white hover:border-amber-400'
+                    : 'bg-white border-[#DDD6C7] text-neutral-700 hover:text-black hover:border-black'
+                }`}
+                title="Meetups Archive"
+              >
+                Meetups
+              </Link>
+              <Link
+                href="/members"
+                className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all ${
+                  viewMode === 'closet'
+                    ? 'bg-black/50 border-white/15 text-white/80 hover:text-white hover:border-amber-400'
+                    : 'bg-white border-[#DDD6C7] text-neutral-700 hover:text-black hover:border-black'
+                }`}
+                title="Readers Archive"
+              >
+                Readers
+              </Link>
+              <Link
+                href="/admin"
+                className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1 ${
+                  viewMode === 'closet'
+                    ? 'bg-amber-950/40 border-amber-500/40 text-amber-300 hover:text-amber-200 hover:border-amber-400'
+                    : 'bg-amber-50 border-amber-200 text-amber-900 hover:text-amber-950 hover:border-amber-400'
+                }`}
+                title="Manage Meetups, Books and Database"
+              >
+                <svg className="w-3.5 h-3.5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span><span className="hidden sm:inline">Manage </span>DB</span>
+              </Link>
+            </nav>
 
             {/* Mobile View Switcher */}
             <div className="flex md:hidden items-center p-1 rounded-full border border-current/20">
@@ -1300,11 +1347,11 @@ export function CriterionBookCloset() {
           </div>
 
           {/* Right: Quick Tools & View Switcher */}
-          <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
             <button
               onClick={handleSyncDatabase}
               disabled={isSyncing}
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-[11px] sm:text-xs font-semibold transition-all shrink-0 ${
                 viewMode === 'closet'
                   ? 'bg-black/50 border-white/15 text-white/80 hover:text-white hover:border-amber-400'
                   : 'bg-white border-[#DDD6C7] text-neutral-700 hover:text-black'
@@ -1321,80 +1368,66 @@ export function CriterionBookCloset() {
               </svg>
               <span>{isSyncing ? 'Syncing…' : 'Sync DB'}</span>
             </button>
+            {/* Search Box (Closet View only - List View has its own dedicated search & filter bar) */}
+            {viewMode === 'closet' && (
+              <div className="relative flex-1 md:w-52">
+                <input
+                  id="closet-search-input"
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
+                  placeholder="Title, author, spine #…"
+                  className={`w-full px-3.5 py-1.5 rounded-xl text-xs border transition-all focus:outline-none ${
+                    viewMode === 'closet'
+                      ? 'bg-black/50 border-white/15 text-white placeholder-white/40 focus:border-amber-400'
+                      : 'bg-white border-[#DDD6C7] text-[#14130F] placeholder-neutral-400 focus:border-black'
+                  }`}
+                />
+                <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] opacity-40 font-mono hidden sm:inline">
+                  /
+                </kbd>
 
-            <Link
-              href="/admin"
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
-                viewMode === 'closet'
-                  ? 'bg-black/50 border-white/15 text-white/80 hover:text-white hover:border-amber-400'
-                  : 'bg-white border-[#DDD6C7] text-neutral-700 hover:text-black'
-              }`}
-              title="Manage Meetups, Books and Database"
-            >
-              <svg className="w-3.5 h-3.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span>Manage DB</span>
-            </Link>
-            {/* Search Box */}
-            <div className="relative flex-1 md:w-52">
-              <input
-                id="closet-search-input"
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
-                placeholder="Title, author, spine #…"
-                className={`w-full px-3.5 py-1.5 rounded-xl text-xs border transition-all focus:outline-none ${
-                  viewMode === 'closet'
-                    ? 'bg-black/50 border-white/15 text-white placeholder-white/40 focus:border-amber-400'
-                    : 'bg-white border-[#DDD6C7] text-[#14130F] placeholder-neutral-400 focus:border-black'
-                }`}
-              />
-              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] opacity-40 font-mono hidden sm:inline">
-                /
-              </kbd>
-
-              {/* Suggestions */}
-              <AnimatePresence>
-                {isSearchFocused && searchSuggestions.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 5 }}
-                    className="absolute left-0 right-0 top-full mt-2 bg-[#120F0D] border border-white/15 rounded-xl shadow-2xl p-1.5 z-50 space-y-1"
-                  >
-                    {searchSuggestions.map((book) => {
-                      const style = getBookSpineStyle(book.title, book.id)
-                      return (
-                        <button
-                          key={`sug-${book.id}`}
-                          onMouseDown={() => {
-                            setSelectedBook(book)
-                            setSearchQuery('')
-                          }}
-                          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/10 text-left transition-colors"
-                        >
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="text-[10px] font-mono text-amber-300 font-bold">
-                              {style.spineNo}
+                {/* Suggestions */}
+                <AnimatePresence>
+                  {isSearchFocused && searchSuggestions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 5 }}
+                      className="absolute left-0 right-0 top-full mt-2 bg-[#120F0D] border border-white/15 rounded-xl shadow-2xl p-1.5 z-50 space-y-1"
+                    >
+                      {searchSuggestions.map((book) => {
+                        const style = getBookSpineStyle(book.title, book.id)
+                        return (
+                          <button
+                            key={`sug-${book.id}`}
+                            onMouseDown={() => {
+                              setSelectedBook(book)
+                              setSearchQuery('')
+                            }}
+                            className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/10 text-left transition-colors"
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <span className="text-[10px] font-mono text-amber-300 font-bold">
+                                {style.spineNo}
+                              </span>
+                              <span className="text-xs text-white truncate font-serif">
+                                {book.title}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-white/50 shrink-0 ml-2">
+                              {book.author_name || 'BBB'}
                             </span>
-                            <span className="text-xs text-white truncate font-serif">
-                              {book.title}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-white/50 shrink-0 ml-2">
-                            {book.author_name || 'BBB'}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                          </button>
+                        )
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
 
             {/* Filters Button */}
             <button
@@ -1852,6 +1885,7 @@ export function CriterionBookCloset() {
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
               <input
+                id="list-search-input"
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -1977,17 +2011,20 @@ export function CriterionBookCloset() {
           </div>
 
           {/* Sub-bar: Showing X of Y Volumes */}
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#DDD6C7]">
+          <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#DDD6C7] flex-wrap gap-2">
             <span className="text-xs text-neutral-500 font-sans">
               Showing <strong className="text-neutral-900 font-semibold">{filteredBooks.length.toLocaleString()}</strong> of {books.length.toLocaleString()}
             </span>
 
-            <div className="flex items-center gap-4 text-xs font-medium">
+            <div className="flex items-center gap-3 sm:gap-4 text-xs font-medium flex-wrap">
               <Link href="/meetups" className="underline text-neutral-600 hover:text-black">
                 Meetups Archive →
               </Link>
               <Link href="/members" className="underline text-neutral-600 hover:text-black">
                 Readers Directory →
+              </Link>
+              <Link href="/admin" className="underline text-amber-800 hover:text-black font-semibold">
+                Manage DB →
               </Link>
             </div>
           </div>

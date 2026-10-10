@@ -1,23 +1,25 @@
 'use client'
 
 import * as React from 'react'
-import { CriterionBookCloset } from '@/components/library/CriterionBookCloset'
+import dynamic from 'next/dynamic'
+
+const CriterionBookCloset = dynamic(
+  () => import('@/components/library/CriterionBookCloset').then((mod) => mod.CriterionBookCloset),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-screen bg-[#070504] flex items-center justify-center text-amber-200/70 font-serif text-sm">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-7 h-7 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <span className="tracking-widest uppercase text-xs font-mono">
+            Opening The BBB Book Closet…
+          </span>
+        </div>
+      </div>
+    ),
+  }
+)
 
 export default function HomePage() {
-  return (
-    <React.Suspense
-      fallback={
-        <div className="min-h-screen bg-[#070504] flex items-center justify-center text-amber-200/70 font-serif text-sm">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-7 h-7 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-            <span className="tracking-widest uppercase text-xs font-mono">
-              Opening The BBB Book Closet…
-            </span>
-          </div>
-        </div>
-      }
-    >
-      <CriterionBookCloset />
-    </React.Suspense>
-  )
+  return <CriterionBookCloset />
 }

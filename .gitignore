@@ -60,7 +60,9 @@ Thumbs.db
 *.db-shm
 *.db-wal
 *.db.bak
+*.db.bak*
 *.bak
+*.bak*
 
 # Temporary scratch and media files
 scratch/
