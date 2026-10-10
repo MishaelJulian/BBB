@@ -491,6 +491,7 @@ def _meetup_dict(meetup, venue_names, discussions, books_by_id, author_names, me
 # API Endpoints
 # ============================================
 
+@app.get("/")
 @app.get("/health")
 def health():
     """Liveness + database reachability, for docker compose and monitoring."""
