@@ -1,0 +1,15 @@
+name: Keep Render Backend Warm
+
+on:
+  schedule:
+    # Runs every 12 minutes (Render free tier sleeps after 15 min of inactivity)
+    - cron: '*/12 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Backend Health Endpoint
+        run: |
+          curl -f -s -S https://bbb-api-yl2z.onrender.com/health || true
