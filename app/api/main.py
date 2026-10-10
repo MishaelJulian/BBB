@@ -1302,12 +1302,23 @@ def get_admin_meetups():
     db = SessionLocal()
     try:
         from collections import defaultdict
-        query = db.query(Meetup).order_by(Meetup.meetup_number.desc())
-        meetups = query.all()
+        
+        # Batch load all related entities in single queries to eliminate N+1 latency
+        venues_by_id = {v.id: v for v in db.query(Venue).all()}
+        authors_by_id = {a.id: a for a in db.query(Author).all()}
+        members_by_id = {m.id: m for m in db.query(Member).all()}
+        books_by_id = {b.id: b for b in db.query(CanonicalBook).all()}
+        
+        all_discussions = db.query(Discussion).all()
+        discussions_by_meetup = defaultdict(list)
+        for d in all_discussions:
+            discussions_by_meetup[d.meetup_id].append(d)
+
+        meetups = db.query(Meetup).order_by(Meetup.meetup_number.desc()).all()
         result = []
         for m in meetups:
-            venue = db.query(Venue).filter(Venue.id == m.venue_id).first()
-            discussions = db.query(Discussion).filter(Discussion.meetup_id == m.id).all()
+            venue = venues_by_id.get(m.venue_id)
+            discussions = discussions_by_meetup.get(m.id, [])
             
             # Group discussions by canonical_book_id so books discussed by multiple members appear once
             grouped_discs = defaultdict(list)
@@ -1320,21 +1331,19 @@ def get_admin_meetups():
             books_list = []
             for group_key, disc_list in grouped_discs.items():
                 first_disc = disc_list[0]
-                book = None
-                if first_disc.canonical_book_id:
-                    book = db.query(CanonicalBook).filter(CanonicalBook.id == first_disc.canonical_book_id).first()
+                book = books_by_id.get(first_disc.canonical_book_id) if first_disc.canonical_book_id else None
                 if not book:
                     continue
 
-                author = db.query(Author).filter(Author.id == book.author_id).first() if book.author_id else None
+                author = authors_by_id.get(book.author_id) if book.author_id else None
                 
                 # Combine all discussant names
                 member_names = []
                 for d in disc_list:
                     if d.member_id:
-                        member = db.query(Member).filter(Member.id == d.member_id).first()
-                        if member and member.display_name and member.display_name not in member_names:
-                            member_names.append(member.display_name)
+                        mem = members_by_id.get(d.member_id)
+                        if mem and mem.display_name and mem.display_name not in member_names:
+                            member_names.append(mem.display_name)
 
                 member_str = ", ".join(member_names) if member_names else None
                 

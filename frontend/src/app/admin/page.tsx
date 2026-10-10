@@ -132,9 +132,9 @@ export default function AdminDatabasePage() {
   }, [router])
 
   // Load all meetups with full book discussions
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
       const res = await apiFetch('/admin/meetups')
       if (!res.ok) throw new Error('Failed to fetch meetups')
       const data: MeetupAdminItem[] = await res.json()
@@ -146,7 +146,7 @@ export default function AdminDatabasePage() {
       console.error(err)
       showToast('Error connecting to backend API')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -235,8 +235,20 @@ export default function AdminDatabasePage() {
       }
       showToast(`✓ Created Meetup #${createNumber} in SQLite database`)
       setIsCreateMeetupOpen(false)
-      await loadData()
+      const newMeetupItem: MeetupAdminItem = {
+        id: `meetup_${createNumber}`,
+        number: Number(createNumber),
+        date: createDate || null,
+        venue: createVenue || 'Bookworm',
+        title: createTitle || `BBB Meetup #${createNumber}`,
+        photo_url: null,
+        pdf_url: null,
+        books_count: 0,
+        books: [],
+      }
+      setMeetups((prev) => [newMeetupItem, ...prev.filter((m) => m.number !== Number(createNumber))].sort((a, b) => b.number - a.number))
       setSelectedMeetupNumber(Number(createNumber))
+      loadData(true)
     } catch (err) {
       console.error(err)
       showToast(err instanceof Error ? err.message : 'Failed to create meetup')
@@ -271,7 +283,14 @@ export default function AdminDatabasePage() {
       if (!res.ok) throw new Error('Failed to update meetup')
       showToast(`✓ Updated Meetup #${currentMeetup.number} in SQLite database`)
       setIsEditMeetupOpen(false)
-      loadData()
+      setMeetups((prev) =>
+        prev.map((m) =>
+          m.number === currentMeetup.number
+            ? { ...m, date: editDate || null, venue: editVenue, title: editTitle }
+            : m
+        )
+      )
+      loadData(true)
     } catch (err) {
       console.error(err)
       showToast('Failed to save changes')
@@ -366,7 +385,7 @@ export default function AdminDatabasePage() {
       setNewMediaType('book')
       setNewIsGeneralDiscussion(false)
       setIsAddBookOpen(false)
-      loadData()
+      loadData(true)
     } catch (err: any) {
       console.error(err)
       showToast(err.message || 'Failed to add item')
@@ -378,16 +397,29 @@ export default function AdminDatabasePage() {
     if (!confirm(`Are you sure you want to remove "${book.title}" from Meetup #${selectedMeetupNumber}?`)) {
       return
     }
+    // Optimistically remove book from list instantly
+    setMeetups((prev) =>
+      prev.map((m) =>
+        m.number === selectedMeetupNumber
+          ? {
+              ...m,
+              books: m.books.filter((b) => b.discussion_id !== book.discussion_id),
+              books_count: Math.max(0, m.books_count - 1),
+            }
+          : m
+      )
+    )
     try {
       const res = await apiFetch(`/admin/discussions/${book.discussion_id}`, {
         method: 'DELETE',
       })
       if (!res.ok) throw new Error('Failed to delete book entry')
       showToast(`✓ Removed "${book.title}" from Meetup #${selectedMeetupNumber}`)
-      loadData()
+      loadData(true)
     } catch (err) {
       console.error(err)
       showToast('Failed to remove book')
+      loadData(true)
     }
   }
 
@@ -402,6 +434,15 @@ export default function AdminDatabasePage() {
 
     if (!confirm(promptMessage)) return
 
+    // Optimistically remove meetup instantly
+    setMeetups((prev) => prev.filter((m) => m.number !== currentMeetup.number))
+    const remaining = meetups.filter((m) => m.number !== currentMeetup.number)
+    if (remaining.length > 0) {
+      setSelectedMeetupNumber(remaining[0].number)
+    } else {
+      setSelectedMeetupNumber(null)
+    }
+
     try {
       const res = await apiFetch(`/admin/meetups/${currentMeetup.number}`, {
         method: 'DELETE',
@@ -411,18 +452,11 @@ export default function AdminDatabasePage() {
         throw new Error(data.detail || 'Failed to delete meetup')
       }
       showToast(`✓ Deleted Meetup #${currentMeetup.number}`)
-
-      // Determine next meetup to select
-      const remaining = meetups.filter((m) => m.number !== currentMeetup.number)
-      if (remaining.length > 0) {
-        setSelectedMeetupNumber(remaining[0].number)
-      } else {
-        setSelectedMeetupNumber(null)
-      }
-      loadData()
+      loadData(true)
     } catch (err: any) {
       console.error(err)
       showToast(err.message || 'Failed to delete meetup')
+      loadData(true)
     }
   }
 
@@ -516,7 +550,7 @@ export default function AdminDatabasePage() {
       showToast(`✓ Updated "${editBookTitle}" in SQLite database`)
       setEditingBook(null)
       setEditBookMeta(null)
-      loadData()
+      loadData(true)
     } catch (err) {
       console.error(err)
       showToast('Failed to update item')
