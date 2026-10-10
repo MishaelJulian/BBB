@@ -713,8 +713,8 @@ export default function AdminDatabasePage() {
             <h1 className="font-display font-bold text-sm sm:text-base md:text-lg text-[#14130F] truncate">
               BBB Archive Manager
             </h1>
-            <span className="hidden md:inline-block px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-mono text-[10px] font-semibold shrink-0">
-              SQLite 3 · Live
+            <span className="hidden md:inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-mono text-[10px] font-semibold shrink-0">
+              Supabase PostgreSQL · Live
             </span>
           </div>
 
@@ -723,7 +723,7 @@ export default function AdminDatabasePage() {
               onClick={handleSyncDatabase}
               disabled={isSyncing}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-[#DDD6C7] text-xs font-mono text-neutral-700 bg-white hover:border-amber-600 hover:text-black transition-colors"
-              title="Re-query SQLite database to verify all updates are synchronized"
+              title="Re-query Supabase database to verify all updates are synchronized"
             >
               <svg
                 className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-amber-600' : 'text-neutral-500'}`}
@@ -775,8 +775,8 @@ export default function AdminDatabasePage() {
             </div>
             <div className="h-6 w-px bg-neutral-200" />
             <div>
-              <span className="text-neutral-400 uppercase text-[10px] block">Database File</span>
-              <span className="font-mono text-neutral-800">book_club_archivist.db</span>
+              <span className="text-neutral-400 uppercase text-[10px] block">Database Engine</span>
+              <span className="font-mono text-neutral-800">Supabase (Mumbai)</span>
             </div>
             <div className="h-6 w-px bg-neutral-200" />
             <div>
@@ -789,7 +789,7 @@ export default function AdminDatabasePage() {
         {loading ? (
           <div className="py-20 text-center text-neutral-500 font-mono text-xs">
             <div className="w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            Reading SQLite database records…
+            Loading cloud database records...
           </div>
         ) : (
           /* 2-Column Master-Detail Layout */
