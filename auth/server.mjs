@@ -66,6 +66,28 @@ export const auth = betterAuth({
 const { runMigrations } = await getMigrations(auth.options);
 await runMigrations();
 
+// Auto-seed initial admin on fresh cloud deployments if 0 users exist
+try {
+  const seedDb = new DatabaseSync(dbPath);
+  const userRow = seedDb.prepare("SELECT COUNT(*) AS count FROM user").get();
+  seedDb.close();
+  if (!userRow || userRow.count === 0) {
+    const adminEmail = process.env.INITIAL_ADMIN_EMAIL || "admin@bbb.org";
+    const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || "bookworm";
+    await auth.api.createUser({
+      body: {
+        email: adminEmail,
+        name: "Admin",
+        role: "admin",
+        password: adminPassword,
+      },
+    });
+    console.log(`Initial admin account created: ${adminEmail}`);
+  }
+} catch (seedErr) {
+  console.warn("Notice during admin check/seed:", seedErr?.message || seedErr);
+}
+
 const tempPassword = () => randomBytes(12).toString("base64url");
 
 function findUser(email) {

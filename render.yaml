@@ -16,3 +16,24 @@ services:
         value: false
       - key: AUTH_REQUIRED
         value: false
+
+  - type: web
+    name: bbb-auth
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: auth
+    buildCommand: npm install
+    startCommand: node server.mjs
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: BETTER_AUTH_SECRET
+        value: bbb-development-secret-key-32chars-min-ok
+      - key: BETTER_AUTH_URL
+        value: https://bbb-library.vercel.app
+      - key: TRUSTED_ORIGINS
+        value: https://bbb-library.vercel.app
+      - key: AUTH_DB_PATH
+        value: ./data/auth.db
