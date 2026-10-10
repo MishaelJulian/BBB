@@ -424,7 +424,7 @@ export interface AuthorDetail {
  */
 export async function fetchMembers(options?: {
   search?: string
-  sortBy?: 'books' | 'name' | 'meetups'
+  sortBy?: 'books' | 'name' | 'meetups' | 'recent'
   includeHidden?: boolean
   forceRefresh?: boolean
 }): Promise<MemberSummary[]> {

@@ -186,7 +186,7 @@ class RemovedMemberArchive(Base):
     normalized_name: Mapped[str] = mapped_column(String(256), nullable=False)
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     discussions_snapshot: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    removed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, server_default=func.current_timestamp())
+    removed_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=current_utc_time, nullable=False)
 
 
 class Alias(Base, UUIDMixin, TimestampMixin):

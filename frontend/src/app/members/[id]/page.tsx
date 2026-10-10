@@ -28,6 +28,34 @@ export default function MemberDossierPage() {
   const [isUpdating, setIsUpdating] = React.useState(false)
   const [toast, setToast] = React.useState<string | null>(null)
 
+  // Chronologically sort reader's books: latest meetup discussed -> oldest meetup discussed
+  const sortedBooks = React.useMemo(() => {
+    if (!member?.books) return []
+    return [...member.books].sort((a, b) => {
+      const getLatestScore = (bk: typeof a) => {
+        let maxNum = -1
+        let maxDate = ''
+        if (bk.meetups && bk.meetups.length > 0) {
+          for (const m of bk.meetups) {
+            const num = typeof m.meetup_number === 'number' ? m.meetup_number : Number(m.meetup_number) || 0
+            if (num > maxNum) maxNum = num
+            if (m.date && m.date > maxDate) maxDate = m.date
+          }
+        }
+        return { maxNum, maxDate }
+      }
+      const scoreA = getLatestScore(a)
+      const scoreB = getLatestScore(b)
+      if (scoreB.maxNum !== scoreA.maxNum) {
+        return scoreB.maxNum - scoreA.maxNum
+      }
+      if (scoreB.maxDate !== scoreA.maxDate) {
+        return scoreB.maxDate.localeCompare(scoreA.maxDate)
+      }
+      return a.title.localeCompare(b.title)
+    })
+  }, [member?.books])
+
   React.useEffect(() => {
     async function checkAdmin() {
       try {
@@ -214,18 +242,18 @@ export default function MemberDossierPage() {
         <Container size="narrow">
           <div className="flex items-center justify-between gap-4 mb-6">
             <h2 className="font-display text-2xl font-bold text-ink">
-              Books Discussed & Brought ({member.books.length})
+              Books Discussed & Brought ({sortedBooks.length})
             </h2>
-            <span className="text-xs text-muted font-mono">Archive Records</span>
+            <span className="text-xs text-muted font-mono">Archive Records · Latest First</span>
           </div>
 
-          {member.books.length === 0 ? (
+          {sortedBooks.length === 0 ? (
             <div className="p-8 rounded-lg border border-dashed border-border text-center text-muted italic">
               No specific book discussion titles recorded in historical meetup notes.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {member.books.map((book) => {
+              {sortedBooks.map((book) => {
                 const coverColor = getBookColor(book.title)
                 return (
                   <div
@@ -291,15 +319,17 @@ export default function MemberDossierPage() {
                       <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2 border-t border-border/40">
                         {book.meetups && book.meetups.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
-                            {book.meetups.map((m, idx) => (
-                              <Link
-                                key={idx}
-                                href={`/meetups/${m.meetup_number}`}
-                                className="text-[10px] font-mono px-2 py-0.5 rounded bg-paper-dark border border-border/80 text-muted hover:text-amber-900 hover:border-amber-700/40 transition-colors"
-                              >
-                                Meetup #{m.meetup_number}
-                              </Link>
-                            ))}
+                            {[...book.meetups]
+                              .sort((m1, m2) => (Number(m2.meetup_number) || 0) - (Number(m1.meetup_number) || 0))
+                              .map((m, idx) => (
+                                <Link
+                                  key={idx}
+                                  href={`/meetups/${m.meetup_number}`}
+                                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-paper-dark border border-border/80 text-muted hover:text-amber-900 hover:border-amber-700/40 transition-colors"
+                                >
+                                  Meetup #{m.meetup_number}
+                                </Link>
+                              ))}
                           </div>
                         )}
                         <Link

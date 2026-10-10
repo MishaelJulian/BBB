@@ -27,7 +27,7 @@ export default function MembersPage() {
   const [loading, setLoading] = React.useState<boolean>(() => members.length === 0)
   const [error, setError] = React.useState<string | null>(null)
   const [search, setSearch] = React.useState('')
-  const [sortBy, setSortBy] = React.useState<'books' | 'meetups' | 'name'>('books')
+  const [sortBy, setSortBy] = React.useState<'books' | 'meetups' | 'name' | 'recent'>('books')
   
   // Admin & removal state
   const [isAdmin, setIsAdmin] = React.useState(false)
@@ -275,10 +275,11 @@ export default function MembersPage() {
             </span>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'books' | 'meetups' | 'name')}
+              onChange={(e) => setSortBy(e.target.value as 'books' | 'meetups' | 'name' | 'recent')}
               className="h-10 rounded-md border border-border bg-paper px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-amber-700/50"
             >
               <option value="books">Most Books Discussed</option>
+              <option value="recent">Recently Active</option>
               <option value="meetups">Most Meetups Attended</option>
               <option value="name">Alphabetical Name</option>
             </select>

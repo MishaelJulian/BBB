@@ -878,34 +878,43 @@ def get_members(
 
         member_ids = {m.id for m in members}
 
-        # 1. Fetch all discussions for these members in ONE query
-        discussions = db.query(
-            Discussion.member_id,
-            Discussion.canonical_book_id,
-            Discussion.meetup_id
-        ).filter(Discussion.member_id.in_(member_ids)).all()
+        # 1. Fetch all discussions for these members with Meetup details in ONE query
+        discussions = (
+            db.query(
+                Discussion.member_id,
+                Discussion.canonical_book_id,
+                Discussion.meetup_id,
+                Meetup.meetup_number,
+                Meetup.date,
+            )
+            .outerjoin(Meetup, Discussion.meetup_id == Meetup.id)
+            .filter(Discussion.member_id.in_(member_ids))
+            .all()
+        )
 
-        member_books = defaultdict(set)
+        # Sort discussions so latest meetup is processed first
+        discussions.sort(
+            key=lambda row: (row[3] or 0, row[4].isoformat() if row[4] else ""),
+            reverse=True,
+        )
+
+        member_books = defaultdict(list)
         member_meetups = defaultdict(set)
         needed_book_ids = set()
-        all_meetup_ids = set()
+        meetup_date_map = {}
 
-        for mem_id, b_id, m_id in discussions:
+        for mem_id, b_id, m_id, m_num, m_date in discussions:
             if b_id:
-                member_books[mem_id].add(b_id)
+                if b_id not in member_books[mem_id]:
+                    member_books[mem_id].append(b_id)
                 if len(member_books[mem_id]) <= 8:
                     needed_book_ids.add(b_id)
             if m_id:
                 member_meetups[mem_id].add(m_id)
-                all_meetup_ids.add(m_id)
+                if m_date and m_id not in meetup_date_map:
+                    meetup_date_map[m_id] = m_date.isoformat()
 
-        # 2. Fetch meetup dates in ONE query
-        meetup_date_map = {}
-        if all_meetup_ids:
-            meetups = db.query(Meetup.id, Meetup.date).filter(Meetup.id.in_(all_meetup_ids)).all()
-            meetup_date_map = {m.id: m.date.isoformat() for m in meetups if m.date}
-
-        # 3. Fetch book covers in ONE query
+        # 2. Fetch book covers in ONE query
         cover_map = {}
         if needed_book_ids:
             books = db.query(CanonicalBook.id, CanonicalBook.cover_url, CanonicalBook.thumbnail_url).filter(
@@ -915,14 +924,14 @@ def get_members(
 
         results = []
         for m in members:
-            book_ids = member_books.get(m.id, set())
+            book_ids = member_books.get(m.id, [])
             m_ids = member_meetups.get(m.id, set())
             dates = [meetup_date_map[mid] for mid in m_ids if mid in meetup_date_map]
 
             sample_covers = []
             for b_id in book_ids:
                 c = cover_map.get(b_id)
-                if c:
+                if c and c not in sample_covers:
                     sample_covers.append(c)
                 if len(sample_covers) >= 4:
                     break
@@ -942,6 +951,8 @@ def get_members(
             results.sort(key=lambda x: x["display_name"].lower())
         elif sort_by == "meetups":
             results.sort(key=lambda x: (x["meetup_count"], x["book_count"]), reverse=True)
+        elif sort_by == "recent":
+            results.sort(key=lambda x: (x["last_active_date"] or "", x["book_count"]), reverse=True)
         else:
             results.sort(key=lambda x: (x["book_count"], x["meetup_count"]), reverse=True)
 
@@ -1033,6 +1044,33 @@ def get_member(member_id: str, response: Response):
         meetup_list = sorted(meetups_map.values(), key=lambda x: x["number"] if x["number"] else 0, reverse=True)
         dates = [m["date"] for m in meetup_list if m["date"]]
 
+        # Prepare books list sorted from latest discussed to oldest discussed
+        books_list = list(books_map.values())
+        for b in books_list:
+            seen_meetup_keys = set()
+            deduped_meetups = []
+            for m in b["meetups"]:
+                key = (m.get("meetup_number"), m.get("date"))
+                if key not in seen_meetup_keys:
+                    seen_meetup_keys.add(key)
+                    deduped_meetups.append(m)
+            # Sort individual book's meetups descending (latest meetup first)
+            deduped_meetups.sort(
+                key=lambda x: (x.get("meetup_number") or 0, x.get("date") or ""),
+                reverse=True,
+            )
+            b["meetups"] = deduped_meetups
+
+        # Sort books list: latest discussed book first -> oldest discussed book last
+        def _get_book_sort_key(b):
+            nums = [m["meetup_number"] for m in b["meetups"] if m.get("meetup_number") is not None]
+            dates_list = [m["date"] for m in b["meetups"] if m.get("date")]
+            max_num = max(nums) if nums else 0
+            max_date = max(dates_list) if dates_list else ""
+            return (max_num, max_date)
+
+        books_list.sort(key=_get_book_sort_key, reverse=True)
+
         response.headers["Cache-Control"] = "public, max-age=30, s-maxage=120, stale-while-revalidate=300"
 
         return {
@@ -1044,7 +1082,7 @@ def get_member(member_id: str, response: Response):
             "meetup_count": len(meetups_map),
             "first_active_date": min(dates, default=None),
             "last_active_date": max(dates, default=None),
-            "books": list(books_map.values()),
+            "books": books_list,
             "meetups": meetup_list,
         }
     finally:
