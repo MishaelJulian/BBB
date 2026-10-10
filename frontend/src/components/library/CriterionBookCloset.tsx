@@ -917,6 +917,7 @@ export function CriterionBookCloset() {
         return hasDiscussions && isNotGeneral && isNotTangent
       })
       setBooks(discussedBooks)
+      setSelectedBook((prev) => (prev && !discussedBooks.some((b) => b.id === prev.id) ? null : prev))
       try {
         sessionStorage.setItem('bbb_archive_books', JSON.stringify(discussedBooks))
       } catch {}
@@ -945,7 +946,11 @@ export function CriterionBookCloset() {
   const handleSyncDatabase = async () => {
     setIsSyncing(true)
     try {
+      try {
+        sessionStorage.removeItem('bbb_archive_books')
+      } catch {}
       const count = await loadBooks(true, true)
+      setSelectedBook((prev) => (prev && !(books || []).some((b) => b.id === prev.id) ? null : prev))
       showToast(`Archive synced with database (${(count ?? books.length).toLocaleString()} volumes)`)
     } catch {
       showToast('Failed to sync database')

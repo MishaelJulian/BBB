@@ -612,7 +612,7 @@ def get_books(
 
         books = query.all()
         if not search and not author and not year:
-            response.headers["Cache-Control"] = "public, max-age=60, s-maxage=3600, stale-while-revalidate=86400"
+            response.headers["Cache-Control"] = "public, max-age=5, s-maxage=30, stale-while-revalidate=60"
         return batch_books_to_dict(books, db)
     finally:
         db.close()
@@ -790,7 +790,7 @@ def get_meetups(
 
         meetups = query.all()
         if not search and not year:
-            response.headers["Cache-Control"] = "public, max-age=60, s-maxage=3600, stale-while-revalidate=86400"
+            response.headers["Cache-Control"] = "public, max-age=5, s-maxage=30, stale-while-revalidate=60"
         return meetups_to_dicts(meetups, db)
     finally:
         db.close()
