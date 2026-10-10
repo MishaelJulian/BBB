@@ -4,7 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { BookAutocompleteInput, BookSuggestion, MediaTypeOption } from '@/components/admin/BookAutocompleteInput'
 import { MemberAutocompleteInput } from '@/components/admin/MemberAutocompleteInput'
-import { getApiBase } from '@/lib/api'
+import { getApiBase, invalidateApiCache } from '@/lib/api'
 import { getSession, type SessionUser } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 
@@ -155,6 +155,7 @@ export default function AdminDatabasePage() {
   const handleSyncDatabase = async () => {
     setIsSyncing(true)
     try {
+      invalidateApiCache()
       await loadData()
       showToast('⚡ Database synced with SQLite (all updates live in Closet & List View)')
     } catch {

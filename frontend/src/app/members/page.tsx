@@ -8,14 +8,23 @@ import { PageHeader } from '@/components/layout/PageHeader'
 import { Input } from '@/components/ui/Input'
 import { LoadingState } from '@/components/shared/LoadingState'
 import { ErrorState } from '@/components/shared/ErrorState'
-import { fetchMembers, deleteMember, fetchRemovedMembers, restoreMember } from '@/lib/api'
+import { fetchMembers, deleteMember, fetchRemovedMembers, restoreMember, getCachedData } from '@/lib/api'
 import { getSession } from '@/lib/auth'
 import { formatDate } from '@/lib/utils'
 import type { MemberSummary, RemovedMember } from '@/lib/api'
 
 export default function MembersPage() {
-  const [members, setMembers] = React.useState<MemberSummary[]>([])
-  const [loading, setLoading] = React.useState(true)
+  // Zero-flicker synchronous hydration: if members are already in memory/storage, load them on frame 1
+  const [members, setMembers] = React.useState<MemberSummary[]>(() => {
+    if (typeof window === 'undefined') return []
+    try {
+      const cached = getCachedData<MemberSummary[]>('members_') || 
+        (sessionStorage.getItem('bbb_archive_members') ? JSON.parse(sessionStorage.getItem('bbb_archive_members')!) : null)
+      if (Array.isArray(cached) && cached.length > 0) return cached
+    } catch {}
+    return []
+  })
+  const [loading, setLoading] = React.useState<boolean>(() => members.length === 0)
   const [error, setError] = React.useState<string | null>(null)
   const [search, setSearch] = React.useState('')
   const [sortBy, setSortBy] = React.useState<'books' | 'meetups' | 'name'>('books')
@@ -59,20 +68,6 @@ export default function MembersPage() {
       setToast(null)
     }, 4000)
   }
-
-  // Load cached members immediately on mount for 0ms instant display!
-  React.useEffect(() => {
-    try {
-      const cached = sessionStorage.getItem('bbb_archive_members')
-      if (cached) {
-        const parsed = JSON.parse(cached)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMembers(parsed)
-          setLoading(false)
-        }
-      }
-    } catch {}
-  }, [])
 
   // Load members
   React.useEffect(() => {

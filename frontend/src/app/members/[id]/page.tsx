@@ -8,15 +8,21 @@ import { Section } from '@/components/layout/Section'
 import { Divider } from '@/components/ui/Divider'
 import { LoadingState } from '@/components/shared/LoadingState'
 import { ErrorState } from '@/components/shared/ErrorState'
-import { fetchMember, deleteMember } from '@/lib/api'
+import { fetchMember, deleteMember, getCachedData } from '@/lib/api'
 import { getSession } from '@/lib/auth'
 import { formatDate, getBookColor } from '@/lib/utils'
 import type { MemberDetail } from '@/lib/api'
 
 export default function MemberDossierPage() {
   const params = useParams()
-  const [member, setMember] = React.useState<MemberDetail | null>(null)
-  const [loading, setLoading] = React.useState(true)
+  const memberId = params?.id as string
+
+  // Zero-flicker synchronous hydration: load from cache on frame 1
+  const [member, setMember] = React.useState<MemberDetail | null>(() => {
+    if (typeof window === 'undefined' || !memberId) return null
+    return getCachedData<MemberDetail>(`member_${memberId}`)
+  })
+  const [loading, setLoading] = React.useState<boolean>(() => member === null)
   const [error, setError] = React.useState<string | null>(null)
   const [isAdmin, setIsAdmin] = React.useState(false)
   const [isUpdating, setIsUpdating] = React.useState(false)
@@ -35,12 +41,14 @@ export default function MemberDossierPage() {
   React.useEffect(() => {
     async function loadMember() {
       try {
-        setLoading(true)
+        if (!member) setLoading(true)
         setError(null)
-        const data = await fetchMember(params.id as string)
+        const data = await fetchMember(memberId)
         setMember(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load member dossier')
+        if (!member) {
+          setError(err instanceof Error ? err.message : 'Failed to load member dossier')
+        }
       } finally {
         setLoading(false)
       }

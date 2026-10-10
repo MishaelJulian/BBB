@@ -8,33 +8,41 @@ import { Section } from '@/components/layout/Section'
 import { Divider } from '@/components/ui/Divider'
 import { LoadingState } from '@/components/shared/LoadingState'
 import { ErrorState } from '@/components/shared/ErrorState'
-import { fetchMeetup, getApiBase } from '@/lib/api'
+import { fetchMeetup, getApiBase, getCachedData } from '@/lib/api'
 import { formatDate, getBookColor } from '@/lib/utils'
 import type { Meetup } from '@/lib/api'
 
 export default function MeetupPage() {
   const params = useParams()
-  const [meetup, setMeetup] = React.useState<Meetup | null>(null)
-  const [loading, setLoading] = React.useState(true)
+  const meetupId = params?.id as string
+
+  // Zero-flicker synchronous hydration: load from cache on frame 1
+  const [meetup, setMeetup] = React.useState<Meetup | null>(() => {
+    if (typeof window === 'undefined' || !meetupId) return null
+    return getCachedData<Meetup>(`meetup_${meetupId}`)
+  })
+  const [loading, setLoading] = React.useState<boolean>(() => meetup === null)
   const [error, setError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     async function fetchMeetupData() {
       try {
-        setLoading(true)
+        if (!meetup) setLoading(true)
         setError(null)
 
-        const data = await fetchMeetup(params.id as string)
+        const data = await fetchMeetup(meetupId)
         setMeetup(data)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
+        if (!meetup) {
+          setError(err instanceof Error ? err.message : 'An error occurred')
+        }
       } finally {
         setLoading(false)
       }
     }
 
-    fetchMeetupData()
-  }, [params.id])
+    if (meetupId) fetchMeetupData()
+  }, [meetupId])
 
   if (loading) {
     return (

@@ -98,6 +98,105 @@ export interface BookReference {
 }
 
 // ============================================
+// In-Memory SWR (Stale-While-Revalidate) Cache
+// ============================================
+
+interface CacheEntry<T> {
+  data: T
+  timestamp: number
+}
+
+const memoryCache = new Map<string, CacheEntry<any>>()
+const CACHE_TTL_MS = 3 * 60 * 1000 // 3 minutes fresh window
+
+export function getCachedData<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null
+  const entry = memoryCache.get(key)
+  if (entry) return entry.data as T
+  try {
+    const session = sessionStorage.getItem(`swr_${key}`)
+    if (session) {
+      const parsed = JSON.parse(session)
+      memoryCache.set(key, { data: parsed, timestamp: Date.now() })
+      return parsed as T
+    }
+  } catch {}
+  return null
+}
+
+export function setCachedData<T>(key: string, data: T): void {
+  if (typeof window === 'undefined') return
+  memoryCache.set(key, { data, timestamp: Date.now() })
+  try {
+    sessionStorage.setItem(`swr_${key}`, JSON.stringify(data))
+  } catch {}
+}
+
+export function invalidateApiCache(prefix?: string): void {
+  if (typeof window === 'undefined') return
+  if (!prefix) {
+    memoryCache.clear()
+    try {
+      const keys = Object.keys(sessionStorage)
+      for (const k of keys) {
+        if (k.startsWith('swr_') || k.startsWith('bbb_archive_')) {
+          sessionStorage.removeItem(k)
+        }
+      }
+    } catch {}
+    return
+  }
+  for (const k of Array.from(memoryCache.keys())) {
+    if (k.includes(prefix)) memoryCache.delete(k)
+  }
+  try {
+    const keys = Object.keys(sessionStorage)
+    for (const k of keys) {
+      if (k.includes(prefix)) sessionStorage.removeItem(k)
+    }
+  } catch {}
+}
+
+async function fetchWithSWR<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  forceRefresh: boolean = false
+): Promise<T> {
+  if (typeof window === 'undefined') {
+    return fetcher()
+  }
+
+  if (forceRefresh) {
+    const fresh = await fetcher()
+    setCachedData(key, fresh)
+    return fresh
+  }
+
+  const cached = getCachedData<T>(key)
+  const entry = memoryCache.get(key)
+  const isFresh = entry && Date.now() - entry.timestamp < CACHE_TTL_MS
+
+  if (cached !== null) {
+    // If cache is older than TTL, silently revalidate in the background
+    if (!isFresh) {
+      fetcher()
+        .then((fresh) => {
+          if (fresh !== null && fresh !== undefined) setCachedData(key, fresh)
+        })
+        .catch(() => {})
+    }
+    return cached
+  }
+
+  // Cold fetch if no cache exists yet
+  const fresh = await fetcher()
+  if (fresh !== null && fresh !== undefined) {
+    setCachedData(key, fresh)
+  }
+  return fresh
+}
+
+// ============================================
 // API Functions
 // ============================================
 
@@ -105,13 +204,11 @@ export interface BookReference {
  * Fetch archive statistics
  */
 export async function fetchStats(): Promise<ArchiveStats> {
-  const res = await fetch(`${API_BASE}/stats`)
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch archive stats')
-  }
-
-  return res.json()
+  return fetchWithSWR('stats', async () => {
+    const res = await fetch(`${API_BASE}/stats`)
+    if (!res.ok) throw new Error('Failed to fetch archive stats')
+    return res.json()
+  })
 }
 
 /**
@@ -142,32 +239,31 @@ export async function fetchBooks(options?: {
   if (options?.excludeGeneral) params.set('exclude_general', 'true')
   if (options?.forceRefresh) params.set('_t', Date.now().toString())
 
-  const res = await fetch(`${API_BASE}/books?${params.toString()}`, {
-    cache: options?.forceRefresh ? 'no-store' : 'default',
-  })
+  const cacheKey = `books_${params.toString()}`
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch books')
-  }
-
-  return res.json()
+  return fetchWithSWR(
+    cacheKey,
+    async () => {
+      const res = await fetch(`${API_BASE}/books?${params.toString()}`, {
+        cache: options?.forceRefresh ? 'no-store' : 'default',
+      })
+      if (!res.ok) throw new Error('Failed to fetch books')
+      return res.json()
+    },
+    Boolean(options?.forceRefresh)
+  )
 }
 
 /**
  * Fetch a single book
  */
 export async function fetchBook(id: string): Promise<Book | null> {
-  const res = await fetch(`${API_BASE}/books/${id}`)
-
-  if (res.status === 404) {
-    return null
-  }
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch book')
-  }
-
-  return res.json()
+  return fetchWithSWR(`book_${id}`, async () => {
+    const res = await fetch(`${API_BASE}/books/${id}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error('Failed to fetch book')
+    return res.json()
+  })
 }
 
 /**
@@ -184,32 +280,31 @@ export async function fetchMeetups(options?: {
   if (options?.year) params.set('year', options.year.toString())
   if (options?.forceRefresh) params.set('_t', Date.now().toString())
 
-  const res = await fetch(`${API_BASE}/meetups?${params.toString()}`, {
-    cache: options?.forceRefresh ? 'no-store' : 'default',
-  })
+  const cacheKey = `meetups_${params.toString()}`
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch meetups')
-  }
-
-  return res.json()
+  return fetchWithSWR(
+    cacheKey,
+    async () => {
+      const res = await fetch(`${API_BASE}/meetups?${params.toString()}`, {
+        cache: options?.forceRefresh ? 'no-store' : 'default',
+      })
+      if (!res.ok) throw new Error('Failed to fetch meetups')
+      return res.json()
+    },
+    Boolean(options?.forceRefresh)
+  )
 }
 
 /**
  * Fetch a single meetup
  */
 export async function fetchMeetup(id: string): Promise<Meetup | null> {
-  const res = await fetch(`${API_BASE}/meetups/${id}`)
-
-  if (res.status === 404) {
-    return null
-  }
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch meetup')
-  }
-
-  return res.json()
+  return fetchWithSWR(`meetup_${id}`, async () => {
+    const res = await fetch(`${API_BASE}/meetups/${id}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error('Failed to fetch meetup')
+    return res.json()
+  })
 }
 
 /**
@@ -339,15 +434,19 @@ export async function fetchMembers(options?: {
   if (options?.includeHidden) params.set('include_hidden', 'true')
   if (options?.forceRefresh) params.set('_t', Date.now().toString())
 
-  const res = await fetch(`${API_BASE}/members?${params.toString()}`, {
-    cache: options?.forceRefresh ? 'no-store' : 'default',
-  })
+  const cacheKey = `members_${params.toString()}`
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch members directory')
-  }
-
-  return res.json()
+  return fetchWithSWR(
+    cacheKey,
+    async () => {
+      const res = await fetch(`${API_BASE}/members?${params.toString()}`, {
+        cache: options?.forceRefresh ? 'no-store' : 'default',
+      })
+      if (!res.ok) throw new Error('Failed to fetch members directory')
+      return res.json()
+    },
+    Boolean(options?.forceRefresh)
+  )
 }
 
 /**
@@ -364,6 +463,7 @@ export async function deleteMember(memberId: string): Promise<{ success: boolean
     throw new Error(err.detail || 'Failed to remove member')
   }
 
+  invalidateApiCache('member')
   return res.json()
 }
 
@@ -404,6 +504,7 @@ export async function restoreMember(memberId: string): Promise<{ success: boolea
     throw new Error(err.detail || 'Failed to restore member')
   }
 
+  invalidateApiCache('member')
   return res.json()
 }
 
@@ -411,33 +512,23 @@ export async function restoreMember(memberId: string): Promise<{ success: boolea
  * Fetch a single member dossier
  */
 export async function fetchMember(id: string): Promise<MemberDetail | null> {
-  const res = await fetch(`${API_BASE}/members/${id}`)
-
-  if (res.status === 404) {
-    return null
-  }
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch member dossier')
-  }
-
-  return res.json()
+  return fetchWithSWR(`member_${id}`, async () => {
+    const res = await fetch(`${API_BASE}/members/${id}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error('Failed to fetch member dossier')
+    return res.json()
+  })
 }
 
 /**
  * Fetch an author archival record
  */
 export async function fetchAuthor(id: string): Promise<AuthorDetail | null> {
-  const res = await fetch(`${API_BASE}/authors/${id}`)
-
-  if (res.status === 404) {
-    return null
-  }
-
-  if (!res.ok) {
-    throw new Error('Failed to fetch author record')
-  }
-
-  return res.json()
+  return fetchWithSWR(`author_${id}`, async () => {
+    const res = await fetch(`${API_BASE}/authors/${id}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error('Failed to fetch author record')
+    return res.json()
+  })
 }
 

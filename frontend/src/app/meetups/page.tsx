@@ -8,29 +8,25 @@ import { MeetupCard } from '@/components/meetup/MeetupCard'
 import { Input } from '@/components/ui/Input'
 import { LoadingState } from '@/components/shared/LoadingState'
 import { ErrorState } from '@/components/shared/ErrorState'
-import { fetchMeetups } from '@/lib/api'
+import { fetchMeetups, getCachedData } from '@/lib/api'
 import type { Meetup } from '@/lib/api'
 
 export default function MeetupsPage() {
   const [search, setSearch] = React.useState('')
   const [year, setYear] = React.useState<string>('')
-  const [meetups, setMeetups] = React.useState<Meetup[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
-
-  // Load cached meetups immediately on mount for 0ms instant display!
-  React.useEffect(() => {
+  
+  // Zero-flicker synchronous hydration: if meetups are already in memory/storage, load them on frame 1
+  const [meetups, setMeetups] = React.useState<Meetup[]>(() => {
+    if (typeof window === 'undefined') return []
     try {
-      const cached = sessionStorage.getItem('bbb_archive_meetups')
-      if (cached) {
-        const parsed = JSON.parse(cached)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMeetups(parsed)
-          setLoading(false)
-        }
-      }
+      const cached = getCachedData<Meetup[]>('meetups_') || 
+        (sessionStorage.getItem('bbb_archive_meetups') ? JSON.parse(sessionStorage.getItem('bbb_archive_meetups')!) : null)
+      if (Array.isArray(cached) && cached.length > 0) return cached
     } catch {}
-  }, [])
+    return []
+  })
+  const [loading, setLoading] = React.useState<boolean>(() => meetups.length === 0)
+  const [error, setError] = React.useState<string | null>(null)
 
   // Fetch meetups
   React.useEffect(() => {
