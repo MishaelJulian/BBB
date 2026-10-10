@@ -1103,6 +1103,19 @@ def delete_member(member_id: str):
 
         db.execute(
             text("""
+                CREATE TABLE IF NOT EXISTS removed_members_archive (
+                    id VARCHAR(36) PRIMARY KEY,
+                    display_name VARCHAR(256) NOT NULL,
+                    normalized_name VARCHAR(256) NOT NULL,
+                    bio TEXT,
+                    discussions_snapshot TEXT,
+                    removed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+        )
+
+        db.execute(
+            text("""
                 INSERT INTO removed_members_archive (id, display_name, normalized_name, bio, discussions_snapshot)
                 VALUES (:id, :display_name, :normalized_name, :bio, :discussions_snapshot)
                 ON CONFLICT(id) DO UPDATE SET 
@@ -1144,7 +1157,8 @@ def delete_member(member_id: str):
         raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to remove member") from e
+        logger.error("Failed to remove member %s: %s", member_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to remove member: {str(e)}") from e
     finally:
         db.close()
 
@@ -1154,6 +1168,18 @@ def get_removed_members():
     """Get all removed members from the archive table."""
     db = SessionLocal()
     try:
+        db.execute(
+            text("""
+                CREATE TABLE IF NOT EXISTS removed_members_archive (
+                    id VARCHAR(36) PRIMARY KEY,
+                    display_name VARCHAR(256) NOT NULL,
+                    normalized_name VARCHAR(256) NOT NULL,
+                    bio TEXT,
+                    discussions_snapshot TEXT,
+                    removed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+        )
         rows = db.execute(text("SELECT id, display_name, removed_at, discussions_snapshot FROM removed_members_archive ORDER BY removed_at DESC")).fetchall()
         return [
             {
