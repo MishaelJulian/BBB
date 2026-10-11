@@ -640,3 +640,7 @@ class Tag(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "tags"
 
     name: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
+
+
+# Identity layer (editions, external identifiers); kept in its own module.
+from app.database import identity_models  # noqa: E402,F401

@@ -17,7 +17,7 @@ sys.path.insert(0, r'C:\Users\misha\OneDrive\Desktop\bbb')
 
 import pytest
 from datetime import date
-from app.core.database import get_db_session, init_db
+from app.core.database import get_db_session
 from app.database.models import (
     Meetup, Venue, Source, ImportedBook, CanonicalBook,
     Member, Discussion
@@ -73,7 +73,7 @@ EXPECTED_GD_BOOKS = [
 @pytest.fixture(scope="module")
 def db_session():
     """Get database session for tests."""
-    init_db()
+    # No init_db(): this suite reads the committed archive and must never write to it.
     with get_db_session() as session:
         yield session
 
