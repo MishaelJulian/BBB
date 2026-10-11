@@ -61,7 +61,7 @@ class Edition(Base, UUIDMixin, TimestampMixin):
             ["identity_basis"], ["identifier_schemes.scheme"], name="fk_edition_basis",
         ),
         CheckConstraint(
-            "publication_year IS NULL OR publication_year BETWEEN 1000 AND 2100", name="ck_edition_year",
+            "publication_year IS NULL OR publication_year <= 2100", name="ck_edition_year",
         ),
         CheckConstraint(
             "identity_basis <> 'manual' OR (publisher_id IS NOT NULL AND publication_year IS NOT NULL)",

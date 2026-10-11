@@ -57,7 +57,7 @@ def upgrade() -> None:
         sa.Column("identity_basis", sa.String(32), sa.ForeignKey("identifier_schemes.scheme", name="fk_edition_basis"), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
-        sa.CheckConstraint("publication_year IS NULL OR publication_year BETWEEN 1000 AND 2100", name="ck_edition_year"),
+        sa.CheckConstraint("publication_year IS NULL OR publication_year <= 2100", name="ck_edition_year"),
         sa.CheckConstraint(
             "identity_basis <> 'manual' OR (publisher_id IS NOT NULL AND publication_year IS NOT NULL)",
             name="ck_edition_manual_needs_publisher_and_year",

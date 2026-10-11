@@ -6,7 +6,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import Protocol
 
-MIN_YEAR, MAX_YEAR = 1000, 2100  # same bounds as imperative_decisions.md section 3
+MAX_YEAR = 2100  # no lower bound: ancient works and BCE dates are valid (founders, 2026-10-12); dating model pending the council
 
 
 @dataclass(frozen=True)
@@ -67,8 +67,8 @@ def manual_entry_problems(publisher: str | None, year: int | None) -> list[str]:
     problems = []
     if not (publisher or "").strip():
         problems.append("publisher is required")
-    if year is None or not (MIN_YEAR <= year <= MAX_YEAR):
-        problems.append(f"publication year is required ({MIN_YEAR} to {MAX_YEAR})")
+    if year is None or year > MAX_YEAR:
+        problems.append(f"publication year is required (any year up to {MAX_YEAR}; use a negative number for BCE)")
     return problems
 
 

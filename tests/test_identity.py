@@ -57,7 +57,9 @@ def test_all_providers_failing_requires_manual_entry():
 def test_manual_entry_needs_publisher_and_year():
     assert manual_entry_problems("Penguin", 1950) == []
     assert len(manual_entry_problems("", None)) == 2
-    assert manual_entry_problems("Penguin", 3000) == ["publication year is required (1000 to 2100)"]
+    assert len(manual_entry_problems("Penguin", 3000)) == 1                  # too far in the future
+    assert manual_entry_problems("Penguin", -700) == []                       # BCE is allowed
+    assert manual_entry_problems("Penguin", 800) == []                        # before the year 1000 is allowed
 
 def test_names_match_handles_initials_order_and_rejects_other_authors():
     assert names_match("Dostoevsky", ["Fyodor Dostoevsky"])
@@ -245,3 +247,20 @@ def test_lookup_endpoint_returns_candidate_on_a_hit(monkeypatch):
     out = main.lookup_book_identity(main.BookLookupRequest(title="Meditations", author="Marcus Aurelius"))
     assert out["found"] and out["candidate"]["work_ids"] == {"openlibrary_work": "OL1W"}
     assert [t["result"] for t in out["trail"]] == ["no_match", "match"]
+
+
+def _with_check_digit(first12: str) -> str:
+    return first12 + str((10 - sum(int(c) * (3 if i % 2 else 1) for i, c in enumerate(first12)) % 10) % 10)
+
+def test_979_only_accepts_isbn_ranges_not_music_numbers():
+    assert normalize_isbn(_with_check_digit("979023067118")) is None          # 979-0 is ISMN (sheet music)
+    assert normalize_isbn(_with_check_digit("979800000001")) is not None      # 979-8 USA
+    assert normalize_isbn(_with_check_digit("979100000001")) is not None      # 979-10 France
+    assert normalize_isbn(_with_check_digit("979500000001")) is None          # unallocated 979 group
+
+def test_year_floor_is_gone_in_the_database_too(db):
+    w = _work(db, "The Iliad"); p = Publisher(name="Oxford"); db.add(p); db.commit()
+    _edition(db, w, identity_basis="manual", publisher_id=p.id, publication_year=-700)   # BCE accepted
+    db.add(Edition(work_id=w.id, identity_basis="manual", publisher_id=p.id, publication_year=2200))
+    with pytest.raises(IntegrityError):
+        db.commit()
