@@ -187,6 +187,14 @@ async def _edge_guard(request: Request, call_next):
 # Helper functions
 # ============================================
 
+def set_public_cache(response: Response, max_age: int = 60, s_maxage: int = 86400, swr: int = 604800) -> None:
+    """Set Edge CDN caching headers for Vercel and intermediate proxies (Rank 1 Edge Caching)."""
+    val = f"public, max-age={max_age}, s-maxage={s_maxage}, stale-while-revalidate={swr}"
+    response.headers["Cache-Control"] = val
+    response.headers["CDN-Cache-Control"] = f"public, s-maxage={s_maxage}, stale-while-revalidate={swr}"
+    response.headers["Vercel-CDN-Cache-Control"] = f"public, s-maxage={s_maxage}, stale-while-revalidate={swr}"
+
+
 def get_db():
     """Get database session."""
     session = SessionLocal()
@@ -523,7 +531,7 @@ def get_stats(response: Response):
             "discussions": db.query(Discussion).count(),
             "resources": db.query(Resource).count(),
         }
-        response.headers["Cache-Control"] = "public, max-age=30, s-maxage=60, stale-while-revalidate=120"
+        set_public_cache(response)
         return stats
     finally:
         db.close()
@@ -613,7 +621,7 @@ def get_books(
 
         books = query.all()
         if not search and not author and not year:
-            response.headers["Cache-Control"] = "public, max-age=15, s-maxage=60, stale-while-revalidate=120"
+            set_public_cache(response)
         return batch_books_to_dict(books, db)
     finally:
         db.close()
@@ -628,7 +636,7 @@ def get_book(book_id: str, response: Response):
         book = db.query(CanonicalBook).filter(CanonicalBook.id == book_id).first()
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
-        response.headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+        set_public_cache(response)
         return batch_books_to_dict([book], db)[0]
     finally:
         db.close()
@@ -792,7 +800,7 @@ def get_meetups(
 
         meetups = query.all()
         if not search and not year:
-            response.headers["Cache-Control"] = "public, max-age=15, s-maxage=60, stale-while-revalidate=120"
+            set_public_cache(response)
         return meetups_to_dicts(meetups, db)
     finally:
         db.close()
@@ -817,7 +825,7 @@ def get_meetup(meetup_id: str, response: Response):
         if not meetup:
             raise HTTPException(status_code=404, detail="Meetup not found")
 
-        response.headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+        set_public_cache(response)
         return meetup_to_dict(meetup, db)
     finally:
         db.close()
@@ -843,7 +851,7 @@ def search(response: Response, q: str = Query(..., min_length=1)):
         except ValueError:
             pass
 
-        response.headers["Cache-Control"] = "public, max-age=15, s-maxage=60, stale-while-revalidate=120"
+        set_public_cache(response, max_age=15, s_maxage=3600, swr=86400)
         return {
             "books": batch_books_to_dict(books, db),
             "meetups": meetups_to_dicts(meetups, db),
@@ -957,7 +965,7 @@ def get_members(
             results.sort(key=lambda x: (x["book_count"], x["meetup_count"]), reverse=True)
 
         if not search:
-            response.headers["Cache-Control"] = "public, max-age=30, s-maxage=120, stale-while-revalidate=300"
+            set_public_cache(response)
 
         return results
     finally:
@@ -1071,7 +1079,7 @@ def get_member(member_id: str, response: Response):
 
         books_list.sort(key=_get_book_sort_key, reverse=True)
 
-        response.headers["Cache-Control"] = "public, max-age=30, s-maxage=120, stale-while-revalidate=300"
+        set_public_cache(response)
 
         return {
             "id": member.id,
@@ -1305,7 +1313,7 @@ def get_author(author_id: str, response: Response):
         # Sort books by discussion count desc
         book_records.sort(key=lambda x: x.get("discussion_count", 0), reverse=True)
 
-        response.headers["Cache-Control"] = "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+        set_public_cache(response)
 
         return {
             "id": author.id,

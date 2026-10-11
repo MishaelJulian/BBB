@@ -98,27 +98,134 @@ export interface BookReference {
 }
 
 // ============================================
-// In-Memory SWR (Stale-While-Revalidate) Cache
+// Persistent IndexedDB & SWR Cache
 // ============================================
 
-interface CacheEntry<T> {
+export interface CacheEntry<T> {
   data: T
   timestamp: number
 }
 
 const memoryCache = new Map<string, CacheEntry<any>>()
-const CACHE_TTL_MS = 3 * 60 * 1000 // 3 minutes fresh window
+const CACHE_TTL_MS = 15 * 60 * 1000 // 15 minutes fresh window
+
+const IDB_NAME = 'bbb_cache_v1'
+const IDB_STORE = 'api_cache'
+
+function openIDB(): Promise<IDBDatabase | null> {
+  if (typeof window === 'undefined' || !window.indexedDB) return Promise.resolve(null)
+  return new Promise((resolve) => {
+    try {
+      const req = window.indexedDB.open(IDB_NAME, 1)
+      req.onupgradeneeded = () => {
+        const db = req.result
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE)
+        }
+      }
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => resolve(null)
+    } catch {
+      resolve(null)
+    }
+  })
+}
+
+export async function getPersistentData<T>(key: string): Promise<T | null> {
+  if (typeof window === 'undefined') return null
+  try {
+    const db = await openIDB()
+    if (db) {
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction(IDB_STORE, 'readonly')
+          const store = tx.objectStore(IDB_STORE)
+          const req = store.get(key)
+          req.onsuccess = () => {
+            const res = req.result as CacheEntry<T> | undefined
+            resolve(res?.data ?? null)
+          }
+          req.onerror = () => resolve(null)
+        } catch {
+          resolve(null)
+        }
+      })
+    }
+  } catch {}
+  return null
+}
+
+export async function setPersistentData<T>(key: string, data: T, timestamp: number = Date.now()): Promise<void> {
+  if (typeof window === 'undefined') return
+  try {
+    const db = await openIDB()
+    if (db) {
+      const tx = db.transaction(IDB_STORE, 'readwrite')
+      const store = tx.objectStore(IDB_STORE)
+      store.put({ data, timestamp }, key)
+    }
+  } catch {}
+}
+
+async function getPersistentEntry<T>(key: string): Promise<CacheEntry<T> | null> {
+  if (typeof window === 'undefined') return null
+  try {
+    const db = await openIDB()
+    if (db) {
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction(IDB_STORE, 'readonly')
+          const store = tx.objectStore(IDB_STORE)
+          const req = store.get(key)
+          req.onsuccess = () => resolve((req.result as CacheEntry<T>) || null)
+          req.onerror = () => resolve(null)
+        } catch {
+          resolve(null)
+        }
+      })
+    }
+  } catch {}
+  return null
+}
+
+async function clearPersistentData(prefix?: string): Promise<void> {
+  if (typeof window === 'undefined') return
+  try {
+    const db = await openIDB()
+    if (db) {
+      const tx = db.transaction(IDB_STORE, 'readwrite')
+      const store = tx.objectStore(IDB_STORE)
+      if (!prefix) {
+        store.clear()
+      } else {
+        const req = store.openKeyCursor()
+        req.onsuccess = () => {
+          const cursor = req.result
+          if (cursor) {
+            const keyStr = String(cursor.key)
+            if (keyStr.includes(prefix)) {
+              store.delete(cursor.key)
+            }
+            cursor.continue()
+          }
+        }
+      }
+    }
+  } catch {}
+}
 
 export function getCachedData<T>(key: string): T | null {
   if (typeof window === 'undefined') return null
   const entry = memoryCache.get(key)
   if (entry) return entry.data as T
   try {
-    const session = sessionStorage.getItem(`swr_${key}`)
-    if (session) {
-      const parsed = JSON.parse(session)
-      memoryCache.set(key, { data: parsed, timestamp: Date.now() })
-      return parsed as T
+    const raw = sessionStorage.getItem(`swr_${key}`) || localStorage.getItem(`swr_${key}`)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      const data = parsed && typeof parsed === 'object' && 'data' in parsed ? parsed.data : parsed
+      const timestamp = parsed && typeof parsed === 'object' && 'timestamp' in parsed ? parsed.timestamp : Date.now()
+      memoryCache.set(key, { data, timestamp })
+      return data as T
     }
   } catch {}
   return null
@@ -126,10 +233,18 @@ export function getCachedData<T>(key: string): T | null {
 
 export function setCachedData<T>(key: string, data: T): void {
   if (typeof window === 'undefined') return
-  memoryCache.set(key, { data, timestamp: Date.now() })
+  const now = Date.now()
+  const entry = { data, timestamp: now }
+  memoryCache.set(key, entry)
   try {
-    sessionStorage.setItem(`swr_${key}`, JSON.stringify(data))
+    const serialized = JSON.stringify(entry)
+    sessionStorage.setItem(`swr_${key}`, serialized)
+    // Save to localStorage if under 500KB to prevent QuotaExceededError
+    if (serialized.length < 500000) {
+      localStorage.setItem(`swr_${key}`, serialized)
+    }
   } catch {}
+  setPersistentData(key, data, now).catch(() => {})
 }
 
 export function invalidateApiCache(prefix?: string): void {
@@ -137,24 +252,32 @@ export function invalidateApiCache(prefix?: string): void {
   if (!prefix) {
     memoryCache.clear()
     try {
-      const keys = Object.keys(sessionStorage)
-      for (const k of keys) {
-        if (k.startsWith('swr_') || k.startsWith('bbb_archive_')) {
-          sessionStorage.removeItem(k)
-        }
+      const sKeys = Object.keys(sessionStorage)
+      for (const k of sKeys) {
+        if (k.startsWith('swr_') || k.startsWith('bbb_archive_')) sessionStorage.removeItem(k)
+      }
+      const lKeys = Object.keys(localStorage)
+      for (const k of lKeys) {
+        if (k.startsWith('swr_') || k.startsWith('bbb_archive_')) localStorage.removeItem(k)
       }
     } catch {}
+    clearPersistentData().catch(() => {})
     return
   }
   for (const k of Array.from(memoryCache.keys())) {
     if (k.includes(prefix)) memoryCache.delete(k)
   }
   try {
-    const keys = Object.keys(sessionStorage)
-    for (const k of keys) {
+    const sKeys = Object.keys(sessionStorage)
+    for (const k of sKeys) {
       if (k.includes(prefix)) sessionStorage.removeItem(k)
     }
+    const lKeys = Object.keys(localStorage)
+    for (const k of lKeys) {
+      if (k.includes(prefix)) localStorage.removeItem(k)
+    }
   } catch {}
+  clearPersistentData(prefix).catch(() => {})
 }
 
 async function fetchWithSWR<T>(
@@ -172,12 +295,23 @@ async function fetchWithSWR<T>(
     return fresh
   }
 
-  const cached = getCachedData<T>(key)
-  const entry = memoryCache.get(key)
-  const isFresh = entry && Date.now() - entry.timestamp < CACHE_TTL_MS
+  // 1. Instant synchronous check (memory & storage)
+  let cached = getCachedData<T>(key)
+  let entry = memoryCache.get(key)
 
-  if (cached !== null) {
-    // If cache is older than TTL, silently revalidate in the background
+  // 2. Check async persistent IndexedDB if not found in memory
+  if (cached === null) {
+    const persistent = await getPersistentEntry<T>(key)
+    if (persistent) {
+      cached = persistent.data
+      entry = persistent
+      memoryCache.set(key, persistent)
+    }
+  }
+
+  if (cached !== null && entry) {
+    const isFresh = Date.now() - entry.timestamp < CACHE_TTL_MS
+    // If cache is older than TTL, silently revalidate in the background without blocking UI
     if (!isFresh) {
       fetcher()
         .then((fresh) => {

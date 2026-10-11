@@ -4,7 +4,7 @@ import * as React from 'react'
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, animate } from 'framer-motion'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { fetchBooks, type Book } from '@/lib/api'
+import { fetchBooks, getPersistentData, setPersistentData, type Book } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { CriterionDetailModal } from './CriterionDetailModal'
 import { CriterionListDetailModal } from './CriterionListDetailModal'
@@ -917,16 +917,30 @@ export function CriterionBookCloset() {
 
   // Load cached books immediately on mount for 0ms instant display!
   React.useEffect(() => {
+    let isMounted = true
     try {
-      const cached = sessionStorage.getItem('bbb_archive_books')
+      const cached = sessionStorage.getItem('bbb_archive_books') || localStorage.getItem('bbb_archive_books')
       if (cached) {
         const parsed = JSON.parse(cached)
         if (Array.isArray(parsed) && parsed.length > 0) {
           setBooks(parsed)
           setLoading(false)
+          return
         }
       }
     } catch {}
+
+    // Check persistent IndexedDB cache for cross-session 0ms instant load
+    getPersistentData<Book[]>('bbb_archive_books').then((persisted) => {
+      if (isMounted && Array.isArray(persisted) && persisted.length > 0) {
+        setBooks(persisted)
+        setLoading(false)
+      }
+    }).catch(() => {})
+
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   // Fetch books (only keep books discussed in the database, exclude general discussion and tangents)
@@ -953,6 +967,7 @@ export function CriterionBookCloset() {
       try {
         sessionStorage.setItem('bbb_archive_books', JSON.stringify(discussedBooks))
       } catch {}
+      setPersistentData('bbb_archive_books', discussedBooks).catch(() => {})
       return discussedBooks.length
     } catch (err) {
       console.error('Failed to load books for closet:', err)
