@@ -105,6 +105,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
 
   return (
     <div
+      data-book-id={book.id}
       className={`relative select-none transition-all duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
         rowIsFull ? 'flex-1 min-w-[18px] max-w-[42px]' : 'shrink-0'
       }`}
@@ -740,6 +741,14 @@ export function CriterionBookCloset() {
   const [isSyncing, setIsSyncing] = React.useState(false)
   const [selectedBook, setSelectedBook] = React.useState<Book | null>(null)
   const [hoveredBook, setHoveredBook] = React.useState<Book | null>(null)
+  const currentHoveredIdRef = React.useRef<string | null>(null)
+
+  // Fast ID to Book Map for instantaneous 0ms touch hover lookups
+  const booksById = React.useMemo(() => {
+    const map = new Map<string, Book>()
+    books.forEach((b) => map.set(b.id, b))
+    return map
+  }, [books])
 
   // Desktop Green circular reticle cursor motion values (Zero React re-renders)
   const cursorX = useMotionValue(-100)
@@ -881,6 +890,25 @@ export function CriterionBookCloset() {
       startYaw: touchYawMotion.get(),
       startPitch: touchPitchMotion.get(),
     }
+
+    // Inspect spine directly under initial thumb touch
+    const el = document.elementFromPoint(touch.clientX, touch.clientY)
+    const spineEl = el?.closest('[data-book-id]') as HTMLElement | null
+    if (spineEl?.dataset?.bookId) {
+      const bId = spineEl.dataset.bookId
+      if (bId !== currentHoveredIdRef.current) {
+        currentHoveredIdRef.current = bId
+        const found = booksById.get(bId)
+        if (found) {
+          setHoveredBook(found)
+          try {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+              navigator.vibrate(8)
+            }
+          } catch (_) {}
+        }
+      }
+    }
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -916,6 +944,25 @@ export function CriterionBookCloset() {
     const newPitch = Math.max(-24, Math.min(24, touchStartRef.current.startPitch - dy * (sensitivity * 0.7)))
     touchYawMotion.set(newYaw)
     touchPitchMotion.set(newPitch)
+
+    // Detect book spine under thumb as it scrubs past shelves with 0ms overhead
+    const moveEl = document.elementFromPoint(touch.clientX, touch.clientY)
+    const moveSpineEl = moveEl?.closest('[data-book-id]') as HTMLElement | null
+    if (moveSpineEl?.dataset?.bookId) {
+      const bId = moveSpineEl.dataset.bookId
+      if (bId !== currentHoveredIdRef.current) {
+        currentHoveredIdRef.current = bId
+        const found = booksById.get(bId)
+        if (found) {
+          setHoveredBook(found)
+          try {
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+              navigator.vibrate(6)
+            }
+          } catch (_) {}
+        }
+      }
+    }
   }
 
   const handleTouchEnd = () => {
@@ -936,9 +983,14 @@ export function CriterionBookCloset() {
     const handleHash = () => {
       const hash = window.location.hash.toLowerCase()
       if (hash === '#list' || hash === '#wall') {
-        setViewMode('list')
+        React.startTransition(() => {
+          setViewMode('list')
+          setVisibleListCount(48)
+        })
       } else if (hash === '#closet') {
-        setViewMode('closet')
+        React.startTransition(() => {
+          setViewMode('closet')
+        })
       }
     }
     handleHash()
@@ -947,7 +999,12 @@ export function CriterionBookCloset() {
   }, [])
 
   const switchView = (mode: 'closet' | 'list') => {
-    setViewMode(mode)
+    React.startTransition(() => {
+      setViewMode(mode)
+      if (mode === 'list') {
+        setVisibleListCount(48)
+      }
+    })
     window.history.replaceState(null, '', mode === 'list' ? '#list' : '#closet')
   }
 
@@ -1242,6 +1299,37 @@ export function CriterionBookCloset() {
 
     return list
   }, [books, selectedMeetup, searchQuery, discussionFilter, selectedLetter, sortBy, shuffleSeed])
+
+  // Progressive chunking for List View: render first 48 volumes instantaneously (<5ms),
+  // then append 60 more as user scrolls down without freezing the main thread.
+  const [visibleListCount, setVisibleListCount] = React.useState(48)
+  const loadMoreRef = React.useRef<HTMLDivElement | null>(null)
+
+  React.useEffect(() => {
+    setVisibleListCount(48)
+  }, [searchQuery, selectedMeetup, discussionFilter, selectedLetter, sortBy])
+
+  React.useEffect(() => {
+    if (viewMode !== 'list') return
+    const el = loadMoreRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleListCount((prev) => Math.min(filteredBooks.length, prev + 60))
+        }
+      },
+      { rootMargin: '600px' }
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [viewMode, filteredBooks.length, visibleListCount])
+
+  const displayedBooks = React.useMemo(() => {
+    return filteredBooks.slice(0, visibleListCount)
+  }, [filteredBooks, visibleListCount])
 
   // =======================================================
   // 3-WALL SHELVING LAYOUT CALCULATIONS (Matching User Drawing 2 & 3)
@@ -1638,6 +1726,7 @@ export function CriterionBookCloset() {
           onClick={() => {
             if (!hasDraggedRef.current && isMobile) {
               setHoveredBook(null)
+              currentHoveredIdRef.current = null
             }
           }}
         >
@@ -1973,7 +2062,7 @@ export function CriterionBookCloset() {
           </nav>
 
           {/* Floating Hovered / Selected Case Info Card */}
-          <div className="fixed bottom-4 inset-x-3 sm:inset-x-auto sm:left-6 sm:bottom-6 z-40 pointer-events-none flex justify-center sm:justify-start">
+          <div className="fixed bottom-4 left-3 right-16 sm:inset-x-auto sm:left-6 sm:bottom-6 z-40 pointer-events-none flex justify-center sm:justify-start">
             {hoveredBook && !selectedBook && (
               <motion.div
                 initial={{ opacity: 0, y: 15, scale: 0.95 }}
@@ -1981,7 +2070,7 @@ export function CriterionBookCloset() {
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.18 }}
                 onClick={() => setSelectedBook(hoveredBook)}
-                className="bg-[#120F0D]/95 border border-amber-500/35 hover:border-amber-400/70 rounded-2xl p-3.5 sm:p-4 shadow-2xl backdrop-blur-2xl text-left w-full max-w-sm pointer-events-auto cursor-pointer transition-colors group"
+                className="bg-[#120F0D]/95 border border-amber-500/35 hover:border-amber-400/70 rounded-2xl p-3.5 sm:p-4 shadow-2xl sm:backdrop-blur-2xl text-left w-full max-w-sm pointer-events-auto cursor-pointer transition-colors group"
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2">
@@ -1999,6 +2088,7 @@ export function CriterionBookCloset() {
                       onClick={(e) => {
                         e.stopPropagation()
                         setHoveredBook(null)
+                        currentHoveredIdRef.current = null
                       }}
                       className="w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 flex items-center justify-center text-xs"
                       title="Dismiss preview"
@@ -2224,7 +2314,7 @@ export function CriterionBookCloset() {
 
           {/* Wall Grid Cards (Matching Screenshot 2026-10-01 201506.png) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-            {filteredBooks.map((book) => {
+            {displayedBooks.map((book) => {
               const style = getBookSpineStyle(book.title, book.id)
               const isSaved = userPicks.some((b) => b.id === book.id)
               const hasCover = Boolean(book.cover_url || book.thumbnail_url)
@@ -2246,6 +2336,7 @@ export function CriterionBookCloset() {
                       setSelectedBook(book)
                     }
                   }}
+                  style={{ contentVisibility: 'auto', containIntrinsicSize: '320px' }}
                   className="group flex flex-col cursor-pointer text-left select-none transition-all duration-200 hover:-translate-y-1.5 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
                 >
                   {/* Card Front Cover with Criterion Spine Badge */}
@@ -2338,6 +2429,23 @@ export function CriterionBookCloset() {
               )
             })}
           </div>
+
+          {/* Progressive Infinite Load Sentinel */}
+          {visibleListCount < filteredBooks.length && (
+            <div
+              ref={loadMoreRef}
+              className="py-12 flex flex-col items-center justify-center gap-3 text-neutral-600"
+            >
+              <div className="w-5 h-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+              <button
+                type="button"
+                onClick={() => setVisibleListCount((c) => Math.min(filteredBooks.length, c + 60))}
+                className="px-4 py-2 rounded-full bg-black/5 hover:bg-black/10 text-xs font-mono font-medium text-neutral-700 transition"
+              >
+                Load more ({displayedBooks.length} of {filteredBooks.length.toLocaleString()})
+              </button>
+            </div>
+          )}
         </main>
       )}
 
