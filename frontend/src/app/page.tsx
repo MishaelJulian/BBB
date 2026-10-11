@@ -12,7 +12,7 @@ const CriterionBookCloset = dynamic(
         <div className="flex flex-col items-center gap-3">
           <div className="w-7 h-7 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
           <span className="tracking-widest uppercase text-xs font-mono">
-            Opening The BBB Book Closet…
+            Opening The BBB Library…
           </span>
         </div>
       </div>

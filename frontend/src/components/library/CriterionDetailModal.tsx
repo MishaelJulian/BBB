@@ -432,13 +432,13 @@ function Rotatable3DBook({
                 ? 'bg-amber-400 text-black shadow-[0_0_8px_rgba(251,191,36,0.9)]'
                 : 'bg-white/10 hover:bg-white/20 text-white/80 hover:text-white'
             }`}
-            title={isSaved ? 'In your 4 closet picks' : 'Add to closet picks'}
+            title={isSaved ? 'In your 4 library picks' : 'Add to library picks'}
           >
             <span className="text-xs">{isSaved ? '★' : '♡'}</span>
           </button>
           <button
             onClick={() => {
-              const url = `${window.location.origin}/library-room?select=${book.id}#closet`
+              const url = `${window.location.origin}/library-room?select=${book.id}#shelves`
               navigator.clipboard.writeText(url)
               onShowToast('Volume deep-link copied to clipboard!')
             }}
@@ -865,10 +865,10 @@ export function CriterionDetailModal({
               </a>
             </div>
 
-            {/* ADD TO A LIST / CLOSET PICKS */}
+            {/* ADD TO A LIST / LIBRARY PICKS */}
             <div className="pt-3 border-t border-white/10 mb-4">
               <span className="text-[10px] font-mono tracking-widest uppercase text-white/40 block mb-2">
-                CLOSET PICKS ({userPicks.length}/4)
+                LIBRARY PICKS ({userPicks.length}/4)
               </span>
               <button
                 onClick={() => onTogglePick(book)}
@@ -878,7 +878,7 @@ export function CriterionDetailModal({
                     : 'bg-white/10 hover:bg-white/20 border border-white/20 text-white'
                 }`}
               >
-                <span>{isSaved ? '✓ Added to your 4 picks' : '+ Add to your closet picks'}</span>
+                <span>{isSaved ? '✓ Added to your 4 picks' : '+ Add to your library picks'}</span>
               </button>
             </div>
 
@@ -907,7 +907,7 @@ export function CriterionDetailModal({
 
           <div className="mt-4 pt-3 border-t border-white/10 text-[9px] font-mono text-white/35 flex items-center justify-between">
             <span>BANGALORE BOOK CLUB</span>
-            <span className="text-amber-400/60">BBB CRITERION ARCHIVE</span>
+            <span className="text-amber-400/60">BBB LIBRARY ARCHIVE</span>
           </div>
         </div>
       </motion.div>

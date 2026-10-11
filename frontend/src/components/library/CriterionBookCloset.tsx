@@ -394,10 +394,10 @@ function PicksTray({
         className="relative z-10 w-full max-w-xl bg-[#14100D]/95 border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-2xl text-center"
       >
         <div className="text-[10px] font-mono tracking-[0.25em] text-white/50 uppercase mb-1">
-          THE CRITERION CLOSET TOTE BAG
+          THE BBB LIBRARY TOTE BAG
         </div>
         <h3 className="font-display text-2xl font-bold text-white mb-2">
-          Your Four Closet Picks
+          Your Four Library Picks
         </h3>
         <p className="text-xs text-white/60 mb-6 font-serif">
           Curate your personal 4-volume stack from the BBB Archive shelves.
@@ -709,10 +709,10 @@ function PolaroidModal({
       ctx.fillStyle = '#78716C'
       ctx.font = 'bold 13px monospace'
       ctx.textAlign = 'right'
-      ctx.fillText('THE CRITERION CLOSET · BBB BANGALORE', photoX + photoW - 20, photoY + photoH + 105)
+      ctx.fillText('THE BBB LIBRARY · BANGALORE', photoX + photoW - 20, photoY + photoH + 105)
 
       const link = document.createElement('a')
-      link.download = `bbb-closet-picks-${Date.now()}.png`
+      link.download = `bbb-library-picks-${Date.now()}.png`
       link.href = canvas.toDataURL('image/png')
       link.click()
     } catch (err) {
@@ -723,7 +723,7 @@ function PolaroidModal({
   }
 
   const handleCopy = () => {
-    const text = `My BBB Closet Picks:\n${userPicks.map((b) => `• ${b.title}`).join('\n')}\n— Curated at The BBB Book Closet`
+    const text = `My BBB Library Picks:\n${userPicks.map((b) => `• ${b.title}`).join('\n')}\n— Curated at The BBB Library`
     navigator.clipboard.writeText(text)
     setIsCopied(true)
     setTimeout(() => setIsCopied(false), 2500)
@@ -813,7 +813,7 @@ function PolaroidModal({
 
             <div className="text-right">
               <span className="text-[10px] font-mono font-bold text-neutral-800 tracking-wider block">
-                THE BBB CLOSET
+                THE BBB LIBRARY
               </span>
               <span className="text-[8.5px] font-mono text-neutral-500 uppercase">
                 Bangalore Archive
@@ -1120,7 +1120,7 @@ export function CriterionBookCloset() {
           setViewMode('list')
           setVisibleListCount(48)
         })
-      } else if (hash === '#closet') {
+      } else if (hash === '#closet' || hash === '#shelves') {
         React.startTransition(() => {
           setViewMode('closet')
         })
@@ -1138,20 +1138,20 @@ export function CriterionBookCloset() {
         setVisibleListCount(48)
       }
     })
-    window.history.replaceState(null, '', mode === 'list' ? '#list' : '#closet')
+    window.history.replaceState(null, '', mode === 'list' ? '#list' : '#shelves')
   }
 
   // Load user picks
   React.useEffect(() => {
     try {
-      const saved = localStorage.getItem('bbb_closet_picks')
+      const saved = localStorage.getItem('bbb_library_picks') || localStorage.getItem('bbb_closet_picks')
       if (saved) setUserPicks(JSON.parse(saved))
     } catch {}
   }, [])
 
   React.useEffect(() => {
     try {
-      localStorage.setItem('bbb_closet_picks', JSON.stringify(userPicks))
+      localStorage.setItem('bbb_library_picks', JSON.stringify(userPicks))
     } catch {}
   }, [userPicks])
 
@@ -1322,7 +1322,7 @@ export function CriterionBookCloset() {
         showToast(`Your 4 picks are full! Replaced oldest volume.`)
         return [...prev.slice(1), book]
       }
-      showToast(`+ Added “${book.title}” to your closet picks`)
+      showToast(`+ Added “${book.title}” to your library picks`)
       return [...prev, book]
     })
   }
@@ -1587,7 +1587,7 @@ export function CriterionBookCloset() {
                   viewMode === 'closet' ? 'text-white group-hover:text-amber-300' : 'text-[#14130F] group-hover:text-amber-800'
                 }`}
               >
-                THE CLOSET
+                BBB LIBRARY
               </span>
             </Link>
             <span
@@ -1658,7 +1658,7 @@ export function CriterionBookCloset() {
                     viewMode === 'closet' ? 'bg-amber-600 text-white' : 'opacity-60'
                   }`}
                 >
-                  Closet
+                  Shelves
                 </button>
               </div>
 
@@ -1672,7 +1672,7 @@ export function CriterionBookCloset() {
                     ? 'bg-white/10 text-white/80 border-white/20'
                     : 'bg-black/5 text-neutral-800 border-black/15'
                 }`}
-                title="Open Closet Picks Tote Bag"
+                title="Open Library Picks Tote Bag"
               >
                 <span>★ Picks</span>
                 <span className={`w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-bold ${
@@ -1687,7 +1687,7 @@ export function CriterionBookCloset() {
           {/* Center: HANGING CLOSET PICKS MARQUEE (Exact Match with 00:14 of video) */}
           <div className="hidden md:flex items-center gap-2 px-5 py-1.5 rounded-full bg-black/70 border border-white/20 shadow-2xl backdrop-blur-xl">
             <span className="font-mono text-[10px] tracking-[0.25em] text-white/80 font-bold uppercase">
-              CLOSET PICKS
+              LIBRARY PICKS
             </span>
             <div className="flex items-center gap-1.5 ml-1">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -1846,7 +1846,7 @@ export function CriterionBookCloset() {
                     : 'text-neutral-600 hover:text-black'
                 }`}
               >
-                Closet View
+                Shelves View
               </button>
 
               <motion.div
@@ -2424,7 +2424,7 @@ export function CriterionBookCloset() {
                 onClick={() => setIsPicksTrayOpen(true)}
                 className="px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100 transition-all flex items-center gap-1.5"
               >
-                <span>★ Closet Picks</span>
+                <span>★ Library Picks</span>
                 <span className="w-4 h-4 rounded-full bg-amber-400 text-black text-[10px] font-bold flex items-center justify-center">
                   {userPicks.length}
                 </span>

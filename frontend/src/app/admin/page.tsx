@@ -157,7 +157,7 @@ export default function AdminDatabasePage() {
     try {
       invalidateApiCache()
       await loadData()
-      showToast('⚡ Database synced with SQLite (all updates live in Closet & List View)')
+      showToast('⚡ Database synced with SQLite (all updates live in Library & List View)')
     } catch {
       showToast('Failed to sync database')
     } finally {
@@ -718,7 +718,7 @@ export default function AdminDatabasePage() {
               href="/"
               className="px-2.5 sm:px-3 py-1.5 rounded-lg border border-[#DDD6C7] text-xs font-mono text-neutral-600 hover:text-black hover:bg-neutral-50 transition-colors shrink-0"
             >
-              ← <span className="hidden sm:inline">Back to </span>The Closet
+              ← <span className="hidden sm:inline">Back to </span>BBB Library
             </Link>
             <h1 className="font-display font-bold text-sm sm:text-base md:text-lg text-[#14130F] truncate">
               BBB Archive Manager
