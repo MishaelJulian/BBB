@@ -188,7 +188,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
             : 'translateZ(0px) translateY(0px) scale(1)',
           transformOrigin: 'bottom center',
           boxShadow: isMobile
-            ? (isTargeted ? '0 0 0 1.5px #10B981, 0 6px 14px rgba(0,0,0,0.7)' : '0 2px 5px rgba(0,0,0,0.5)')
+            ? (isTargeted ? '0 0 0 1.5px #10B981' : undefined)
             : (isTargeted
                 ? `0 0 0 1.5px #10B981, 0 10px 25px rgba(0,0,0,0.85)`
                 : `inset 0 0 10px rgba(0,0,0,0.65), inset 1px 0 0 rgba(255,255,255,0.12), 0 4px 12px rgba(0,0,0,0.6)`),
@@ -203,15 +203,19 @@ const ClosetSpine = React.memo(function ClosetSpine({
         <div className="absolute top-0 inset-x-0 pt-1 pb-1 flex flex-col items-center border-b border-black/40 bg-black/30">
           <span
             className="text-[7.5px] font-mono font-bold tracking-wider leading-none px-0.5"
-            style={{ color: palette.foil, textShadow: '0 1px 2px rgba(0,0,0,0.9)' }}
+            style={{ color: palette.foil, textShadow: isMobile ? undefined : '0 1px 2px rgba(0,0,0,0.9)' }}
           >
             {spineNo}
           </span>
         </div>
 
-        {/* Raised Spine Ribs */}
-        <div className="absolute top-[32%] inset-x-0 h-[2px] bg-black/50 border-t border-white/15" />
-        <div className="absolute bottom-[32%] inset-x-0 h-[2px] bg-black/50 border-b border-white/15" />
+        {/* Raised Spine Ribs - Desktop only to cut 720 DOM elements on mobile */}
+        {!isMobile && (
+          <>
+            <div className="absolute top-[32%] inset-x-0 h-[2px] bg-black/50 border-t border-white/15" />
+            <div className="absolute bottom-[32%] inset-x-0 h-[2px] bg-black/50 border-b border-white/15" />
+          </>
+        )}
 
         {/* Vertical Title & Author */}
         <div
@@ -222,7 +226,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
             className="text-[8.5px] font-display font-semibold tracking-wide truncate max-h-[110px]"
             style={{
               color: palette.spineText,
-              textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+              textShadow: isMobile ? undefined : '0 1px 3px rgba(0,0,0,0.9)',
             }}
           >
             {book.title}
@@ -241,13 +245,15 @@ const ClosetSpine = React.memo(function ClosetSpine({
         {/* Bottom Spine Trim */}
         <div className="absolute bottom-0 inset-x-0 h-2 border-t border-black/40 bg-black/25" />
 
-        {/* Curved Specular Sheen */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'linear-gradient(90deg, rgba(0,0,0,0.4) 0%, transparent 28%, rgba(255,255,255,0.18) 65%, rgba(0,0,0,0.35) 100%)',
-          }}
-        />
+        {/* Curved Specular Sheen - Desktop only */}
+        {!isMobile && (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(90deg, rgba(0,0,0,0.4) 0%, transparent 28%, rgba(255,255,255,0.18) 65%, rgba(0,0,0,0.35) 100%)',
+            }}
+          />
+        )}
       </div>
     </div>
   )
@@ -397,40 +403,62 @@ function PicksTray({
           Curate your personal 4-volume stack from the BBB Archive shelves.
         </p>
 
-        {/* 4 Pick Slots */}
-        <div className="grid grid-cols-4 gap-3 my-4">
+        {/* 4 Pick Slots (Front Book Covers) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
           {Array.from({ length: 4 }).map((_, idx) => {
             const book = userPicks[idx]
             if (book) {
               const styleInfo = getBookSpineStyle(book.title, book.id)
+              const hasCover = Boolean(book.cover_url || book.thumbnail_url)
+              const coverSrc = book.cover_url || book.thumbnail_url || ''
               return (
                 <div
                   key={`pick-${book.id}`}
-                  className="group relative h-40 rounded-xl border border-white/15 hover:border-amber-400/70 p-2.5 flex flex-col items-center justify-between cursor-pointer transition-all shadow-lg"
-                  style={{ backgroundColor: `${styleInfo.palette.bg}EE` }}
+                  className="group relative flex flex-col items-center cursor-pointer transition-transform hover:-translate-y-1"
                   onClick={() => {
                     onClose()
                     onSelectBook(book)
                   }}
                 >
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onRemovePick(book.id)
-                    }}
-                    className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black/80 border border-white/25 text-white/70 hover:text-white hover:bg-red-900 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Remove"
-                  >
-                    ✕
-                  </button>
-                  <span className="text-[8px] font-mono" style={{ color: styleInfo.palette.foil }}>
-                    {styleInfo.spineNo}
-                  </span>
-                  <span className="text-[10px] font-display font-bold text-white line-clamp-3 text-center my-auto">
+                  <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-lg border border-white/20 bg-[#1E1B18]">
+                    {hasCover ? (
+                      <img
+                        src={coverSrc}
+                        alt={book.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full p-2.5 flex flex-col justify-between text-center"
+                        style={{ backgroundColor: styleInfo.palette.bg }}
+                      >
+                        <div className="w-4 h-px mx-auto opacity-50" style={{ backgroundColor: styleInfo.palette.foil }} />
+                        <span className="text-[10px] font-serif font-bold text-white line-clamp-3 leading-snug">
+                          {book.title}
+                        </span>
+                        <span className="text-[8px] font-serif uppercase tracking-wider text-white/70 truncate">
+                          {book.author_name || 'BBB'}
+                        </span>
+                      </div>
+                    )}
+                    {/* Spine Badge */}
+                    <div className="absolute top-1.5 left-1.5 bg-black/85 text-white text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full border border-white/20">
+                      #{styleInfo.numericSpine}
+                    </div>
+                    {/* Remove button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onRemovePick(book.id)
+                      }}
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/80 border border-white/25 text-white/80 hover:text-white hover:bg-red-600 flex items-center justify-center text-xs transition-all shadow-md"
+                      title="Remove pick"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <span className="text-[10.5px] font-display font-medium text-white line-clamp-1 mt-2 text-center w-full px-1">
                     {book.title}
-                  </span>
-                  <span className="text-[7.5px] uppercase font-serif text-amber-300">
-                    Examine
                   </span>
                 </div>
               )
@@ -439,9 +467,9 @@ function PicksTray({
             return (
               <div
                 key={`empty-slot-${idx}`}
-                className="h-40 rounded-xl border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center p-3 text-center text-white/30"
+                className="w-full aspect-[2/3] rounded-xl border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center p-3 text-center text-white/30"
               >
-                <span className="text-xl mb-1.5">♡</span>
+                <span className="text-xl mb-1">♡</span>
                 <span className="text-[9px] font-mono">Empty Slot</span>
               </div>
             )
@@ -533,14 +561,14 @@ function PolaroidModal({
       ctx.fillStyle = '#C69947'
       ctx.fillRect(photoX, plankY, photoW, 4)
 
-      // Draw books
+      // Draw books (Front Covers)
       const picksCount = userPicks.length
       const slotWidth = photoW / (picksCount || 1)
 
       userPicks.forEach((book, i) => {
         const style = getBookSpineStyle(book.title, book.id)
-        const bookW = Math.min(140, slotWidth * 0.75)
-        const bookH = 260
+        const bookW = Math.min(180, slotWidth * 0.85)
+        const bookH = Math.round(bookW * 1.5) // standard 2:3 book cover ratio
         const bookX = photoX + slotWidth * i + (slotWidth - bookW) / 2
         const bookY = plankY - bookH + 10
 
@@ -553,19 +581,22 @@ function PolaroidModal({
         ctx.fillRect(bookX, bookY, bookW, bookH)
 
         ctx.strokeStyle = style.palette.foil
-        ctx.lineWidth = 1.5
-        ctx.strokeRect(bookX + 6, bookY + 6, bookW - 12, bookH - 12)
+        ctx.lineWidth = 2
+        ctx.strokeRect(bookX + 5, bookY + 5, bookW - 10, bookH - 10)
 
-        ctx.fillStyle = style.palette.foil
-        ctx.font = 'bold 13px monospace'
+        // Spine badge in top corner
+        ctx.fillStyle = 'rgba(0,0,0,0.85)'
+        ctx.fillRect(bookX + 8, bookY + 8, 48, 18)
+        ctx.fillStyle = '#FAF7F0'
+        ctx.font = 'bold 11px monospace'
         ctx.textAlign = 'center'
-        ctx.fillText(style.spineNo, bookX + bookW / 2, bookY + 28)
+        ctx.fillText(`#${style.numericSpine}`, bookX + 32, bookY + 21)
 
         ctx.fillStyle = '#FAF7F0'
         ctx.font = 'bold 15px Georgia'
         const words = book.title.split(' ')
         let line = ''
-        let curY = bookY + 80
+        let curY = bookY + 60
         for (let n = 0; n < words.length; n++) {
           const testLine = line + words[n] + ' '
           const metrics = ctx.measureText(testLine)
@@ -573,7 +604,7 @@ function PolaroidModal({
             ctx.fillText(line, bookX + bookW / 2, curY)
             line = words[n] + ' '
             curY += 20
-            if (curY > bookY + 180) break
+            if (curY > bookY + bookH - 50) break
           } else {
             line = testLine
           }
@@ -583,7 +614,7 @@ function PolaroidModal({
         if (book.author_name) {
           ctx.fillStyle = style.palette.foil
           ctx.font = 'italic 12px Georgia'
-          ctx.fillText(book.author_name.slice(0, 18), bookX + bookW / 2, curY + 28)
+          ctx.fillText(book.author_name.slice(0, 20), bookX + bookW / 2, bookY + bookH - 22)
         }
       })
 
@@ -642,27 +673,40 @@ function PolaroidModal({
 
             <div className="absolute inset-x-0 bottom-0 h-16 bg-[#322013] border-t-2 border-amber-600/70 shadow-2xl" />
 
-            <div className="relative z-10 flex items-end justify-center gap-2 sm:gap-3 mb-1">
+            <div className="relative z-10 flex items-end justify-center gap-2 sm:gap-3 mb-1 w-full px-2">
               {userPicks.map((book) => {
                 const style = getBookSpineStyle(book.title, book.id)
+                const hasCover = Boolean(book.cover_url || book.thumbnail_url)
+                const coverSrc = book.cover_url || book.thumbnail_url || ''
                 return (
                   <div
                     key={`polaroid-book-${book.id}`}
-                    className="relative w-16 sm:w-20 h-44 sm:h-52 rounded-[2px] p-2 flex flex-col justify-between shadow-2xl border"
-                    style={{
-                      backgroundColor: style.palette.bg,
-                      borderColor: `${style.palette.foil}60`,
-                    }}
+                    className="relative w-20 sm:w-24 md:w-28 aspect-[2/3] rounded-[3px] overflow-hidden shadow-2xl border border-white/20 bg-[#1E1B18] flex flex-col shrink-0"
                   >
-                    <span className="text-[7.5px] font-mono text-center" style={{ color: style.palette.foil }}>
-                      {style.spineNo}
-                    </span>
-                    <span className="text-[9px] sm:text-[10px] font-display font-bold text-white text-center line-clamp-3 leading-tight my-auto">
-                      {book.title}
-                    </span>
-                    <span className="text-[7px] font-serif text-amber-200/80 uppercase text-center truncate">
-                      {book.author_name || 'BBB'}
-                    </span>
+                    {hasCover ? (
+                      <img
+                        src={coverSrc}
+                        alt={book.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full p-2 flex flex-col justify-between text-center"
+                        style={{ backgroundColor: style.palette.bg }}
+                      >
+                        <div className="w-4 h-0.5 mx-auto opacity-50" style={{ backgroundColor: style.palette.foil }} />
+                        <span className="text-[9px] sm:text-[10px] font-serif font-bold text-white line-clamp-3 leading-snug">
+                          {book.title}
+                        </span>
+                        <span className="text-[7.5px] font-serif uppercase tracking-wider text-white/70 truncate">
+                          {book.author_name || 'BBB'}
+                        </span>
+                      </div>
+                    )}
+                    {/* Spine Badge pill */}
+                    <div className="absolute top-1 left-1 bg-black/85 text-white text-[7.5px] font-mono font-bold px-1.5 py-0.2 rounded-full border border-white/20">
+                      #{style.numericSpine}
+                    </div>
                   </div>
                 )
               })}
@@ -742,6 +786,7 @@ export function CriterionBookCloset() {
   const [selectedBook, setSelectedBook] = React.useState<Book | null>(null)
   const [hoveredBook, setHoveredBook] = React.useState<Book | null>(null)
   const currentHoveredIdRef = React.useRef<string | null>(null)
+  const lastHitTestTimeRef = React.useRef(0)
 
   // Fast ID to Book Map for instantaneous 0ms touch hover lookups
   const booksById = React.useMemo(() => {
@@ -945,21 +990,25 @@ export function CriterionBookCloset() {
     touchYawMotion.set(newYaw)
     touchPitchMotion.set(newPitch)
 
-    // Detect book spine under thumb as it scrubs past shelves with 0ms overhead
-    const moveEl = document.elementFromPoint(touch.clientX, touch.clientY)
-    const moveSpineEl = moveEl?.closest('[data-book-id]') as HTMLElement | null
-    if (moveSpineEl?.dataset?.bookId) {
-      const bId = moveSpineEl.dataset.bookId
-      if (bId !== currentHoveredIdRef.current) {
-        currentHoveredIdRef.current = bId
-        const found = booksById.get(bId)
-        if (found) {
-          setHoveredBook(found)
-          try {
-            if (typeof navigator !== 'undefined' && navigator.vibrate) {
-              navigator.vibrate(6)
-            }
-          } catch (_) {}
+    // Detect book spine under thumb as it scrubs past shelves (throttled to 20Hz to prevent forced layout thrashing)
+    const now = Date.now()
+    if (now - lastHitTestTimeRef.current > 48) {
+      lastHitTestTimeRef.current = now
+      const moveEl = document.elementFromPoint(touch.clientX, touch.clientY)
+      const moveSpineEl = moveEl?.closest('[data-book-id]') as HTMLElement | null
+      if (moveSpineEl?.dataset?.bookId) {
+        const bId = moveSpineEl.dataset.bookId
+        if (bId !== currentHoveredIdRef.current) {
+          currentHoveredIdRef.current = bId
+          const found = booksById.get(bId)
+          if (found) {
+            setHoveredBook(found)
+            try {
+              if (typeof navigator !== 'undefined' && navigator.vibrate) {
+                navigator.vibrate(6)
+              }
+            } catch (_) {}
+          }
         }
       }
     }
@@ -1508,29 +1557,51 @@ export function CriterionBookCloset() {
               </Link>
             </nav>
 
-            {/* Mobile View Switcher */}
-            <div className="flex md:hidden items-center p-1 rounded-full border border-current/20">
+            {/* Mobile View Switcher & Mobile Picks Button */}
+            <div className="flex md:hidden items-center gap-1.5">
+              <div className="flex items-center p-1 rounded-full border border-current/20">
+                <button
+                  onClick={() => switchView('list')}
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                    viewMode === 'list' ? 'bg-[#14130F] text-white' : 'opacity-60'
+                  }`}
+                >
+                  List
+                </button>
+                <button
+                  onClick={() => switchView('closet')}
+                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                    viewMode === 'closet' ? 'bg-amber-600 text-white' : 'opacity-60'
+                  }`}
+                >
+                  Closet
+                </button>
+              </div>
+
+              {/* Mobile Closet Picks Button */}
               <button
-                onClick={() => switchView('list')}
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  viewMode === 'list' ? 'bg-[#14130F] text-white' : 'opacity-60'
+                onClick={() => setIsPicksTrayOpen(true)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono font-bold transition-all shadow-sm ${
+                  userPicks.length > 0
+                    ? 'bg-amber-400 text-black border-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.6)]'
+                    : viewMode === 'closet'
+                    ? 'bg-white/10 text-white/80 border-white/20'
+                    : 'bg-black/5 text-neutral-800 border-black/15'
                 }`}
+                title="Open Closet Picks Tote Bag"
               >
-                List
-              </button>
-              <button
-                onClick={() => switchView('closet')}
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  viewMode === 'closet' ? 'bg-amber-600 text-white' : 'opacity-60'
-                }`}
-              >
-                Closet
+                <span>★ Picks</span>
+                <span className={`w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-bold ${
+                  userPicks.length > 0 ? 'bg-black text-amber-300' : 'bg-white/20 text-white'
+                }`}>
+                  {userPicks.length}
+                </span>
               </button>
             </div>
           </div>
 
           {/* Center: HANGING CLOSET PICKS MARQUEE (Exact Match with 00:14 of video) */}
-          <div className="hidden lg:flex items-center gap-2 px-5 py-1.5 rounded-full bg-black/70 border border-white/20 shadow-2xl backdrop-blur-xl">
+          <div className="hidden md:flex items-center gap-2 px-5 py-1.5 rounded-full bg-black/70 border border-white/20 shadow-2xl backdrop-blur-xl">
             <span className="font-mono text-[10px] tracking-[0.25em] text-white/80 font-bold uppercase">
               CLOSET PICKS
             </span>
