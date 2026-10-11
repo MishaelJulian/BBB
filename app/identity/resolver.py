@@ -52,6 +52,16 @@ def resolve(title: str, author: str, providers: list[Provider]) -> Resolution:
     return Resolution(None, trail)
 
 
+def build_chain(order: str | list[str], registry: dict[str, Provider]) -> list[Provider]:
+    """Providers in the configured lookup order (setting IDENTITY_LOOKUP_ORDER, e.g. 'goodreads,openlibrary')."""
+    names = [n.strip() for n in order.split(",")] if isinstance(order, str) else list(order)
+    names = [n for n in names if n]
+    unknown = [n for n in names if n not in registry]
+    if unknown:
+        raise ValueError(f"unknown lookup providers: {unknown}; available: {sorted(registry)}")
+    return [registry[n] for n in names]
+
+
 def manual_entry_problems(publisher: str | None, year: int | None) -> list[str]:
     """What an admin must still supply when no source identified the book."""
     problems = []

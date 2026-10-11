@@ -13,7 +13,8 @@ from app.database.identity_models import Edition, EditionIdentifier, WorkIdentif
 from app.database.models import CanonicalBook, Publisher
 from app.identity.isbn import normalize_isbn
 from app.identity.providers import GoodreadsProvider, InventaireProvider, OpenLibraryProvider
-from app.identity.resolver import Candidate, manual_entry_problems, names_match, resolve
+from app.identity.preference import best_identifier, set_authority_order
+from app.identity.resolver import Candidate, build_chain, manual_entry_problems, names_match, resolve
 
 # ---------- ISBN ----------
 
@@ -184,3 +185,29 @@ def test_deleting_an_edition_removes_its_identifiers(db):
     db.add(EditionIdentifier(scheme="isbn13", value="9780393270150", edition_id=e.id)); db.commit()
     db.execute(text("DELETE FROM editions WHERE id = :e"), {"e": e.id}); db.commit()
     assert db.execute(text("SELECT count(*) FROM edition_identifiers")).scalar() == 0
+
+
+# ---------- flexible preference (data, not code) ----------
+
+def test_trust_order_is_data_and_can_be_changed_without_code(db):
+    ids = {"goodreads_book": "42", "isbn13": "9780393270150", "asin": "B000"}
+    assert best_identifier(db, "edition", ids) == ("isbn13", "9780393270150")      # default order
+    set_authority_order(db, "edition", ["asin", "goodreads_book"])
+    assert best_identifier(db, "edition", ids) == ("asin", "B000")                  # founders changed their mind
+    set_authority_order(db, "edition", ["isbn13"])
+    assert best_identifier(db, "edition", ids) == ("isbn13", "9780393270150")       # and back
+
+def test_set_authority_order_rejects_unknown_or_wrong_level_schemes(db):
+    with pytest.raises(ValueError):
+        set_authority_order(db, "edition", ["wikidata"])  # a work-level scheme
+
+def test_best_identifier_ignores_levels_and_missing_ids(db):
+    assert best_identifier(db, "work", {"isbn13": "x"}) is None
+    assert best_identifier(db, "work", {"openlibrary_work": "OL1W", "wikidata": "Q1"}) == ("wikidata", "Q1")
+
+def test_lookup_order_comes_from_a_setting_string():
+    reg = {n: Stub(n) for n in ("goodreads", "openlibrary", "inventaire")}
+    assert [p.name for p in build_chain("openlibrary, goodreads", reg)] == ["openlibrary", "goodreads"]
+    assert [p.name for p in build_chain(["inventaire"], reg)] == ["inventaire"]
+    with pytest.raises(ValueError):
+        build_chain("goodreads,librarything", reg)

@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     AUTH_INTERNAL_URL: str = "http://127.0.0.1:3001"
     AUTH_REQUIRED: bool = True
 
+    # Order in which book-identity providers are tried (app/identity/resolver.py build_chain).
+    IDENTITY_LOOKUP_ORDER: str = "goodreads,openlibrary,inventaire"
+
     def model_post_init(self, __context) -> None:
         """Ensure required directories exist."""
         self.DATA_DIR.mkdir(parents=True, exist_ok=True)
