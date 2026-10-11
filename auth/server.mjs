@@ -66,14 +66,15 @@ export const auth = betterAuth({
 const { runMigrations } = await getMigrations(auth.options);
 await runMigrations();
 
-// Auto-seed initial admin on fresh cloud deployments if 0 users exist
+// Seed the first admin on a fresh deployment (empty auth.db, e.g. Render free tier has no disk).
+// Both env vars are required; there are no defaults, so no credential lives in git.
 try {
   const seedDb = new DatabaseSync(dbPath);
   const userRow = seedDb.prepare("SELECT COUNT(*) AS count FROM user").get();
   seedDb.close();
-  if (!userRow || userRow.count === 0) {
-    const adminEmail = process.env.INITIAL_ADMIN_EMAIL || "admin@bbb.org";
-    const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || "bookworm";
+  const adminEmail = process.env.INITIAL_ADMIN_EMAIL;
+  const adminPassword = process.env.INITIAL_ADMIN_PASSWORD;
+  if (userRow?.count === 0 && adminEmail && adminPassword) {
     await auth.api.createUser({
       body: {
         email: adminEmail,

@@ -22,13 +22,10 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // Native Next.js auth route handler: 0ms response, zero cold starts, zero dependency on external containers.
-  if (pathname.startsWith('/api/auth/')) {
-    return NextResponse.next()
-  }
-
   let target: URL
-  if (pathname.startsWith('/api/')) {
+  if (pathname.startsWith('/api/auth/')) {
+    target = new URL(pathname + search, AUTH) // the auth service serves /api/auth/* itself (D5)
+  } else if (pathname.startsWith('/api/')) {
     target = new URL(pathname.slice(4) + search, BACKEND) // /api/books -> /books
   } else {
     target = new URL(pathname + search, BACKEND) // /assets/*
