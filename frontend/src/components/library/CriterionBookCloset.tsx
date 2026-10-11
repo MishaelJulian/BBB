@@ -513,6 +513,31 @@ interface PolaroidModalProps {
   onClose: () => void
 }
 
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  ctx.beginPath()
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, w, h, r)
+  } else {
+    ctx.moveTo(x + r, y)
+    ctx.lineTo(x + w - r, y)
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+    ctx.lineTo(x + w, y + h - r)
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+    ctx.lineTo(x + r, y + h)
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+    ctx.lineTo(x, y + r)
+    ctx.quadraticCurveTo(x, y, x + r, y)
+    ctx.closePath()
+  }
+}
+
 function PolaroidModal({
   userPicks,
   isOpen,
@@ -524,8 +549,8 @@ function PolaroidModal({
 
   if (!isOpen) return null
 
-  // HTML5 Canvas Polaroid Renderer
-  const handleDownload = () => {
+  // HTML5 Canvas Polaroid Renderer with Real Front Cover Images
+  const handleDownload = async () => {
     setIsDownloading(true)
     try {
       const canvas = document.createElement('canvas')
@@ -561,6 +586,27 @@ function PolaroidModal({
       ctx.fillStyle = '#C69947'
       ctx.fillRect(photoX, plankY, photoW, 4)
 
+      // Preload / retrieve all front cover images in parallel
+      const loadedImages = await Promise.all(
+        userPicks.map(async (book) => {
+          const coverSrc = book.cover_url || book.thumbnail_url
+          if (!coverSrc) return null
+
+          const domImg = document.getElementById(`polaroid-cover-${book.id}`) as HTMLImageElement | null
+          if (domImg && domImg.complete && domImg.naturalWidth > 0) {
+            return domImg
+          }
+
+          return new Promise<HTMLImageElement | null>((resolve) => {
+            const img = new Image()
+            img.crossOrigin = 'anonymous'
+            img.onload = () => resolve(img)
+            img.onerror = () => resolve(null)
+            img.src = coverSrc
+          })
+        })
+      )
+
       // Draw books (Front Covers)
       const picksCount = userPicks.length
       const slotWidth = photoW / (picksCount || 1)
@@ -572,50 +618,86 @@ function PolaroidModal({
         const bookX = photoX + slotWidth * i + (slotWidth - bookW) / 2
         const bookY = plankY - bookH + 10
 
+        // Shelf contact shadow
         ctx.fillStyle = 'rgba(0,0,0,0.65)'
         ctx.beginPath()
         ctx.ellipse(bookX + bookW / 2, plankY + 8, bookW * 0.65, 12, 0, 0, Math.PI * 2)
         ctx.fill()
 
-        ctx.fillStyle = style.palette.bg
-        ctx.fillRect(bookX, bookY, bookW, bookH)
+        const imgObj = loadedImages[i]
+        if (imgObj && imgObj.naturalWidth > 0) {
+          try {
+            ctx.save()
+            drawRoundedRect(ctx, bookX, bookY, bookW, bookH, 6)
+            ctx.clip()
 
-        ctx.strokeStyle = style.palette.foil
-        ctx.lineWidth = 2
-        ctx.strokeRect(bookX + 5, bookY + 5, bookW - 10, bookH - 10)
+            ctx.drawImage(imgObj, bookX, bookY, bookW, bookH)
 
-        // Spine badge in top corner
-        ctx.fillStyle = 'rgba(0,0,0,0.85)'
-        ctx.fillRect(bookX + 8, bookY + 8, 48, 18)
-        ctx.fillStyle = '#FAF7F0'
-        ctx.font = 'bold 11px monospace'
-        ctx.textAlign = 'center'
-        ctx.fillText(`#${style.numericSpine}`, bookX + 32, bookY + 21)
+            // Subtle left-edge spine book crease shadow
+            const spineGrad = ctx.createLinearGradient(bookX, bookY, bookX + 18, bookY)
+            spineGrad.addColorStop(0, 'rgba(0,0,0,0.45)')
+            spineGrad.addColorStop(1, 'transparent')
+            ctx.fillStyle = spineGrad
+            ctx.fillRect(bookX, bookY, 18, bookH)
 
-        ctx.fillStyle = '#FAF7F0'
-        ctx.font = 'bold 15px Georgia'
-        const words = book.title.split(' ')
-        let line = ''
-        let curY = bookY + 60
-        for (let n = 0; n < words.length; n++) {
-          const testLine = line + words[n] + ' '
-          const metrics = ctx.measureText(testLine)
-          if (metrics.width > bookW - 24 && n > 0) {
-            ctx.fillText(line, bookX + bookW / 2, curY)
-            line = words[n] + ' '
-            curY += 20
-            if (curY > bookY + bookH - 50) break
-          } else {
-            line = testLine
+            ctx.restore()
+
+            // Outer cover border
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)'
+            ctx.lineWidth = 1.5
+            drawRoundedRect(ctx, bookX, bookY, bookW, bookH, 6)
+            ctx.stroke()
+          } catch (_) {
+            // In case of any CORS taint error, fall back to styled cover
+            ctx.fillStyle = style.palette.bg
+            ctx.fillRect(bookX, bookY, bookW, bookH)
+          }
+        } else {
+          ctx.fillStyle = style.palette.bg
+          ctx.fillRect(bookX, bookY, bookW, bookH)
+
+          ctx.strokeStyle = style.palette.foil
+          ctx.lineWidth = 2
+          ctx.strokeRect(bookX + 5, bookY + 5, bookW - 10, bookH - 10)
+
+          ctx.fillStyle = '#FAF7F0'
+          ctx.font = 'bold 15px Georgia'
+          const words = book.title.split(' ')
+          let line = ''
+          let curY = bookY + 60
+          for (let n = 0; n < words.length; n++) {
+            const testLine = line + words[n] + ' '
+            const metrics = ctx.measureText(testLine)
+            if (metrics.width > bookW - 24 && n > 0) {
+              ctx.fillText(line, bookX + bookW / 2, curY)
+              line = words[n] + ' '
+              curY += 20
+              if (curY > bookY + bookH - 50) break
+            } else {
+              line = testLine
+            }
+          }
+          ctx.fillText(line, bookX + bookW / 2, curY)
+
+          if (book.author_name) {
+            ctx.fillStyle = style.palette.foil
+            ctx.font = 'italic 12px Georgia'
+            ctx.fillText(book.author_name.slice(0, 20), bookX + bookW / 2, bookY + bookH - 22)
           }
         }
-        ctx.fillText(line, bookX + bookW / 2, curY)
 
-        if (book.author_name) {
-          ctx.fillStyle = style.palette.foil
-          ctx.font = 'italic 12px Georgia'
-          ctx.fillText(book.author_name.slice(0, 20), bookX + bookW / 2, bookY + bookH - 22)
-        }
+        // Spine badge in top-left corner
+        ctx.fillStyle = 'rgba(0,0,0,0.85)'
+        drawRoundedRect(ctx, bookX + 6, bookY + 6, 48, 20, 10)
+        ctx.fill()
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+
+        ctx.fillStyle = '#FFFFFF'
+        ctx.font = 'bold 11px monospace'
+        ctx.textAlign = 'center'
+        ctx.fillText(`#${style.numericSpine}`, bookX + 30, bookY + 20)
       })
 
       // Signature & Stamp
@@ -685,8 +767,10 @@ function PolaroidModal({
                   >
                     {hasCover ? (
                       <img
+                        id={`polaroid-cover-${book.id}`}
                         src={coverSrc}
                         alt={book.title}
+                        crossOrigin="anonymous"
                         className="w-full h-full object-cover"
                       />
                     ) : (
