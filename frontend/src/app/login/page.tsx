@@ -28,7 +28,7 @@ function LoginForm() {
     setError(null)
     try {
       await signIn(email.trim(), password)
-      router.replace(target)
+      window.location.href = target
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sign-in failed.')
     } finally {

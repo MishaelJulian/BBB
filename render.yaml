@@ -28,7 +28,7 @@ services:
     healthCheckPath: /healthz
     envVars:
       - key: NODE_VERSION
-        value: "22"
+        value: "24"
       - key: BETTER_AUTH_SECRET
         value: bbb-development-secret-key-32chars-min-ok
       - key: BETTER_AUTH_URL

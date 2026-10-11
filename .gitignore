@@ -71,6 +71,8 @@ scratch/
 # Local screenshots
 Screenshot *.png
 WhatsApp Image *.jpeg
+WhatsApp Video *.mp4
+PHOTO-*.jpg
 phone2.jpeg
 
 
