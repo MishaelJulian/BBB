@@ -724,7 +724,7 @@ export default function AdminDatabasePage() {
               BBB Archive Manager
             </h1>
             <span className="hidden md:inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-mono text-[10px] font-semibold shrink-0">
-              Supabase PostgreSQL · Live
+              SQLite · Live
             </span>
           </div>
 
@@ -733,7 +733,7 @@ export default function AdminDatabasePage() {
               onClick={handleSyncDatabase}
               disabled={isSyncing}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-[#DDD6C7] text-xs font-mono text-neutral-700 bg-white hover:border-amber-600 hover:text-black transition-colors"
-              title="Re-query Supabase database to verify all updates are synchronized"
+              title="Re-query the archive database to verify all updates are synchronized"
             >
               <svg
                 className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-amber-600' : 'text-neutral-500'}`}
@@ -786,7 +786,7 @@ export default function AdminDatabasePage() {
             <div className="h-6 w-px bg-neutral-200" />
             <div>
               <span className="text-neutral-400 uppercase text-[10px] block">Database Engine</span>
-              <span className="font-mono text-neutral-800">Supabase (Mumbai)</span>
+              <span className="font-mono text-neutral-800">SQLite (WAL)</span>
             </div>
             <div className="h-6 w-px bg-neutral-200" />
             <div>
