@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Same-origin proxy to the droplet (D1, D35). The browser only ever talks to this site, so login
+// Same-origin proxy to the API server (D1, D35). The browser only ever talks to this site, so login
 // cookies stay first-party; the origin secret is added here, server-side, and never reaches the browser.
 // Proxy only: authorisation is enforced by the API itself (CVE-2025-29927 showed middleware-only auth fails).
 export const config = { matcher: ['/api/:path*', '/assets/:path*'] }

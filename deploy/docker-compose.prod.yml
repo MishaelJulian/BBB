@@ -1,4 +1,4 @@
-# Production on the DigitalOcean droplet (D1, D6). The frontend runs on Vercel, not here.
+# Production on one Ubuntu server: a DigitalOcean droplet (D1, D6) or a Hetzner Cloud server. The frontend runs on Vercel, not here.
 # Run from deploy/:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 # Archive DB in /srv/bbb/data, auth.db in /srv/bbb/auth (whole directories mounted, so WAL files persist: DB4).
 services:

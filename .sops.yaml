@@ -6,4 +6,4 @@ creation_rules:
     age: >-
       AGE_PUBLIC_KEY_FOUNDER_1,
       AGE_PUBLIC_KEY_FOUNDER_2,
-      AGE_PUBLIC_KEY_DROPLET
+      AGE_PUBLIC_KEY_SERVER
