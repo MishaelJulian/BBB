@@ -117,3 +117,19 @@ Licences from the GitHub API on 2026-10-09. "Admitted" still needs the full §7.
 | unpkg (runtime) | MIT | Rejected | D29 |
 | OpenPanel | AGPL-3.0 | Rejected | Licence preference |
 | Supabase, Pinecone, BullMQ + Redis, PgBouncer, Stripe, GoLogin | various | Not needed | SQLite on one droplet; non-commercial; out of scope |
+
+## Co-founder divergences (found 2026-10-11)
+
+The co-founder's 30 commits (`74207d7..2f27b2e`, tag `v1.0`) were compared with the answered questions and decisions. Planning method: this file only. Each row stays here until a founder resolves it.
+
+| # | What changed | Commit | Conflicts with | Status |
+|---|---|---|---|---|
+| X1 | Hardcoded fallback admin, public HMAC secret and admin hash served from a Next.js route; `AUTH_REQUIRED=false` and the secret committed in `render.yaml` | `2f27b2e`, `ef8fedb` | D5, D37, A-Sec6 (per-person accounts) | Fixed on branch `auth/better-auth-restore`. The old secret and password remain in git history, so never reuse them. The live demo still runs the old setup |
+| X2 | Public `GET /books/{id}/synopsis` fetched from Goodreads and committed | pre-existing | A-S2 | Fixed on branch `fix/synopsis-read-only`, with a test |
+| X3 | Data store switched to Supabase Postgres | `3fe529f`, `f3d3aba` | D11, R6 (SQLite stays, droplet is production) | Founders, 2026-10-11: SQLite stays and the droplet is production. Supabase and Render wiring removed from the repo (commit `fix: backend connectivity`). Still to do outside the repo: export the Supabase data read-only, then delete the Vercel, Render and Supabase projects |
+| X4 | 116 duplicate clusters merged into canonical Goodreads books | `a3f62f0` | Q7, Q10 (review queue, a founder approves each, aliases kept) | Open: accept after the fact, or re-review through the queue |
+| X5 | Meetups #68 to 70, 75 to 79 and 89 ingested; members deduplicated | `94cf755` | PRD §5.2 (backup, dry run, approval) | Open: no approval trail in the repo |
+| X6 | Delete Meetup in admin | `fc6440f` | DB9 (open), no audit log yet | Open: decide the cascade rule and log who deleted |
+| X7 | Meetup #99 now has 63 discussions (62 recorded before) | `a3f62f0` | Q1 (diff the PDF against the stored discussions) | Open: PDF restored, diff not run |
+| X8 | Meetup numbers for #62, 63, 66, 67 and 87 to 92 are still missing | none | Q8 | Open: roadmap P0 |
+| X9 | SQLite pragmas `synchronous=NORMAL`, mmap, 64 MB cache | `bff48b7` | D33 (restore drill) | Re-run the timed restore drill after the change |
