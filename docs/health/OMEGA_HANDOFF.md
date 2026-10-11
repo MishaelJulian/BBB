@@ -28,3 +28,16 @@ Cover every founder-listed source, tool and question before planning. Use option
 
 ## decision: 30-hour launch goal (2026-10-09 22:06 IST)
 Functional, accessible, production- and test-ready by **2026-10-11 04:06 IST**. The launch gate is in `docs/plans/backlog.md`. Commits `5f0b33b`, `292559b` were pushed by the founder.
+
+## decision: reset and handoff (2026-10-11)
+- **Reset:** the 30-hour push was never deployed.
+- **New target:** full scope by ~2026-11-04:
+  - every cut restored: passkeys, audit chain, rate-limit headers, router split, Opengrep, full WCAG;
+  - P0–P5 all in;
+  - scorecard/about/gallery pages, Google Forms sync, header and footer asks;
+  - email, Lighthouse, the RTL test and a member phone test.
+- **New-session rule:** all coding, executing and planning happen in a new session, which first picks the planning methodology.
+- **Co-founder demo:** live and insecure: Vercel bbb-library.vercel.app, bbb.org, Render, Supabase PG. Hardcoded admin/secret in the Next.js auth route and `AUTH_REQUIRED=false` in `render.yaml`.
+- **Auth:** returns to Better Auth (D5/D37).
+- **Local:** fast-forwarded to `2f27b2e`.
+- **SQLite after the co-founder's work:** 59 meetups (+68, 69, 77, 78, 79, 89), 3,000 discussions, 133 members.
