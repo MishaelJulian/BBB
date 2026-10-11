@@ -721,37 +721,8 @@ def get_book_synopsis_endpoint(book_id: str):
         if not book:
             raise HTTPException(status_code=404, detail="Book not found")
             
-        has_full_info = (
-            book.description and len(book.description.strip()) > 20 and
-            book.page_count and book.page_count > 0 and
-            book.rating is not None and
-            book.cover_url and "nophoto" not in book.cover_url
-        )
-        
-        if not has_full_info:
-            author_name = ""
-            if book.author_id:
-                author_obj = db.query(Author).filter(Author.id == book.author_id).first()
-                if author_obj:
-                    author_name = author_obj.full_name
-                    
-            meta = fetch_book_metadata_from_web(book.title, author_name, book.goodreads_id)
-            updated = False
-            if meta.get("cover_url") and (not book.cover_url or "nophoto" in book.cover_url):
-                book.cover_url = meta["cover_url"]
-                updated = True
-            if meta.get("description") and (not book.description or len(book.description.strip()) <= 20):
-                book.description = meta["description"]
-                updated = True
-            if meta.get("page_count") and (not book.page_count or book.page_count <= 0):
-                book.page_count = meta["page_count"]
-                updated = True
-            if meta.get("rating") is not None and book.rating is None:
-                book.rating = meta["rating"]
-                updated = True
-            if updated:
-                db.commit()
-                
+        # S2 (founders, 2026-10-09): a public GET never fetches from the web or writes.
+        # Missing fields are filled by POST /admin/books/{id}/enrich-goodreads.
         fallback_desc = book.description
         if not fallback_desc or len(fallback_desc.strip()) <= 20:
             meetups = db.query(Meetup.meetup_number).join(Discussion, Discussion.meetup_id == Meetup.id)\
