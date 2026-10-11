@@ -35,6 +35,8 @@ from sqlalchemy import func, text
 from app.core.database import get_engine, SessionLocal
 from app.core.config import settings
 from app.core.paths import ASSETS_DIR, asset_path
+from app.identity.providers import GoodreadsProvider, InventaireProvider, OpenLibraryProvider
+from app.identity.resolver import build_chain, manual_entry_problems, resolve
 from app.database.models import (
     CanonicalBook, ImportedBook, Meetup, Venue, Author, Member, Discussion, Resource,
     CurrentRead, DiscussionParticipant, Quote, Recommendation
@@ -2531,6 +2533,47 @@ def search_external_media(q: str, media_type: str = "book") -> list:
 def api_resolve_media_url(url: str = Query(..., min_length=3, description="URL to inspect")):
     """Inspect and resolve live metadata (title, thumbnail, creator, type) for any pasted URL."""
     return resolve_media_url(url)
+
+
+class BookLookupRequest(BaseModel):
+    title: str
+    author: str = ""
+    publisher: Optional[str] = None
+    publication_year: Optional[int] = None
+
+
+def _provider_registry() -> dict:
+    """The lookup sources; the order they are tried in is the setting IDENTITY_LOOKUP_ORDER."""
+    return {
+        "goodreads": GoodreadsProvider(search_external_books),
+        "openlibrary": OpenLibraryProvider(),
+        "inventaire": InventaireProvider(),
+    }
+
+
+@app.post("/admin/books/lookup")
+def lookup_book_identity(req: BookLookupRequest):
+    """Try each source in order and report what each one said, so the admin can see why a book was not found.
+    When every source fails the admin must give publisher and publication year (manual entry)."""
+    title, author = req.title.strip(), req.author.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="A title is required.")
+    result = resolve(title, author, build_chain(settings.IDENTITY_LOOKUP_ORDER, _provider_registry()))
+    logger.info("book lookup %r by %r -> %s", title, author, result.trail)
+    out = {
+        "found": result.candidate is not None,
+        "trail": [{"source": src, "result": res} for src, res in result.trail],
+        "needs_manual_entry": result.needs_manual_entry,
+    }
+    if result.candidate:
+        c = result.candidate
+        out["candidate"] = {
+            "source": c.source, "title": c.title, "authors": list(c.authors),
+            "work_ids": c.work_ids, "edition_ids": c.edition_ids,
+        }
+    if result.needs_manual_entry:
+        out["manual_entry_problems"] = manual_entry_problems(req.publisher, req.publication_year)
+    return out
 
 
 @app.get("/admin/books/suggest")

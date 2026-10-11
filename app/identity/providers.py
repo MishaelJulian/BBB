@@ -17,7 +17,7 @@ USER_AGENT = "BBB-library/0.1 (book club archive; https://github.com/MishaelJuli
 Fetch = Callable[[str], object]
 
 
-def http_get_json(url: str, timeout: float = 6.0):
+def http_get_json(url: str, timeout: float = 4.0):
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))

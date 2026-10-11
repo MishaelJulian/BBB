@@ -211,3 +211,37 @@ def test_lookup_order_comes_from_a_setting_string():
     assert [p.name for p in build_chain(["inventaire"], reg)] == ["inventaire"]
     with pytest.raises(ValueError):
         build_chain("goodreads,librarything", reg)
+
+
+# ---------- admin lookup endpoint: the trail reaches the admin ----------
+
+def test_lookup_endpoint_reports_each_source_and_demands_manual_entry(monkeypatch):
+    from app.api import main
+    monkeypatch.setattr(main, "_provider_registry", lambda: {
+        "goodreads": Stub("goodreads"), "openlibrary": Stub("openlibrary", boom=TimeoutError()),
+        "inventaire": Stub("inventaire"),
+    })
+    out = main.lookup_book_identity(main.BookLookupRequest(title="Unknown Book", author="Nobody"))
+    assert out["trail"] == [
+        {"source": "goodreads", "result": "no_match"},
+        {"source": "openlibrary", "result": "error: TimeoutError"},
+        {"source": "inventaire", "result": "no_match"},
+    ]
+    assert out["found"] is False and out["needs_manual_entry"] is True
+    assert len(out["manual_entry_problems"]) == 2   # publisher and year both missing
+
+def test_lookup_endpoint_manual_entry_satisfied_when_publisher_and_year_given(monkeypatch):
+    from app.api import main
+    monkeypatch.setattr(main, "_provider_registry", lambda: {"goodreads": Stub("goodreads")})
+    monkeypatch.setattr(main.settings, "IDENTITY_LOOKUP_ORDER", "goodreads")
+    out = main.lookup_book_identity(main.BookLookupRequest(title="T", author="A", publisher="Penguin", publication_year=1950))
+    assert out["needs_manual_entry"] is True and out["manual_entry_problems"] == []
+
+def test_lookup_endpoint_returns_candidate_on_a_hit(monkeypatch):
+    from app.api import main
+    hit = Candidate(source="openlibrary", title="Meditations", authors=("Marcus Aurelius",), work_ids={"openlibrary_work": "OL1W"})
+    monkeypatch.setattr(main, "_provider_registry", lambda: {"goodreads": Stub("goodreads"), "openlibrary": Stub("openlibrary", hit)})
+    monkeypatch.setattr(main.settings, "IDENTITY_LOOKUP_ORDER", "goodreads,openlibrary")
+    out = main.lookup_book_identity(main.BookLookupRequest(title="Meditations", author="Marcus Aurelius"))
+    assert out["found"] and out["candidate"]["work_ids"] == {"openlibrary_work": "OL1W"}
+    assert [t["result"] for t in out["trail"]] == ["no_match", "match"]
