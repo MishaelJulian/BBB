@@ -2125,7 +2125,12 @@ export function CriterionBookCloset() {
               <Link href="/members" className="underline text-neutral-600 hover:text-black">
                 Readers Directory →
               </Link>
-              <Link href="/admin" className="underline text-amber-800 hover:text-black font-semibold">
+              <Link
+                href="/admin"
+                onMouseEnter={() => fetch('/api/auth/ok', { cache: 'no-store' }).catch(() => {})}
+                onTouchStart={() => fetch('/api/auth/ok', { cache: 'no-store' }).catch(() => {})}
+                className="underline text-amber-800 hover:text-black font-semibold"
+              >
                 Manage DB →
               </Link>
             </div>

@@ -10,6 +10,18 @@ const AUTH = process.env.AUTH_INTERNAL_URL || 'http://127.0.0.1:3001'
 
 export function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl
+
+  // Fast Edge response: if checking session without any session cookie, return null in 0ms
+  // instead of waking up a sleeping bbb-auth container on Render.
+  if (pathname === '/api/auth/get-session') {
+    const hasAuthToken =
+      req.cookies.has('better-auth.session_token') ||
+      req.cookies.has('__Secure-better-auth.session_token')
+    if (!hasAuthToken) {
+      return NextResponse.json({ session: null, user: null })
+    }
+  }
+
   let target: URL
   if (pathname.startsWith('/api/auth/')) {
     target = new URL(pathname + search, AUTH) // the auth service serves /api/auth/* itself

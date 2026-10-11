@@ -17,6 +17,11 @@ function LoginForm() {
   const [error, setError] = React.useState<string | null>(null)
   const [busy, setBusy] = React.useState(false)
 
+  // Silently wake up the auth service in the background while the user fills out credentials
+  React.useEffect(() => {
+    fetch('/api/auth/ok', { cache: 'no-store' }).catch(() => {})
+  }, [])
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setBusy(true)
