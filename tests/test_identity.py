@@ -264,3 +264,36 @@ def test_year_floor_is_gone_in_the_database_too(db):
     db.add(Edition(work_id=w.id, identity_basis="manual", publisher_id=p.id, publication_year=2200))
     with pytest.raises(IntegrityError):
         db.commit()
+
+
+# ---------- delete rules hold even where foreign keys are OFF (raw scripts) ----------
+
+@pytest.fixture
+def db_nofk():
+    engine = create_engine("sqlite:///:memory:")           # no PRAGMA foreign_keys: SQLite's default
+    Base.metadata.create_all(engine)
+    with Session(engine) as s:
+        assert s.execute(text("PRAGMA foreign_keys")).scalar() == 0
+        _seed_schemes(s)
+        yield s
+
+def test_book_with_editions_cannot_be_deleted_even_with_foreign_keys_off(db_nofk):
+    w = _work(db_nofk); _edition(db_nofk, w, identity_basis="isbn13")
+    with pytest.raises(IntegrityError):
+        db_nofk.execute(text("DELETE FROM canonical_books WHERE id = :i"), {"i": w.id}); db_nofk.commit()
+    db_nofk.rollback()
+    assert db_nofk.execute(text("SELECT count(*) FROM canonical_books")).scalar() == 1
+
+def test_deleting_an_edition_removes_all_its_numbers_even_with_foreign_keys_off(db_nofk):
+    w = _work(db_nofk); e = _edition(db_nofk, w, identity_basis="isbn13")
+    db_nofk.add_all([EditionIdentifier(scheme="isbn13", value="9780393270150", edition_id=e.id),
+                     EditionIdentifier(scheme="goodreads_book", value="7144", edition_id=e.id)]); db_nofk.commit()
+    db_nofk.execute(text("DELETE FROM editions WHERE id = :e"), {"e": e.id}); db_nofk.commit()
+    assert db_nofk.execute(text("SELECT count(*) FROM edition_identifiers")).scalar() == 0
+    assert db_nofk.execute(text("SELECT count(*) FROM canonical_books")).scalar() == 1   # the book itself stays
+
+def test_deleting_a_book_without_editions_removes_its_book_level_numbers(db_nofk):
+    w = _work(db_nofk)
+    db_nofk.add(WorkIdentifier(scheme="wikidata", value="Q165318", work_id=w.id)); db_nofk.commit()
+    db_nofk.execute(text("DELETE FROM canonical_books WHERE id = :i"), {"i": w.id}); db_nofk.commit()
+    assert db_nofk.execute(text("SELECT count(*) FROM work_identifiers")).scalar() == 0

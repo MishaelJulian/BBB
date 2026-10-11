@@ -87,6 +87,15 @@ def upgrade() -> None:
         )
         op.create_index(f"ix_{table}_{col}", table, [col])
 
+    # Delete rules that hold on every connection, even where PRAGMA foreign_keys is off (the raw scripts).
+    op.execute("""CREATE TRIGGER trg_work_has_editions BEFORE DELETE ON canonical_books
+        WHEN EXISTS (SELECT 1 FROM editions WHERE work_id = OLD.id)
+        BEGIN SELECT RAISE(ABORT, 'book still has editions; remove or merge the editions first'); END""")
+    op.execute("""CREATE TRIGGER trg_edition_delete_identifiers AFTER DELETE ON editions
+        BEGIN DELETE FROM edition_identifiers WHERE edition_id = OLD.id; END""")
+    op.execute("""CREATE TRIGGER trg_work_delete_identifiers AFTER DELETE ON canonical_books
+        BEGIN DELETE FROM work_identifiers WHERE work_id = OLD.id; END""")
+
     # Worklists, not enforcement: rules that span tables cannot be a CHECK in SQLite.
     op.execute(
         """CREATE VIEW v_works_without_identity AS
@@ -104,6 +113,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    for trg in ("trg_work_has_editions", "trg_edition_delete_identifiers", "trg_work_delete_identifiers"):
+        op.execute(f"DROP TRIGGER IF EXISTS {trg}")
     op.execute("DROP VIEW IF EXISTS v_editions_missing_basis_identifier")
     op.execute("DROP VIEW IF EXISTS v_works_without_identity")
     op.drop_table("edition_identifiers")

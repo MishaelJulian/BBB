@@ -15,7 +15,7 @@ Rules enforced by the database, not by application code:
 from typing import Optional
 
 from sqlalchemy import (
-    CheckConstraint, ForeignKey, ForeignKeyConstraint, Index, Integer, String, UniqueConstraint, text,
+    DDL, CheckConstraint, ForeignKey, ForeignKeyConstraint, Index, Integer, String, UniqueConstraint, text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -112,3 +112,23 @@ class EditionIdentifier(Base):
             name="ck_isbn13_digits",
         ),
     )
+
+
+# Delete rules that hold on EVERY connection. SQLite enforces foreign keys only where PRAGMA foreign_keys=ON
+# (the app does; maintenance scripts opening the file directly did not), so the same rules are also triggers.
+#   * a book (canonical_books row) that still has editions cannot be deleted;
+#   * deleting an edition deletes its identifiers (ISBN, Goodreads, ...); deleting a book deletes its book-level ones.
+from sqlalchemy import event  # noqa: E402
+
+TRIGGERS_SQL = (
+    """CREATE TRIGGER IF NOT EXISTS trg_work_has_editions BEFORE DELETE ON canonical_books
+       WHEN EXISTS (SELECT 1 FROM editions WHERE work_id = OLD.id)
+       BEGIN SELECT RAISE(ABORT, 'book still has editions; remove or merge the editions first'); END""",
+    """CREATE TRIGGER IF NOT EXISTS trg_edition_delete_identifiers AFTER DELETE ON editions
+       BEGIN DELETE FROM edition_identifiers WHERE edition_id = OLD.id; END""",
+    """CREATE TRIGGER IF NOT EXISTS trg_work_delete_identifiers AFTER DELETE ON canonical_books
+       BEGIN DELETE FROM work_identifiers WHERE work_id = OLD.id; END""",
+)
+event.listen(Edition.__table__, "after_create", DDL(TRIGGERS_SQL[0]).execute_if(dialect="sqlite"))
+event.listen(EditionIdentifier.__table__, "after_create", DDL(TRIGGERS_SQL[1]).execute_if(dialect="sqlite"))
+event.listen(WorkIdentifier.__table__, "after_create", DDL(TRIGGERS_SQL[2]).execute_if(dialect="sqlite"))
