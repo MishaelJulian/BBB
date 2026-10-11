@@ -159,15 +159,17 @@ const ClosetSpine = React.memo(function ClosetSpine({
         e.stopPropagation()
       }}
     >
-      {/* Contact Shadow on shelf board */}
-      <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full bg-black/80 blur-[2px] pointer-events-none transition-all duration-200"
-        style={{
-          width: isTargeted || isSelected ? '120%' : '80%',
-          height: isTargeted || isSelected ? 8 : 4,
-          opacity: isTargeted || isSelected ? 0.9 : 0.45,
-        }}
-      />
+      {/* Contact Shadow on shelf board (desktop only to prevent mobile GPU blur bottleneck) */}
+      {!isMobile && (
+        <div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full bg-black/80 blur-[2px] pointer-events-none transition-all duration-200"
+          style={{
+            width: isTargeted || isSelected ? '120%' : '80%',
+            height: isTargeted || isSelected ? 8 : 4,
+            opacity: isTargeted || isSelected ? 0.9 : 0.45,
+          }}
+        />
+      )}
 
       {/* Physical Spine with 3D lift on desktop and lightweight 2D lift on mobile */}
       <div
@@ -184,9 +186,11 @@ const ClosetSpine = React.memo(function ClosetSpine({
             ? 'none'
             : 'translateZ(0px) translateY(0px) scale(1)',
           transformOrigin: 'bottom center',
-          boxShadow: isTargeted
-            ? `0 0 0 1.5px #10B981, 0 10px 25px rgba(0,0,0,0.85)`
-            : `inset 0 0 10px rgba(0,0,0,0.65), inset 1px 0 0 rgba(255,255,255,0.12), 0 4px 12px rgba(0,0,0,0.6)`,
+          boxShadow: isMobile
+            ? (isTargeted ? '0 0 0 1.5px #10B981, 0 6px 14px rgba(0,0,0,0.7)' : '0 2px 5px rgba(0,0,0,0.5)')
+            : (isTargeted
+                ? `0 0 0 1.5px #10B981, 0 10px 25px rgba(0,0,0,0.85)`
+                : `inset 0 0 10px rgba(0,0,0,0.65), inset 1px 0 0 rgba(255,255,255,0.12), 0 4px 12px rgba(0,0,0,0.6)`),
         }}
       >
         {/* Saved Stack Heart Badge */}
@@ -806,6 +810,11 @@ export function CriterionBookCloset() {
   const hasDraggedRef = React.useRef(false)
   const [currentWallIndex, setCurrentWallIndex] = React.useState<0 | 1 | 2>(1) // 0: Left (+38°), 1: Main (0°), 2: Right (-38°)
 
+  // Mobile Pinch & Double-Tap Zoom state (1.0x to 2.5x)
+  const [mobileZoom, setMobileZoom] = React.useState(1)
+  const pinchStartRef = React.useRef<{ dist: number; startZoom: number }>({ dist: 0, startZoom: 1 })
+  const lastTapRef = React.useRef<number>(0)
+
   // Dynamic responsive scale for mobile: fits the complete 3-wall curved bookshelf comfortably
   const mobileScale = React.useMemo(() => {
     if (!isMobile) return 1
@@ -813,13 +822,14 @@ export function CriterionBookCloset() {
     return Math.min(1, Math.max(0.52, (windowWidth - 20) / 640))
   }, [isMobile, windowWidth])
 
-  // Unified camera rotation combining desktop mouse parallax and mobile touch pan
+  // Unified camera rotation combining desktop mouse parallax and mobile touch pan.
+  // On mobile: direct tracking gives instant, crisp 60fps 1:1 response without rubber-band lag.
   const camRotateY = useTransform(
-    [smoothX, smoothTouchYaw],
+    [smoothX, isMobile ? touchYawMotion : smoothTouchYaw],
     ([mx, ty]: any[]) => ((mx as number) * 36) + (ty as number)
   )
   const camRotateX = useTransform(
-    [smoothY, smoothTouchPitch],
+    [smoothY, isMobile ? touchPitchMotion : smoothTouchPitch],
     ([my, tp]: any[]) => (-(my as number) * 20) + (tp as number)
   )
 
@@ -839,7 +849,30 @@ export function CriterionBookCloset() {
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (selectedBook || e.touches.length !== 1) return
+    if (selectedBook) return
+
+    // 2-Finger Pinch Zoom detection
+    if (e.touches.length === 2) {
+      hasDraggedRef.current = true
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      )
+      pinchStartRef.current = { dist, startZoom: mobileZoom }
+      return
+    }
+
+    if (e.touches.length !== 1) return
+
+    // Quick double-tap anywhere on shelves to toggle zoom (1x <-> 1.8x)
+    const now = Date.now()
+    if (now - lastTapRef.current < 280) {
+      setMobileZoom((prev) => (prev > 1.2 ? 1 : 1.8))
+      lastTapRef.current = 0
+      return
+    }
+    lastTapRef.current = now
+
     const touch = e.touches[0]
     hasDraggedRef.current = false
     touchStartRef.current = {
@@ -851,7 +884,22 @@ export function CriterionBookCloset() {
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (selectedBook || e.touches.length !== 1) return
+    if (selectedBook) return
+
+    // Handle 2-Finger Pinch to Zoom smoothly in real time
+    if (e.touches.length === 2 && pinchStartRef.current.dist > 0) {
+      if (e.cancelable) e.preventDefault()
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      )
+      const scaleFactor = dist / pinchStartRef.current.dist
+      const nextZoom = Math.min(2.5, Math.max(1, pinchStartRef.current.startZoom * scaleFactor))
+      setMobileZoom(Number(nextZoom.toFixed(2)))
+      return
+    }
+
+    if (e.touches.length !== 1) return
     const touch = e.touches[0]
     const dx = touch.clientX - touchStartRef.current.x
     const dy = touch.clientY - touchStartRef.current.y
@@ -862,14 +910,16 @@ export function CriterionBookCloset() {
 
     if (e.cancelable) e.preventDefault()
 
-    // Smooth, responsive free-look panning up/down/left/right across all shelves
-    const newYaw = Math.max(-52, Math.min(52, touchStartRef.current.startYaw + dx * 0.24))
-    const newPitch = Math.max(-22, Math.min(22, touchStartRef.current.startPitch - dy * 0.16))
+    // Smooth, responsive free-look panning up/down/left/right across all shelves (adjusted for zoom)
+    const sensitivity = mobileZoom > 1.4 ? 0.18 : 0.28
+    const newYaw = Math.max(-56, Math.min(56, touchStartRef.current.startYaw + dx * sensitivity))
+    const newPitch = Math.max(-24, Math.min(24, touchStartRef.current.startPitch - dy * (sensitivity * 0.7)))
     touchYawMotion.set(newYaw)
     touchPitchMotion.set(newPitch)
   }
 
   const handleTouchEnd = () => {
+    pinchStartRef.current = { dist: 0, startZoom: mobileZoom }
     // Update wall index highlight based on camera direction without violent snapping
     const yaw = touchYawMotion.get()
     let targetIdx: 0 | 1 | 2 = 1
@@ -1603,7 +1653,7 @@ export function CriterionBookCloset() {
           />
 
           {/* SHELF SECTION NAVIGATION CONTROLS (Paging across 3-wall rooms) */}
-          <div className="fixed top-16 z-30 inset-x-0 mx-auto w-fit max-w-[94vw] flex items-center justify-center gap-1.5 sm:gap-3 px-2.5 sm:px-4 py-1.5 rounded-full bg-black/85 border border-white/20 shadow-2xl backdrop-blur-xl text-[10px] sm:text-xs font-mono">
+          <div className="fixed top-16 z-30 inset-x-0 mx-auto w-fit max-w-[94vw] flex items-center justify-center gap-1.5 sm:gap-3 px-2.5 sm:px-4 py-1.5 rounded-full bg-black/90 border border-white/20 shadow-2xl sm:backdrop-blur-xl text-[10px] sm:text-xs font-mono">
             {/* Prev Shelves Button */}
             <button
               onClick={() => setShelfSection((s) => Math.max(0, s - 1))}
@@ -1665,7 +1715,7 @@ export function CriterionBookCloset() {
           </div>
 
           {/* Wall Perspective Quick Switcher (Touch Friendly & Responsive) */}
-          <div className="fixed top-28 z-30 inset-x-0 mx-auto w-fit max-w-[94vw] flex items-center gap-1 p-1 rounded-full bg-black/85 border border-white/20 shadow-2xl backdrop-blur-xl text-[10px] sm:text-xs font-mono">
+          <div className="fixed top-28 z-30 inset-x-0 mx-auto w-fit max-w-[94vw] flex items-center gap-1 p-1 rounded-full bg-black/90 border border-white/20 shadow-2xl sm:backdrop-blur-xl text-[10px] sm:text-xs font-mono">
             <button
               onClick={() => snapToWall(0)}
               className={`px-2.5 sm:px-3.5 py-1 rounded-full transition-all ${
@@ -1700,7 +1750,7 @@ export function CriterionBookCloset() {
 
           {/* Active Meetup Shelving Badge (if single meetup filter selected) */}
           {selectedMeetup !== null && (
-            <div className="fixed top-40 z-30 inset-x-0 mx-auto w-fit flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-amber-500 text-black font-mono text-xs font-bold shadow-2xl backdrop-blur-xl">
+            <div className="fixed top-40 z-30 inset-x-0 mx-auto w-fit flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-amber-500 text-black font-mono text-xs font-bold shadow-2xl">
               <span>Shelving Meetup #{selectedMeetup} ({filteredBooks.length} volumes)</span>
               <button
                 onClick={() => setSelectedMeetup(null)}
@@ -1731,16 +1781,17 @@ export function CriterionBookCloset() {
               </p>
             </div>
           ) : (
-            /* 3D CAMERA RIG (Swivels with mouse parallax on desktop & touch drag on mobile) */
+            /* 3D CAMERA RIG (Swivels with mouse parallax on desktop & zero-lag touch drag on mobile) */
             <motion.div
               className="absolute top-1/2 left-1/2 w-0 h-0"
               style={{
                 transformStyle: 'preserve-3d',
+                willChange: 'transform',
                 rotateY: camRotateY,
                 rotateX: camRotateX,
                 translateZ: isMobile ? -280 : -320,
                 translateY: isMobile ? -12 : -20,
-                scale: mobileScale,
+                scale: isMobile ? mobileScale * mobileZoom : 1,
               }}
             >
               {/* FLOOR PLANE (Polished library dark walnut parquet) - desktop only */}
@@ -1974,6 +2025,41 @@ export function CriterionBookCloset() {
               </motion.div>
             )}
           </div>
+
+          {/* Mobile Zoom Controls (+ / - buttons and current zoom percentage) */}
+          {isMobile && (
+            <div className="fixed bottom-20 right-3 z-40 flex flex-col items-center gap-1 p-1 rounded-2xl bg-black/90 border border-white/20 shadow-2xl text-white font-mono pointer-events-auto">
+              <button
+                type="button"
+                onClick={() => setMobileZoom((z) => Math.min(2.5, Number((z + 0.35).toFixed(2))))}
+                disabled={mobileZoom >= 2.5}
+                className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:bg-amber-400 active:text-black disabled:opacity-30 flex items-center justify-center font-bold text-sm transition"
+                title="Zoom in on shelf"
+                aria-label="Zoom in on shelf"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileZoom(1)}
+                className="px-1 py-0.5 text-[9px] text-amber-300 font-bold hover:text-white transition"
+                title="Reset zoom to 1x"
+                aria-label="Reset zoom"
+              >
+                {mobileZoom > 1.05 ? `${Math.round(mobileZoom * 100)}%` : '1x'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileZoom((z) => Math.max(1, Number((z - 0.35).toFixed(2))))}
+                disabled={mobileZoom <= 1.05}
+                className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:bg-amber-400 active:text-black disabled:opacity-30 flex items-center justify-center font-bold text-sm transition"
+                title="Zoom out on shelf"
+                aria-label="Zoom out on shelf"
+              >
+                −
+              </button>
+            </div>
+          )}
         </main>
       )}
 
