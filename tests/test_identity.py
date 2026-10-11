@@ -297,3 +297,13 @@ def test_deleting_a_book_without_editions_removes_its_book_level_numbers(db_nofk
     db_nofk.add(WorkIdentifier(scheme="wikidata", value="Q165318", work_id=w.id)); db_nofk.commit()
     db_nofk.execute(text("DELETE FROM canonical_books WHERE id = :i"), {"i": w.id}); db_nofk.commit()
     assert db_nofk.execute(text("SELECT count(*) FROM work_identifiers")).scalar() == 0
+
+
+def test_edition_needs_an_existing_book_even_with_foreign_keys_off(db_nofk):
+    db_nofk.add(Edition(work_id="no-such-book", identity_basis="isbn13"))
+    with pytest.raises(IntegrityError):
+        db_nofk.commit()
+    db_nofk.rollback()
+    w = _work(db_nofk); e = _edition(db_nofk, w, identity_basis="isbn13")
+    with pytest.raises(IntegrityError):                                   # moving it to a missing book is refused too
+        db_nofk.execute(text("UPDATE editions SET work_id = 'ghost' WHERE id = :e"), {"e": e.id}); db_nofk.commit()

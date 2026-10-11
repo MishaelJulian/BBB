@@ -124,11 +124,18 @@ TRIGGERS_SQL = (
     """CREATE TRIGGER IF NOT EXISTS trg_work_has_editions BEFORE DELETE ON canonical_books
        WHEN EXISTS (SELECT 1 FROM editions WHERE work_id = OLD.id)
        BEGIN SELECT RAISE(ABORT, 'book still has editions; remove or merge the editions first'); END""",
+    """CREATE TRIGGER IF NOT EXISTS trg_edition_needs_book_insert BEFORE INSERT ON editions
+       WHEN NOT EXISTS (SELECT 1 FROM canonical_books WHERE id = NEW.work_id)
+       BEGIN SELECT RAISE(ABORT, 'an edition needs an existing book'); END""",
+    """CREATE TRIGGER IF NOT EXISTS trg_edition_needs_book_update BEFORE UPDATE OF work_id ON editions
+       WHEN NOT EXISTS (SELECT 1 FROM canonical_books WHERE id = NEW.work_id)
+       BEGIN SELECT RAISE(ABORT, 'an edition needs an existing book'); END""",
     """CREATE TRIGGER IF NOT EXISTS trg_edition_delete_identifiers AFTER DELETE ON editions
        BEGIN DELETE FROM edition_identifiers WHERE edition_id = OLD.id; END""",
     """CREATE TRIGGER IF NOT EXISTS trg_work_delete_identifiers AFTER DELETE ON canonical_books
        BEGIN DELETE FROM work_identifiers WHERE work_id = OLD.id; END""",
 )
-event.listen(Edition.__table__, "after_create", DDL(TRIGGERS_SQL[0]).execute_if(dialect="sqlite"))
-event.listen(EditionIdentifier.__table__, "after_create", DDL(TRIGGERS_SQL[1]).execute_if(dialect="sqlite"))
-event.listen(WorkIdentifier.__table__, "after_create", DDL(TRIGGERS_SQL[2]).execute_if(dialect="sqlite"))
+for _sql in TRIGGERS_SQL[:3]:
+    event.listen(Edition.__table__, "after_create", DDL(_sql).execute_if(dialect="sqlite"))
+event.listen(EditionIdentifier.__table__, "after_create", DDL(TRIGGERS_SQL[3]).execute_if(dialect="sqlite"))
+event.listen(WorkIdentifier.__table__, "after_create", DDL(TRIGGERS_SQL[4]).execute_if(dialect="sqlite"))

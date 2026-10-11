@@ -91,6 +91,12 @@ def upgrade() -> None:
     op.execute("""CREATE TRIGGER trg_work_has_editions BEFORE DELETE ON canonical_books
         WHEN EXISTS (SELECT 1 FROM editions WHERE work_id = OLD.id)
         BEGIN SELECT RAISE(ABORT, 'book still has editions; remove or merge the editions first'); END""")
+    op.execute("""CREATE TRIGGER trg_edition_needs_book_insert BEFORE INSERT ON editions
+        WHEN NOT EXISTS (SELECT 1 FROM canonical_books WHERE id = NEW.work_id)
+        BEGIN SELECT RAISE(ABORT, 'an edition needs an existing book'); END""")
+    op.execute("""CREATE TRIGGER trg_edition_needs_book_update BEFORE UPDATE OF work_id ON editions
+        WHEN NOT EXISTS (SELECT 1 FROM canonical_books WHERE id = NEW.work_id)
+        BEGIN SELECT RAISE(ABORT, 'an edition needs an existing book'); END""")
     op.execute("""CREATE TRIGGER trg_edition_delete_identifiers AFTER DELETE ON editions
         BEGIN DELETE FROM edition_identifiers WHERE edition_id = OLD.id; END""")
     op.execute("""CREATE TRIGGER trg_work_delete_identifiers AFTER DELETE ON canonical_books
@@ -113,7 +119,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    for trg in ("trg_work_has_editions", "trg_edition_delete_identifiers", "trg_work_delete_identifiers"):
+    for trg in ("trg_work_has_editions", "trg_edition_needs_book_insert", "trg_edition_needs_book_update", "trg_edition_delete_identifiers", "trg_work_delete_identifiers"):
         op.execute(f"DROP TRIGGER IF EXISTS {trg}")
     op.execute("DROP VIEW IF EXISTS v_editions_missing_basis_identifier")
     op.execute("DROP VIEW IF EXISTS v_works_without_identity")
