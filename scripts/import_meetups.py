@@ -21,6 +21,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.parsers.changeset import invariants, learn_evidence, load_world, reconcile  # noqa: E402
 from app.parsers.meetup_parser import extract_lines, meetup_number_for, parse_file  # noqa: E402
 from app.parsers.resolve import BookMatcher, MemberResolver  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _backend import backend_stopped  # noqa: E402
 
 
 def _moves(a):
@@ -105,19 +107,21 @@ def main() -> int:
     if bad:
         print("NOT COMMITTED: invariants failed")
         return 1
-    bk = os.path.expanduser(f"~/bbb_backups/book_club_archivist_{datetime.now():%Y%m%d_%H%M%S}.db")
-    os.makedirs(os.path.dirname(bk), exist_ok=True)
-    src, dst = sqlite3.connect(a.db), sqlite3.connect(bk)
-    src.backup(dst); src.close(); dst.close()
-    print("backup:", bk)
-    c, bad = _run(a, parsed, wanted, allow, print_report=False)      # same pass again, this time kept
-    if bad:
-        c.execute("rollback")
-        print("NOT COMMITTED: invariants failed", bad)
-        return 1
-    c.execute("commit")
-    print("COMMITTED")
-    return 0
+    with backend_stopped(a.db):                                       # the docker backend must not write the same file meanwhile
+        bk = os.path.expanduser(f"~/bbb_backups/book_club_archivist_{datetime.now():%Y%m%d_%H%M%S}.db")
+        os.makedirs(os.path.dirname(bk), exist_ok=True)
+        src, dst = sqlite3.connect(a.db), sqlite3.connect(bk)
+        src.backup(dst); src.close(); dst.close()
+        print("backup:", bk)
+        c, bad = _run(a, parsed, wanted, allow, print_report=False)  # same pass again, this time kept
+        if bad:
+            c.execute("rollback")
+            print("NOT COMMITTED: invariants failed", bad)
+            return 1
+        c.execute("commit")
+        c.close()
+        print("COMMITTED")
+        return 0
 
 
 if __name__ == "__main__":

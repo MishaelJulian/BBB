@@ -11,6 +11,8 @@ import time
 # Ensure project root is in sys.path
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
+sys.path.insert(0, os.path.join(BASE_DIR, 'scripts'))
+from _backend import backend_stopped
 
 from app.core.database import SessionLocal
 from app.database.models import Meetup, Discussion, CanonicalBook, Author
@@ -92,4 +94,6 @@ def batch_enrich():
         db.close()
 
 if __name__ == "__main__":
-    batch_enrich()
+    from app.core.config import settings
+    with backend_stopped(settings.DATABASE_URL.replace("sqlite:///", "")):     # the docker backend must not write the same file meanwhile
+        batch_enrich()
