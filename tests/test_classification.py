@@ -65,3 +65,28 @@ def test_orm_reads_and_writes_the_new_fields(db):
         s.add(Discussion(meetup_id=meetup.id)); 
         with pytest.raises(DatabaseError, match="exactly one"):
             s.flush()                                                                    # neither target: refused
+
+
+def test_guest_promotion_suggestion_after_three_in_a_row(db):
+    """A guest at three meetups in a row, ending at the latest, is offered; a gap, a member or only two are not."""
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.orm import Session
+    from app.services.membership import promotion_candidates
+
+    eng = create_engine(f"sqlite:///{db}")
+    with eng.begin() as c:
+        c.execute(text("select 1"))
+        for pid, status in (("g3", "guest"), ("g2", "guest"), ("gap", "guest"), ("m3", "member")):
+            c.execute(text("insert into members(id,display_name,normalized_name,status,created_at,updated_at) values(:i,:i,:i,:s,datetime('now'),datetime('now'))"), {"i": pid, "s": status})
+        mids = {n: i for i, n in c.execute(text("select id, meetup_number from meetups where meetup_number in (96,97,98,99)")).all()}
+        book = c.execute(text("select id from canonical_books limit 1")).scalar()
+        att = {"g3": (97, 98, 99), "g2": (98, 99), "gap": (96, 98, 99), "m3": (97, 98, 99)}
+        k = 0
+        for who, nums in att.items():
+            for n in nums:
+                k += 1
+                c.execute(text("insert into discussions(id,meetup_id,canonical_book_id,member_id,confidence_score,created_at,updated_at) values(:i,:m,:b,:w,1.0,datetime('now'),datetime('now'))"), {"i": f"d{k}", "m": mids[n], "b": book, "w": who})
+        with pytest.raises(Exception, match="guest or member"):
+            c.execute(text("update members set status='bogus' where id='g3'"))
+    with Session(eng) as s:
+        assert [r["member_id"] for r in promotion_candidates(s)] == ["g3"]

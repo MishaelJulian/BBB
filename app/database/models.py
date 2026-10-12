@@ -174,6 +174,8 @@ class Member(Base, UUIDMixin, TimestampMixin):
     )
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_hidden: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    # 'guest' until the presenter confirms membership (see app/services/membership.py); the database refuses other values.
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="member", server_default=text("'member'"))
 
     # Relationships
     discussions: Mapped[List["Discussion"]] = relationship(
