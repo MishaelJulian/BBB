@@ -5,7 +5,7 @@ presenter, who decides. "Been at" = a meetup_attendance row with status attended
 """
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import Integer, func, select
 from sqlalchemy.orm import Session
 
 from app.database.models import Meetup, MeetupAttendance, Member
@@ -18,8 +18,8 @@ def assign_member_code(session: Session, member: Member, meetup_number: int) -> 
     if member.member_code:
         return member.member_code
     prefix = f"{meetup_number:03d}-"
-    taken = session.scalar(select(func.count()).select_from(Member).where(Member.member_code.like(prefix + "%"))) or 0
-    member.member_code = f"{prefix}{taken + 1:02d}"
+    last = session.scalar(select(func.max(func.cast(func.substr(Member.member_code, 5), Integer))).where(Member.member_code.like(prefix + "%"))) or 0
+    member.member_code = f"{prefix}{last + 1:02d}"   # max + 1, not a count: a removed code leaves a gap and a count would collide
     session.flush()
     return member.member_code
 

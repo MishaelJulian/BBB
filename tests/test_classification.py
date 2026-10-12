@@ -186,3 +186,20 @@ def test_tangent_is_a_flag_in_the_api(db, monkeypatch):
     main.update_admin_book(book_id, main.BookUpdateRequest(title="Plain book", discussion_id=disc_id, is_tangent=False))
     with eng.connect() as c:
         assert c.execute(text("select is_tangent from discussions where id=:i"), {"i": disc_id}).scalar() == 0
+
+
+def test_member_code_allocation_survives_a_gap(db, monkeypatch):
+    """A removed code leaves a gap; the next code is max + 1, never a count that lands on an existing code."""
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.orm import sessionmaker
+    from app.api import main
+
+    eng = create_engine(f"sqlite:///{db}")
+    monkeypatch.setattr(main, "SessionLocal", sessionmaker(bind=eng))
+    with eng.begin() as c:
+        top = c.execute(text("select max(cast(substr(member_code,5) as integer)) from members where member_code like '099-%'")).scalar()
+        c.execute(text("update members set member_code=NULL where member_code='099-01'"))      # the gap: count + 1 would now equal an existing code
+        c.execute(text("insert into members(id,display_name,normalized_name,status,created_at,updated_at) values('g1','g1','g1','guest',datetime('now'),datetime('now'))"))
+    main.save_meetup_attendance(99, main.AttendanceRequest(member_ids=["g1"]))
+    with eng.begin() as c:
+        assert c.execute(text("select member_code from members where id='g1'")).scalar() == f"099-{top + 1:02d}"

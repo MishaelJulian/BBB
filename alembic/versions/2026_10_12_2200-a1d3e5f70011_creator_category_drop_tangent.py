@@ -7,7 +7,7 @@ Create Date: 2026-10-12
 - Founder, 2026-10-12: "Add an eleventh category, creator". Paul Thomas Anderson (a director's name) is retyped to it.
 - Alfred Hitchcock's Frenzy was retyped to 'movie' by hand the same day.
 - The 'tangent' row is removed only when nothing still uses it; tangent itself is the flag discussions.is_tangent.
-Rollback: downgrade restores the 'tangent' row and types creator items back to it.
+Rollback: downgrade restores the 'tangent' row and Paul Thomas Anderson's old type; other creator items stay creator.
 """
 from typing import Sequence, Union
 
@@ -33,7 +33,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Only the item this migration retyped goes back; other 'creator' items keep their type, so the category stays while any is in use.
     op.execute("INSERT OR IGNORE INTO media_categories(code,label,sort_order) VALUES ('tangent','Tangent (legacy; now a flag on the mention)',103)")
-    op.execute("UPDATE canonical_books SET media_type='tangent' WHERE media_type='creator'")
-    op.execute("UPDATE discussions SET media_type='tangent' WHERE media_type='creator'")
-    op.execute("DELETE FROM media_categories WHERE code='creator'")
+    op.execute(f"UPDATE canonical_books SET media_type='tangent' WHERE id='{PTA}' AND media_type='creator'")
+    op.execute(f"UPDATE discussions SET media_type='tangent' WHERE canonical_book_id='{PTA}' AND media_type='creator'")
+    op.execute("""DELETE FROM media_categories WHERE code='creator'
+                  AND NOT EXISTS (SELECT 1 FROM canonical_books WHERE media_type='creator')
+                  AND NOT EXISTS (SELECT 1 FROM discussions WHERE media_type='creator')""")
