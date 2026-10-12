@@ -1199,7 +1199,7 @@ export function CriterionBookCloset() {
       const discussedBooks = (data || []).filter((b) => {
         const hasDiscussions = Boolean(b.discussion_count && b.discussion_count > 0) || Boolean(b.meetups && b.meetups.length > 0)
         const isNotGeneral = !b.is_general_discussion
-        const isNotTangent = b.media_type !== 'tangent' && !b.title?.toLowerCase().includes('(tangent)')
+        const isNotTangent = !b.title?.toLowerCase().includes('(tangent)')   // tangent mentions are already folded into is_general_discussion by the server
         return hasDiscussions && isNotGeneral && isNotTangent
       })
       setBooks(discussedBooks)
@@ -1354,7 +1354,7 @@ export function CriterionBookCloset() {
     let list = books.filter((b) => {
       const hasDiscussions = Boolean(b.discussion_count && b.discussion_count > 0) || Boolean(b.meetups && b.meetups.length > 0)
       const isNotGeneral = !b.is_general_discussion
-      const isNotTangent = b.media_type !== 'tangent' && !b.title?.toLowerCase().includes('(tangent)')
+      const isNotTangent = !b.title?.toLowerCase().includes('(tangent)')   // tangent mentions are already folded into is_general_discussion by the server
       return hasDiscussions && isNotGeneral && isNotTangent
     })
 

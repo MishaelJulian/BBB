@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { MEDIA_TYPES, MediaTypeOption, mediaMeta, normalizeMediaType } from '@/lib/mediaTypes'
 import { getApiBase } from '@/lib/api'
 
 export interface BookSuggestion {
@@ -23,7 +24,7 @@ export interface BookSuggestion {
   description?: string | null
 }
 
-export type MediaTypeOption = 'book' | 'movie' | 'youtube' | 'podcast' | 'tangent'
+export type { MediaTypeOption }
 
 interface BookAutocompleteInputProps {
   value: string
@@ -38,14 +39,6 @@ interface BookAutocompleteInputProps {
   apiBase?: string
   className?: string
 }
-
-const MEDIA_TYPES: { id: MediaTypeOption; label: string; icon: string; placeholder: string }[] = [
-  { id: 'book', label: 'Book', icon: '📚', placeholder: 'e.g. Misery, Klara and the Sun, Dune...' },
-  { id: 'movie', label: 'Movie / TV', icon: '🎬', placeholder: 'e.g. The Last Emperor, Succession, Inception...' },
-  { id: 'youtube', label: 'YouTube', icon: '▶️', placeholder: 'Paste YouTube link or enter channel / video name...' },
-  { id: 'podcast', label: 'Podcast', icon: '🎙️', placeholder: 'e.g. Huberman Lab, Hardcore History...' },
-  { id: 'tangent', label: 'Tangent / Web', icon: '🌐', placeholder: 'e.g. Wondrium, Substack, cultural topic...' },
-]
 
 export function BookAutocompleteInput({
   value,
@@ -142,7 +135,7 @@ export function BookAutocompleteInput({
           if (!res.ok) throw new Error('URL resolution failed')
           const data = await res.json()
           if (data && data.title) {
-            const detectedType: MediaTypeOption = (data.media_type as MediaTypeOption) || 'tangent'
+            const detectedType: MediaTypeOption = normalizeMediaType(data.media_type)
             if (detectedType !== currentMediaType) {
               setCurrentMediaType(detectedType)
               if (onMediaTypeChange) onMediaTypeChange(detectedType)
@@ -244,19 +237,8 @@ export function BookAutocompleteInput({
     placeholder || MEDIA_TYPES.find((m) => m.id === currentMediaType)?.placeholder || 'Search...'
 
   const getMediaBadge = (itemType?: string) => {
-    switch (itemType) {
-      case 'movie':
-      case 'show':
-        return { label: '🎬 Film / TV', cls: 'bg-purple-100 text-purple-800 border-purple-200' }
-      case 'youtube':
-        return { label: '▶️ YouTube', cls: 'bg-rose-100 text-rose-800 border-rose-200' }
-      case 'podcast':
-        return { label: '🎙️ Podcast', cls: 'bg-sky-100 text-sky-800 border-sky-200' }
-      case 'tangent':
-        return { label: '🌐 Tangent', cls: 'bg-teal-100 text-teal-800 border-teal-200' }
-      default:
-        return { label: '📚 Book', cls: 'bg-amber-100 text-amber-800 border-amber-200' }
-    }
+    const m = mediaMeta(itemType)
+    return { label: `${m.icon} ${m.label}`, cls: m.badgeClass }
   }
 
   return (
@@ -354,11 +336,7 @@ export function BookAutocompleteInput({
           <div className="px-3 py-1.5 bg-[#FAF8F5] border-b border-[#EEE8DE] flex items-center justify-between text-[10px] text-neutral-500 font-mono font-medium">
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-              {currentMediaType === 'book' && 'Goodreads & BBB Archive'}
-              {currentMediaType === 'movie' && 'Film & TV Series (DuckDuckGo & TVMaze)'}
-              {currentMediaType === 'youtube' && 'YouTube Channels & Videos'}
-              {currentMediaType === 'podcast' && 'Apple Podcasts Search'}
-              {currentMediaType === 'tangent' && 'General Discussion & Web Tangents'}
+              {mediaMeta(currentMediaType).source}
             </span>
             <span>Use ↑↓ and Enter</span>
           </div>
@@ -394,15 +372,7 @@ export function BookAutocompleteInput({
                       />
                     ) : (
                       <span className="text-sm">
-                        {item.media_type === 'movie'
-                          ? '🎬'
-                          : item.media_type === 'youtube'
-                          ? '▶️'
-                          : item.media_type === 'podcast'
-                          ? '🎙️'
-                          : item.media_type === 'tangent'
-                          ? '🌐'
-                          : '📖'}
+                        {mediaMeta(item.media_type).icon}
                       </span>
                     )}
                   </div>

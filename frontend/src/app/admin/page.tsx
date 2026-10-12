@@ -2,7 +2,8 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { BookAutocompleteInput, BookSuggestion, MediaTypeOption } from '@/components/admin/BookAutocompleteInput'
+import { BookAutocompleteInput, BookSuggestion } from '@/components/admin/BookAutocompleteInput'
+import { MediaTypeOption, mediaMeta, normalizeMediaType } from '@/lib/mediaTypes'
 import { MemberAutocompleteInput } from '@/components/admin/MemberAutocompleteInput'
 import { getApiBase, invalidateApiCache } from '@/lib/api'
 import { getSession, type SessionUser } from '@/lib/auth'
@@ -21,6 +22,7 @@ interface BookItem {
   member: string | null
   notes: string | null
   is_general_discussion?: boolean
+  is_tangent?: boolean
   media_type?: string
   url?: string | null
   cover_url?: string | null
@@ -94,6 +96,7 @@ export default function AdminDatabasePage() {
   const [newBookUrl, setNewBookUrl] = React.useState('')
   const [newBookMeta, setNewBookMeta] = React.useState<BookSuggestion | null>(null)
   const [newIsGeneralDiscussion, setNewIsGeneralDiscussion] = React.useState(false)
+  const [newIsTangent, setNewIsTangent] = React.useState(false)
 
   // Edit Book / Media Modal state
   const [editingBook, setEditingBook] = React.useState<BookItem | null>(null)
@@ -105,6 +108,7 @@ export default function AdminDatabasePage() {
   const [editBookUrl, setEditBookUrl] = React.useState('')
   const [editBookMeta, setEditBookMeta] = React.useState<BookSuggestion | null>(null)
   const [editIsGeneralDiscussion, setEditIsGeneralDiscussion] = React.useState(false)
+  const [editIsTangent, setEditIsTangent] = React.useState(false)
 
   // Media & PDF state
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false)
@@ -313,7 +317,8 @@ export default function AdminDatabasePage() {
     if (book.author || book.creator) setNewBookAuthor(book.author || book.creator || '')
     if (book.url) setNewBookUrl(book.url)
     if (book.media_type) {
-      setNewMediaType(book.media_type as MediaTypeOption)
+      setNewMediaType(normalizeMediaType(book.media_type))
+      if (book.media_type === 'tangent') setNewIsTangent(true)
       if (book.media_type !== 'book') {
         setNewIsGeneralDiscussion(true)
       }
@@ -326,7 +331,7 @@ export default function AdminDatabasePage() {
     setEditBookTitle(book.title)
     if (book.author || book.creator) setEditBookAuthor(book.author || book.creator || '')
     if (book.url) setEditBookUrl(book.url)
-    if (book.media_type) setEditMediaType(book.media_type as MediaTypeOption)
+    if (book.media_type) setEditMediaType(normalizeMediaType(book.media_type))
     setEditBookMeta(book)
   }
 
@@ -377,6 +382,7 @@ export default function AdminDatabasePage() {
           goodreads_id: newBookMeta?.goodreads_id || undefined,
           description: newBookMeta?.description || undefined,
           is_general_discussion: newIsGeneralDiscussion,
+          is_tangent: newIsTangent,
           media_type: newMediaType,
           url: newBookUrl.trim() || newBookMeta?.url || undefined,
         }),
@@ -394,6 +400,7 @@ export default function AdminDatabasePage() {
       setNewBookMeta(null)
       setNewMediaType('book')
       setNewIsGeneralDiscussion(false)
+      setNewIsTangent(false)
       setIsAddBookOpen(false)
       loadData(true)
     } catch (err: any) {
@@ -523,7 +530,8 @@ export default function AdminDatabasePage() {
   // Open Edit Book Modal
   const handleOpenEditBook = (book: BookItem) => {
     setEditingBook(book)
-    setEditMediaType((book.media_type as MediaTypeOption) || 'book')
+    setEditMediaType(normalizeMediaType(book.media_type))
+    setEditIsTangent(Boolean(book.is_tangent))
     setEditBookTitle(book.title)
     setEditBookAuthor(book.author || '')
     setEditBookMember(book.member || '')
@@ -552,6 +560,7 @@ export default function AdminDatabasePage() {
           publication_year: editBookMeta?.publication_year || undefined,
           goodreads_id: editBookMeta?.goodreads_id || undefined,
           is_general_discussion: editIsGeneralDiscussion,
+          is_tangent: editIsTangent,
           media_type: editMediaType,
           url: editBookUrl.trim() || editBookMeta?.url || undefined,
         }),
@@ -1047,10 +1056,7 @@ export default function AdminDatabasePage() {
                               (idx === 0 || !currentMeetup.books[idx - 1].is_general_discussion)
                             const generalCount = currentMeetup.books.filter((b) => b.is_general_discussion).length
 
-                            const isFilm = book.media_type === 'movie' || book.media_type === 'show'
-                            const isYouTube = book.media_type === 'youtube'
-                            const isPodcast = book.media_type === 'podcast'
-                            const isTangent = book.media_type === 'tangent'
+                            const meta = mediaMeta(book.media_type)
 
                             return (
                               <React.Fragment key={book.discussion_id}>
@@ -1077,7 +1083,7 @@ export default function AdminDatabasePage() {
                                           className="w-7 h-10 bg-neutral-100 rounded border border-dashed border-neutral-300 flex items-center justify-center text-neutral-400 text-xs shrink-0"
                                           title={book.media_type || 'Media item'}
                                         >
-                                          {isFilm ? '🎬' : isYouTube ? '▶️' : isPodcast ? '🎙️' : isTangent ? '🌐' : '📖'}
+                                          {meta.icon}
                                         </div>
                                       )}
                                       <div className="min-w-0">
@@ -1085,22 +1091,12 @@ export default function AdminDatabasePage() {
                                           <span className="font-serif font-medium text-neutral-900 leading-snug">
                                             {book.title}
                                           </span>
-                                          {isFilm && (
-                                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                                              🎬 Film/TV
+                                          {meta.id !== 'book' && (
+                                            <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-medium border ${meta.badgeClass}`}>
+                                              {meta.icon} {meta.label}
                                             </span>
                                           )}
-                                          {isYouTube && (
-                                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-rose-100 text-rose-800 border border-rose-200">
-                                              ▶️ YouTube
-                                            </span>
-                                          )}
-                                          {isPodcast && (
-                                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-sky-100 text-sky-800 border border-sky-200">
-                                              🎙️ Podcast
-                                            </span>
-                                          )}
-                                          {isTangent && (
+                                          {book.is_tangent && (
                                             <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-teal-100 text-teal-800 border border-teal-200">
                                               🌐 Tangent
                                             </span>
@@ -1126,7 +1122,7 @@ export default function AdminDatabasePage() {
                                         </div>
                                         {book.publication_year && (
                                           <span className="text-[10px] text-neutral-400 font-sans block">
-                                            {isFilm ? 'Released' : 'Published'} {book.publication_year}
+                                            {['movie', 'tv_series', 'anime', 'documentary'].includes(meta.id) ? 'Released' : 'Published'} {book.publication_year}
                                           </span>
                                         )}
                                       </div>
@@ -1452,14 +1448,14 @@ export default function AdminDatabasePage() {
               Add Item to Meetup #{currentMeetup?.number}
             </h3>
             <p className="text-xs text-neutral-500 mb-4">
-              Add a book, movie, YouTube channel, podcast, or tangent to this meetup&apos;s record.
+              Add a book, article, movie, series, anime, documentary, podcast, video, website or poem to this meetup&apos;s record.
             </p>
 
             <form onSubmit={handleAddBook} className="space-y-4 text-xs">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-neutral-700 font-semibold">
-                    {newMediaType === 'movie' ? 'Movie / TV Show Title *' : newMediaType === 'youtube' ? 'Video / Channel Title *' : newMediaType === 'podcast' ? 'Podcast Title *' : newMediaType === 'tangent' ? 'Topic / Platform Title *' : 'Book Title *'}
+                    {mediaMeta(newMediaType).titleLabel}
                   </label>
                   <span className="text-[10px] font-mono text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                     ⚡ Multi-Source Search
@@ -1488,7 +1484,7 @@ export default function AdminDatabasePage() {
                     />
                   ) : (
                     <div className="w-8 h-10 bg-amber-200/60 rounded flex items-center justify-center text-amber-800 text-xs font-bold shrink-0">
-                      {newMediaType === 'movie' ? '🎬' : newMediaType === 'youtube' ? '▶️' : newMediaType === 'podcast' ? '🎙️' : newMediaType === 'tangent' ? '🌐' : '📖'}
+                      {mediaMeta(newMediaType).icon}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -1549,7 +1545,7 @@ export default function AdminDatabasePage() {
                             const data = await res.json()
                             if (data.title && !newBookTitle) setNewBookTitle(data.title)
                             if ((data.author || data.creator) && !newBookAuthor) setNewBookAuthor(data.author || data.creator)
-                            if (data.media_type) setNewMediaType(data.media_type)
+                            if (data.media_type) setNewMediaType(normalizeMediaType(data.media_type))
                             setNewBookMeta(data)
                             showToast('✓ Link resolved successfully')
                           }
@@ -1605,13 +1601,13 @@ export default function AdminDatabasePage() {
 
               <div>
                 <label className="block text-neutral-700 font-semibold mb-1">
-                  {newMediaType === 'movie' ? 'Director / Studio / Network' : newMediaType === 'youtube' ? 'Channel / Creator' : newMediaType === 'podcast' ? 'Host / Network' : newMediaType === 'tangent' ? 'Creator / Platform' : 'Author Name'}
+                  {mediaMeta(newMediaType).creatorLabel}
                 </label>
                 <input
                   type="text"
                   value={newBookAuthor}
                   onChange={(e) => setNewBookAuthor(e.target.value)}
-                  placeholder={newMediaType === 'movie' ? 'e.g. Bernardo Bertolucci' : newMediaType === 'youtube' ? 'e.g. 3Blue1Brown' : newMediaType === 'podcast' ? 'e.g. Andrew Huberman' : newMediaType === 'tangent' ? 'e.g. The Teaching Company' : 'e.g. Stephen King'}
+                  placeholder={mediaMeta(newMediaType).creatorPlaceholder}
                   className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
                 />
               </div>
@@ -1642,6 +1638,12 @@ export default function AdminDatabasePage() {
                   className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
                 />
               </div>
+
+              {/* Tangent flag: how it was mentioned, not what kind of thing it is */}
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-[#FAF8F5] border border-[#DDD6C7] text-xs font-semibold text-neutral-800 cursor-pointer">
+                <input type="checkbox" checked={newIsTangent} onChange={(e) => setNewIsTangent(e.target.checked)} />
+                <span>🌐 Mentioned as a tangent</span>
+              </label>
 
               {/* General Discussion Toggle */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[#DDD6C7]">
@@ -1708,7 +1710,7 @@ export default function AdminDatabasePage() {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-neutral-700 font-semibold">
-                    {editMediaType === 'movie' ? 'Movie / TV Show Title *' : editMediaType === 'youtube' ? 'Video / Channel Title *' : editMediaType === 'podcast' ? 'Podcast Title *' : editMediaType === 'tangent' ? 'Topic / Platform Title *' : 'Book Title *'}
+                    {mediaMeta(editMediaType).titleLabel}
                   </label>
                   <span className="text-[10px] font-mono text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                     ⚡ Multi-Source Search
@@ -1737,7 +1739,7 @@ export default function AdminDatabasePage() {
                     />
                   ) : (
                     <div className="w-8 h-10 bg-amber-200/60 rounded flex items-center justify-center text-amber-800 text-xs font-bold shrink-0">
-                      {editMediaType === 'movie' ? '🎬' : editMediaType === 'youtube' ? '▶️' : editMediaType === 'podcast' ? '🎙️' : editMediaType === 'tangent' ? '🌐' : '📖'}
+                      {mediaMeta(editMediaType).icon}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -1798,7 +1800,7 @@ export default function AdminDatabasePage() {
                             const data = await res.json()
                             if (data.title && !editBookTitle) setEditBookTitle(data.title)
                             if ((data.author || data.creator) && !editBookAuthor) setEditBookAuthor(data.author || data.creator)
-                            if (data.media_type) setEditMediaType(data.media_type)
+                            if (data.media_type) setEditMediaType(normalizeMediaType(data.media_type))
                             setEditBookMeta(data)
                             showToast('✓ Link resolved successfully')
                           }
@@ -1816,13 +1818,13 @@ export default function AdminDatabasePage() {
 
               <div>
                 <label className="block text-neutral-700 font-semibold mb-1">
-                  {editMediaType === 'movie' ? 'Director / Studio / Network' : editMediaType === 'youtube' ? 'Channel / Creator' : editMediaType === 'podcast' ? 'Host / Network' : editMediaType === 'tangent' ? 'Creator / Platform' : 'Author Name'}
+                  {mediaMeta(editMediaType).creatorLabel}
                 </label>
                 <input
                   type="text"
                   value={editBookAuthor}
                   onChange={(e) => setEditBookAuthor(e.target.value)}
-                  placeholder={editMediaType === 'movie' ? 'e.g. Bernardo Bertolucci' : editMediaType === 'youtube' ? 'e.g. 3Blue1Brown' : editMediaType === 'podcast' ? 'e.g. Andrew Huberman' : editMediaType === 'tangent' ? 'e.g. The Teaching Company' : 'e.g. Kazuo Ishiguro'}
+                  placeholder={mediaMeta(editMediaType).creatorPlaceholder}
                   className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
                 />
               </div>
@@ -1860,6 +1862,12 @@ export default function AdminDatabasePage() {
                   className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
                 />
               </div>
+
+              {/* Tangent flag: how it was mentioned, not what kind of thing it is */}
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-[#FAF8F5] border border-[#DDD6C7] text-xs font-semibold text-neutral-800 cursor-pointer">
+                <input type="checkbox" checked={editIsTangent} onChange={(e) => setEditIsTangent(e.target.checked)} />
+                <span>🌐 Mentioned as a tangent</span>
+              </label>
 
               {/* General Discussion Toggle */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[#DDD6C7]">

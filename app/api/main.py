@@ -312,7 +312,7 @@ def batch_books_to_dict(books: list, db) -> list:
         Meetup.meetup_number,
         Meetup.date.label("meetup_date"),
         Venue.name.label("venue_name"),
-        Discussion.media_type.label("disc_media_type")
+        Discussion.is_tangent.label("disc_is_tangent")
     ).outerjoin(Member, Discussion.member_id == Member.id)\
      .outerjoin(Meetup, Discussion.meetup_id == Meetup.id)\
      .outerjoin(Venue, Meetup.venue_id == Venue.id)\
@@ -328,11 +328,11 @@ def batch_books_to_dict(books: list, db) -> list:
     seen_meetups = defaultdict(set)
     
     for row in disc_rows:
-        b_id, topic, notes, mem_id, mem_name, m_id, m_num, m_date, v_name, disc_media = row
+        b_id, topic, notes, mem_id, mem_name, m_id, m_num, m_date, v_name, disc_is_tangent = row
         is_disc_general = (
             (topic and ("general" in topic.lower() or "tangent" in topic.lower())) or
             (notes and ("general" in notes.lower() or "tangent" in notes.lower())) or
-            (disc_media == "tangent")
+            bool(disc_is_tangent)
         )
         if is_disc_general:
             book_general_count[b_id] += 1
@@ -1372,6 +1372,20 @@ def to_title_case_name(name: str) -> str:
     return " ".join(title_words)
 
 
+# Old spellings the admin screens and the resolvers still use -> the approved category, plus whether it meant "tangent".
+_LEGACY_MEDIA = {"youtube": ("video", False), "show": ("tv_series", False), "tangent": ("website_app", True)}
+
+
+def _media(db, value: Optional[str]) -> tuple:
+    """Return (category code, legacy_tangent). The allowed codes live in media_categories, not here."""
+    v = (value or "book").strip().lower()
+    code, legacy_tangent = _LEGACY_MEDIA.get(v, (v, False))
+    if not db.execute(text("SELECT 1 FROM media_categories WHERE code = :c"), {"c": code}).first():
+        allowed = [r[0] for r in db.execute(text("SELECT code FROM media_categories ORDER BY sort_order"))]
+        raise HTTPException(status_code=400, detail=f"Unknown media type '{value}'. Allowed: {', '.join(allowed)}")
+    return code, legacy_tangent
+
+
 class _LinkFields(BaseModel):
     """F2: stored links must be http(s); javascript:, data: and other schemes are refused."""
 
@@ -1410,6 +1424,7 @@ class BookUpdateRequest(_LinkFields):
     goodreads_id: Optional[str] = None
     description: Optional[str] = None
     is_general_discussion: Optional[bool] = None
+    is_tangent: Optional[bool] = None
     media_type: Optional[str] = "book"
     url: Optional[str] = None
 
@@ -1425,6 +1440,7 @@ class AddBookToMeetupRequest(_LinkFields):
     goodreads_id: Optional[str] = None
     description: Optional[str] = None
     is_general_discussion: Optional[bool] = False
+    is_tangent: Optional[bool] = None
     media_type: Optional[str] = "book"
     url: Optional[str] = None
 
@@ -1502,7 +1518,8 @@ def get_admin_meetups():
                     "member": member_str,
                     "notes": note_val,
                     "is_general_discussion": is_gen,
-                    "media_type": getattr(first_disc, "media_type", None) or getattr(book, "media_type", "book") or "book",
+                    "media_type": getattr(book, "media_type", "book") or "book",
+                    "is_tangent": any(bool(d.is_tangent) for d in disc_list),
                     "url": getattr(first_disc, "external_url", None) or getattr(book, "external_url", None),
                     "cover_url": book.cover_url or book.thumbnail_url,
                     "thumbnail_url": book.thumbnail_url or book.cover_url,
@@ -1943,7 +1960,11 @@ def update_admin_book(book_id: str, req: BookUpdateRequest):
                         d.notes = notes_clean if notes_clean else None
 
                     if req.media_type is not None:
-                        d.media_type = req.media_type
+                        d.media_type, legacy_tangent = _media(db, req.media_type)
+                        if legacy_tangent:
+                            d.is_tangent = True
+                    if req.is_tangent is not None:
+                        d.is_tangent = req.is_tangent
                     if req.url is not None:
                         d.external_url = req.url
 
@@ -1959,7 +1980,7 @@ def update_admin_book(book_id: str, req: BookUpdateRequest):
                                 d.notes = None
 
         if req.media_type is not None:
-            book.media_type = req.media_type
+            book.media_type, _ = _media(db, req.media_type)
         if req.url is not None:
             book.external_url = req.url
         if req.cover_url:
@@ -2075,7 +2096,8 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
         # Find or create canonical book
         title_clean = req.title.strip()
         book = db.query(CanonicalBook).filter(CanonicalBook.normalized_title == title_clean.lower()).first()
-        m_type = req.media_type or "book"
+        m_type, legacy_tangent = _media(db, req.media_type)
+        is_tangent = bool(req.is_tangent) or legacy_tangent   # "general discussion" is a grouping choice, not the tangent flag
         ext_url = req.url.strip() if req.url and req.url.strip() else None
 
         if not book:
@@ -2156,6 +2178,7 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
                     topic=topic,
                     notes=notes_val,
                     media_type=m_type,
+                    is_tangent=is_tangent,
                     external_url=ext_url,
                 )
                 db.add(disc)
@@ -2181,6 +2204,7 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
                         topic=topic,
                         notes=notes_val,
                         media_type=m_type,
+                        is_tangent=is_tangent,
                         external_url=ext_url,
                     )
                     db.add(disc)
@@ -2351,7 +2375,7 @@ def resolve_media_url(url: str) -> dict:
             with urllib.request.urlopen(req, timeout=3.5) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 return {
-                    "media_type": "youtube",
+                    "media_type": "video",
                     "title": data.get("title") or "YouTube Video",
                     "author": data.get("author_name"),
                     "creator": data.get("author_name"),
@@ -2408,11 +2432,11 @@ def resolve_media_url(url: str) -> dict:
         site_name = site_m.group(1).strip() if site_m else None
 
         # Detect media type
-        media_type = "tangent"
+        media_type = "website_app"
         creator = site_name
 
         if _host_is(clean_url, "youtube.com", "youtu.be"):
-            media_type = "youtube"
+            media_type = "video"
             creator = title if "@" in clean_url else "YouTube"
         elif _host_is(clean_url, "imdb.com", "letterboxd.com"):
             media_type = "movie"
@@ -2440,7 +2464,7 @@ def resolve_media_url(url: str) -> dict:
         }
     except Exception:
         domain = urllib.parse.urlparse(clean_url).netloc.replace("www.", "")
-        m_type = "youtube" if _host_is(clean_url, "youtube.com", "youtu.be") else "tangent"
+        m_type = "video" if _host_is(clean_url, "youtube.com", "youtu.be") else "website_app"
         return {
             "media_type": m_type,
             "title": clean_url,
@@ -2471,7 +2495,7 @@ def search_external_media(q: str, media_type: str = "book") -> list:
         resolved = resolve_media_url(q_clean)
         return [resolved] if resolved else []
 
-    if media_type in ("movie", "show", "cinema", "tv"):
+    if media_type in ("movie", "show", "cinema", "tv", "tv_series", "anime", "documentary"):
         results = []
         # 1. DuckDuckGo film search
         try:
@@ -2528,7 +2552,7 @@ def search_external_media(q: str, media_type: str = "book") -> list:
                         "cover_url": img,
                         "thumbnail_url": img,
                         "description": re.sub(r'<[^>]+>', '', s.get("summary", ""))[:250] if s.get("summary") else None,
-                        "media_type": "show",
+                        "media_type": "tv_series",
                         "source": "tvmaze",
                         "source_label": "TV Series"
                     })
@@ -2561,12 +2585,12 @@ def search_external_media(q: str, media_type: str = "book") -> list:
             pass
         return results
 
-    elif media_type == "youtube":
+    elif media_type in ("video", "youtube"):
         return [{
             "title": q_clean,
             "author": "YouTube Channel / Creator",
             "creator": "YouTube",
-            "media_type": "youtube",
+            "media_type": "video",
             "source": "custom",
             "source_label": "YouTube"
         }]
@@ -2629,7 +2653,7 @@ def lookup_book_identity(req: BookLookupRequest):
 @app.get("/api/media/suggest")
 def suggest_books(
     q: str = Query(..., min_length=2, description="Search term for book title/author or media"),
-    media_type: str = Query("book", description="Media type: book, movie, show, podcast, youtube, tangent")
+    media_type: str = Query("book", description="Media category code from media_categories (old youtube, show and tangent are still accepted)")
 ):
     """
     Live autocomplete suggestion endpoint.

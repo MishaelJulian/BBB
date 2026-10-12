@@ -25,14 +25,17 @@ def db(tmp_path):
 @pytest.mark.parametrize("fk", ["ON", "OFF"])
 def test_rules_hold_with_foreign_keys_on_and_off(db, fk):
     c = sqlite3.connect(db); c.execute(f"PRAGMA foreign_keys={fk}")
-    assert c.execute("select count(*) from media_categories").fetchone()[0] == 13        # 10 approved + 3 legacy kept until the app switches
-    assert c.execute("select count(*) from canonical_books where media_type='video'").fetchone()[0] == 0   # 0004 put the two renamed rows back
-    assert c.execute("select sum(is_tangent) from discussions").fetchone()[0] == c.execute("select count(*) from discussions where media_type='tangent'").fetchone()[0] > 0
+    assert c.execute("select count(*) from media_categories").fetchone()[0] == 11        # 10 approved + the legacy 'tangent' kept until two books are retyped
+    assert c.execute("select count(*) from canonical_books where media_type='youtube'").fetchone()[0] == 0   # 0010 switched the app to the new codes
+    assert c.execute("select sum(is_tangent) from discussions").fetchone()[0] == 77                      # the flag kept every tangent mention
+    assert c.execute("select count(*) from discussions where media_type='tangent'").fetchone()[0] == 2     # only the two books still typed tangent
     now = "datetime('now')"
     ins = f"insert into canonical_books(id,title,normalized_title,language,media_type,created_at,updated_at) values(?,?,?,'en',?,{now},{now})"
     c.execute(ins, ("t-poem", "A poem", "a poem", "poem"))
-    for legacy in ("youtube", "show", "tangent"):            # what the running admin screens still write
-        c.execute(ins, (f"t-{legacy}", legacy, legacy, legacy))
+    c.execute(ins, ("t-tangent", "tangent", "tangent", "tangent"))   # the one legacy value still allowed
+    for gone in ("youtube", "show"):
+        with pytest.raises(sqlite3.DatabaseError, match="unknown media category"):
+            c.execute(ins, (f"t-{gone}", gone, gone, gone))
     with pytest.raises(sqlite3.DatabaseError, match="unknown media category"):
         c.execute(ins, ("t-bad", "Bad", "bad", "bogus"))
     meetup = c.execute("select id from meetups limit 1").fetchone()[0]
@@ -56,7 +59,7 @@ def test_orm_reads_and_writes_the_new_fields(db):
 
     eng = create_engine(f"sqlite:///{db}")
     with Session(eng) as s:
-        assert s.query(MediaCategory).count() == 13
+        assert s.query(MediaCategory).count() == 11
         assert s.query(Discussion).filter(Discussion.is_tangent.is_(True)).count() == 77
         meetup = s.query(Meetup).first()
         series = Series(title="Red Rising Saga"); s.add(series); s.flush()
@@ -142,3 +145,43 @@ def test_member_codes_backfilled_unique_and_assigned_to_newcomers(db, monkeypatc
     again = dict(main.save_meetup_attendance(98, main.AttendanceRequest(member_ids=["n1"])) or {})
     with eng.begin() as c:
         assert c.execute(text("select member_code from members where id='n1'")).scalar() == got["n1"]      # a code never changes
+
+
+def test_tangent_is_a_flag_in_the_api(db, monkeypatch):
+    """Old media spellings are mapped, 'tangent' becomes the flag, unknown types are refused, listing and toggle use the flag."""
+    from fastapi import HTTPException
+    from sqlalchemy import create_engine, text
+    from sqlalchemy.orm import sessionmaker
+    from app.api import main
+
+    eng = create_engine(f"sqlite:///{db}")
+    monkeypatch.setattr(main, "SessionLocal", sessionmaker(bind=eng))
+    def add(title, **kw):
+        return main.add_book_to_meetup(99, main.AddBookToMeetupRequest(title=title, **kw))
+    add("Mindy shorts", media_type="youtube", url="https://youtube.com/@mindy")
+    add("Wondrium", media_type="tangent")
+    add("Plain book tangent", is_tangent=True)
+    add("A film", media_type="movie", is_general_discussion=True)
+    add("Plain book")
+    with pytest.raises(HTTPException) as e:
+        add("Nonsense", media_type="bogus")
+    assert e.value.status_code == 400 and "Allowed" in e.value.detail
+    with eng.connect() as c:
+        row = lambda t: c.execute(text("select b.media_type, d.is_tangent from canonical_books b join discussions d on d.canonical_book_id=b.id where b.title=:t"), {"t": t}).one()
+        assert tuple(row("Mindy shorts")) == ("video", 0)
+        assert tuple(row("Wondrium")) == ("website_app", 1)                  # old 'tangent' type: a website, mentioned as a tangent
+        assert tuple(row("Plain book tangent")) == ("book", 1)
+        assert tuple(row("Plain book")) == ("book", 0)
+        assert tuple(row("A film")) == ("movie", 0)                           # general-discussion grouping does not set the flag
+        disc_id = c.execute(text("select d.id from discussions d join canonical_books b on b.id=d.canonical_book_id where b.title='Plain book'")).scalar()
+    main.toggle_admin_discussion_general(disc_id, main.ToggleGeneralDiscussionRequest(is_general_discussion=True))
+    with eng.connect() as c:
+        assert c.execute(text("select is_tangent from discussions where id=:i"), {"i": disc_id}).scalar() == 0   # grouping is not the flag
+    with eng.connect() as c:
+        book_id = c.execute(text("select canonical_book_id from discussions where id=:i"), {"i": disc_id}).scalar()
+    main.update_admin_book(book_id, main.BookUpdateRequest(title="Plain book", discussion_id=disc_id, is_tangent=True))
+    with eng.connect() as c:
+        assert c.execute(text("select is_tangent from discussions where id=:i"), {"i": disc_id}).scalar() == 1   # the explicit flag
+    main.update_admin_book(book_id, main.BookUpdateRequest(title="Plain book", discussion_id=disc_id, is_tangent=False))
+    with eng.connect() as c:
+        assert c.execute(text("select is_tangent from discussions where id=:i"), {"i": disc_id}).scalar() == 0
