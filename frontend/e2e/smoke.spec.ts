@@ -44,10 +44,11 @@ test('admin can sign in and sign out', async ({ page }) => {
   test.skip(!email || !password, 'set E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD to run')
   await page.goto('/login?next=/admin')
   await page.getByLabel('Email').fill(email!)
-  await page.getByLabel('Password').fill(password!)
+  await page.getByLabel('Password', { exact: true }).fill(password!)
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page).toHaveURL(/\/admin$/, { timeout: 30_000 })
   await expect(page.getByText('Checking sign-in')).toBeHidden({ timeout: 30_000 })
+  await expect(page.getByRole('heading', { name: 'BBB Archive Manager' })).toBeVisible()   // the admin screen is up (and the login redirect finished) before leaving it
   await page.goto('/account')
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page).toHaveURL(/\/$/)

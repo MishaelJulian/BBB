@@ -137,6 +137,9 @@ class Series(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "series"
 
     title: Mapped[str] = mapped_column(String(256), nullable=False, unique=True, index=True)
+    # Case, punctuation, a leading 'The' and the words series / trilogy / saga do not make a second series (unique; trigger-enforced).
+    normalized_title: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    author_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("authors.id"), nullable=True, index=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
@@ -256,6 +259,8 @@ class CanonicalBook(Base, UUIDMixin, TimestampMixin):
     series_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("series.id"), nullable=True,
     )
+    # Place in the series (REAL so a 0.5 novella fits); only with a series_id, greater than 0, unique within the series (trigger and index).
+    series_position: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     isbn10: Mapped[Optional[str]] = mapped_column(String(10), nullable=True, index=True)
     isbn13: Mapped[Optional[str]] = mapped_column(String(13), nullable=True, index=True)

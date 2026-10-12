@@ -14,11 +14,12 @@ BOOK_KEYS = {"id": str, "title": str, "normalized_title": str, "media_type": str
              "last_discussed_date": str, "meetups": list, "members": list, "is_general_discussion": bool,
              "author_id": (str, type(None)), "author_name": (str, type(None)), "cover_url": (str, type(None)), "thumbnail_url": (str, type(None)),
              "description": (str, type(None)), "goodreads_id": (str, type(None)), "publication_year": (int, type(None)),
-             "rating": (float, int, type(None)), "page_count": (int, type(None))}
+             "rating": (float, int, type(None)), "page_count": (int, type(None)),
+             "series_id": (str, type(None)), "series_title": (str, type(None)), "series_position": (float, int, type(None))}
 MEETUP_REF = {"id": str, "number": int, "date": str, "venue": (str, type(None))}
 MEMBER_REF = {"id": str, "display_name": str}
 MEETUP_KEYS = {"id": str, "number": int, "date": str, "title": str, "format": str, "book_count": int, "member_count": int,
-               "books": list, "members": list, "venue": (str, type(None)), "photo_url": (str, type(None)), "pdf_url": (str, type(None))}
+               "books": list, "members": list, "series": list, "series_count": int, "venue": (str, type(None)), "photo_url": (str, type(None)), "pdf_url": (str, type(None))}
 MEETUP_BOOK_KEYS = {"id": str, "title": str, "is_discussion_mention": bool, "is_general_discussion": bool,
                     "author": (str, type(None)), "member": (str, type(None)), "cover_url": (str, type(None)), "thumbnail_url": (str, type(None))}
 
@@ -96,3 +97,22 @@ def test_meetup_list_and_detail_shape(main):
     assert detail["number"] == 92 and detail["books"]
     for b in detail["books"][:20]:
         has_shape(b, MEETUP_BOOK_KEYS)
+
+
+def test_series_endpoints_and_links(main):
+    """A series lists its volumes in order; a volume names its series; a series mention shows on the meetup, apart from book_count."""
+    listed = main.list_series(Response())
+    for s in listed:
+        has_shape(s, {"id": str, "title": str, "author": (str, type(None)), "volume_count": int, "mention_count": int})
+    if not listed:
+        pytest.skip("no series loaded in this database yet")
+    s = next(x for x in listed if x["mention_count"] or x["volume_count"])
+    one = main.get_series(s["id"], Response())
+    has_shape(one, {"id": str, "title": str, "author": (str, type(None)), "volumes": list, "meetups": list})
+    positions = [v["position"] for v in one["volumes"] if v["position"] is not None]
+    assert positions == sorted(positions)
+    if one["meetups"]:
+        m = main.get_meetup(str(one["meetups"][0]["number"]), Response())
+        assert any(x["id"] == s["id"] for x in m["series"]) and m["series_count"] == len(m["series"])
+    with pytest.raises(Exception):
+        main.get_series("no-such-series", Response())

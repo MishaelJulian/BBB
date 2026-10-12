@@ -40,7 +40,7 @@ def test_rules_hold_with_foreign_keys_on_and_off(db, fk):
     with pytest.raises(sqlite3.DatabaseError, match="unknown media category"):
         c.execute(ins, ("t-bad", "Bad", "bad", "bogus"))
     meetup = c.execute("select id from meetups limit 1").fetchone()[0]
-    c.execute(f"insert into series(id,title,created_at,updated_at) values('s1','Red Rising Saga',{now},{now})")
+    c.execute(f"insert into series(id,title,normalized_title,created_at,updated_at) values('s1','Red Rising Saga','red rising',{now},{now})")
     d = "insert into discussions(id,meetup_id,canonical_book_id,series_id,confidence_score,created_at,updated_at) values(?,?,?,?,1.0,datetime('now'),datetime('now'))"
     c.execute(d, ("m-series", meetup, None, "s1"))            # a series mention
     c.execute(d, ("m-book", meetup, "t-poem", None))          # a book mention
@@ -63,7 +63,7 @@ def test_orm_reads_and_writes_the_new_fields(db):
         assert s.query(MediaCategory).count() == 11
         assert s.query(Discussion).filter(Discussion.is_tangent.is_(True)).count() == 77
         meetup = s.query(Meetup).first()
-        series = Series(title="Red Rising Saga"); s.add(series); s.flush()
+        series = Series(title="Red Rising Saga", normalized_title="red rising"); s.add(series); s.flush()
         s.add(Discussion(meetup_id=meetup.id, series_id=series.id)); s.flush()          # a series mention
         s.add(Discussion(meetup_id=meetup.id, canonical_book_id=s.query(CanonicalBook).first().id, is_tangent=True)); s.flush()
         s.add(Discussion(meetup_id=meetup.id)); 

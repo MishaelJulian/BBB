@@ -39,7 +39,7 @@ from app.identity.providers import GoodreadsProvider, InventaireProvider, OpenLi
 from app.identity.resolver import build_chain, manual_entry_problems, resolve
 from app.database.models import (
     CanonicalBook, ImportedBook, Meetup, Venue, Author, Member, Discussion, Resource,
-    CurrentRead, DiscussionParticipant, Quote, Recommendation
+    CurrentRead, DiscussionParticipant, Quote, Recommendation, Series
 )
 
 app = FastAPI(
@@ -210,6 +210,14 @@ def get_db():
 # Response models (simplified for API)
 # ============================================
 
+def _series_titles(db, series_ids) -> dict:
+    """{series id: title} for the ids given (None and repeats ignored); one query."""
+    ids = {s for s in series_ids if s}
+    if not ids:
+        return {}
+    return {s.id: s.title for s in db.query(Series).filter(Series.id.in_(ids)).all()}
+
+
 def book_to_dict(book: CanonicalBook, db) -> dict:
     """Convert CanonicalBook to API response dict."""
     # Count discussions
@@ -278,6 +286,9 @@ def book_to_dict(book: CanonicalBook, db) -> dict:
         "publication_year": book.publication_year,
         "rating": book.rating,
         "page_count": book.page_count,
+        "series_id": book.series_id,
+        "series_title": _series_titles(db, [book.series_id]).get(book.series_id),
+        "series_position": book.series_position,
         "discussion_count": discussion_count,
         "first_discussed_date": min((m["date"] for m in meetups if m["date"]), default=None),
         "last_discussed_date": max((m["date"] for m in meetups if m["date"]), default=None),
@@ -354,6 +365,7 @@ def batch_books_to_dict(books: list, db) -> list:
                 if d_str:
                     book_dates[b_id].append(d_str)
             
+    series_titles = _series_titles(db, [b.series_id for b in books])
     results = []
     for b in books:
         dates = book_dates[b.id]
@@ -373,6 +385,9 @@ def batch_books_to_dict(books: list, db) -> list:
             "rating": b.rating,
             "page_count": b.page_count,
             "media_type": b_media,
+            "series_id": b.series_id,
+            "series_title": series_titles.get(b.series_id),
+            "series_position": b.series_position,
             "discussion_count": book_proper_count[b.id] if book_proper_count[b.id] > 0 else book_general_count[b.id],
             "first_discussed_date": min(dates) if dates else None,
             "last_discussed_date": max(dates) if dates else None,
@@ -407,10 +422,15 @@ def meetups_to_dicts(meetups: list, db) -> list:
             CanonicalBook.id.in_({d.canonical_book_id for d in all_discs if d.canonical_book_id})
         ).all()
     }
+    series_by_id = {
+        s.id: s
+        for s in db.query(Series).filter(Series.id.in_({d.series_id for d in all_discs if d.series_id})).all()
+    }
     author_names = {
         a.id: a.full_name
         for a in db.query(Author).filter(
-            Author.id.in_({b.author_id for b in books_by_id.values() if b.author_id})
+            Author.id.in_({b.author_id for b in books_by_id.values() if b.author_id}
+                          | {s.author_id for s in series_by_id.values() if s.author_id})
         ).all()
     }
     members_by_id = {
@@ -418,12 +438,12 @@ def meetups_to_dicts(meetups: list, db) -> list:
         for m in db.query(Member).filter(Member.id.in_({d.member_id for d in all_discs if d.member_id})).all()
     }
     return [
-        _meetup_dict(m, venue_names, discs_by_meetup[m.id], books_by_id, author_names, members_by_id)
+        _meetup_dict(m, venue_names, discs_by_meetup[m.id], books_by_id, author_names, members_by_id, series_by_id)
         for m in meetups
     ]
 
 
-def _meetup_dict(meetup, venue_names, discussions, books_by_id, author_names, members_by_id) -> dict:
+def _meetup_dict(meetup, venue_names, discussions, books_by_id, author_names, members_by_id, series_by_id=None) -> dict:
     from collections import defaultdict
 
     venue = venue_names.get(meetup.venue_id) if meetup.venue_id else None
@@ -481,6 +501,34 @@ def _meetup_dict(meetup, venue_names, discussions, books_by_id, author_names, me
         x["title"].lower() if x["title"] else ""
     ))
 
+    # A series mention (a whole series talked about) has no book row; it is listed apart so book_count keeps its meaning.
+    series_out = []
+    grouped_series = defaultdict(list)
+    for disc in discussions:
+        if disc.series_id and (series_by_id or {}).get(disc.series_id):
+            grouped_series[disc.series_id].append(disc)
+    for sid, disc_list in grouped_series.items():
+        ser = series_by_id[sid]
+        names = []
+        for disc in disc_list:
+            mem = members_by_id.get(disc.member_id) if disc.member_id else None
+            if mem and mem.display_name and mem.display_name not in names:
+                names.append(mem.display_name)
+                if mem.id not in member_ids:
+                    member_ids.add(mem.id)
+                    members.append({"id": mem.id, "display_name": mem.display_name})
+        series_out.append({
+            "id": ser.id,
+            "title": ser.title,
+            "author": author_names.get(ser.author_id) if ser.author_id else None,
+            "member": ", ".join(names) or None,
+            "is_general_discussion": any(
+                ((d.topic and "general" in d.topic.lower()) or (d.notes and "general" in d.notes.lower()))
+                for d in disc_list
+            ),
+        })
+    series_out.sort(key=lambda x: x["title"].lower())
+
     return {
         "id": meetup.id,
         "number": meetup.meetup_number,
@@ -489,10 +537,12 @@ def _meetup_dict(meetup, venue_names, discussions, books_by_id, author_names, me
         "title": meetup.title,
         "format": meetup.format,
         "book_count": len(books),
+        "series_count": len(series_out),
         "member_count": len(members),
         "photo_url": getattr(meetup, "photo_url", None),
         "pdf_url": getattr(meetup, "pdf_url", None),
         "books": books,
+        "series": series_out,
         "members": members,
     }
 
@@ -800,6 +850,52 @@ def get_meetup(meetup_id: str, response: Response):
 
         set_public_cache(response)
         return meetup_to_dict(meetup, db)
+    finally:
+        db.close()
+
+
+@app.get("/series")
+def list_series(response: Response):
+    """Every series with its author, how many volumes the archive holds and how many times it was discussed as a whole."""
+    db = SessionLocal()
+    try:
+        vols = dict(db.query(CanonicalBook.series_id, func.count(CanonicalBook.id))
+                    .filter(CanonicalBook.series_id.isnot(None)).group_by(CanonicalBook.series_id).all())
+        mentions = dict(db.query(Discussion.series_id, func.count(Discussion.id))
+                        .filter(Discussion.series_id.isnot(None)).group_by(Discussion.series_id).all())
+        authors = {a.id: a.full_name for a in db.query(Author).all()}
+        set_public_cache(response)
+        return [
+            {"id": s.id, "title": s.title, "author": authors.get(s.author_id),
+             "volume_count": vols.get(s.id, 0), "mention_count": mentions.get(s.id, 0)}
+            for s in db.query(Series).order_by(Series.title).all()
+        ]
+    finally:
+        db.close()
+
+
+@app.get("/series/{series_id}")
+def get_series(series_id: str, response: Response):
+    """One series: its volumes in order and the meetups where the series as a whole came up."""
+    db = SessionLocal()
+    try:
+        ser = db.query(Series).filter(Series.id == series_id).first()
+        if not ser:
+            raise HTTPException(status_code=404, detail="Series not found")
+        volumes = (db.query(CanonicalBook).filter(CanonicalBook.series_id == ser.id)
+                   .order_by(CanonicalBook.series_position.is_(None), CanonicalBook.series_position, CanonicalBook.title).all())
+        author = db.query(Author).filter(Author.id == ser.author_id).first() if ser.author_id else None
+        rows = (db.query(Meetup.meetup_number, Meetup.date, Member.display_name)
+                .select_from(Discussion).join(Meetup, Meetup.id == Discussion.meetup_id)
+                .outerjoin(Member, Member.id == Discussion.member_id)
+                .filter(Discussion.series_id == ser.id).order_by(Meetup.meetup_number).all())
+        set_public_cache(response)
+        return {
+            "id": ser.id, "title": ser.title, "author": author.full_name if author else None,
+            "volumes": [{"id": b.id, "title": b.title, "position": b.series_position,
+                         "cover_url": b.cover_url, "thumbnail_url": b.thumbnail_url or b.cover_url} for b in volumes],
+            "meetups": [{"number": n, "date": d.isoformat() if d else None, "member": m} for n, d, m in rows],
+        }
     finally:
         db.close()
 

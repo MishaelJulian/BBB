@@ -32,6 +32,19 @@ def _bare(s: str) -> str:
     return re.sub(r"^(the|a|an) ", "", norm_title(s))
 
 
+_SERIES_WORDS = {"series", "trilogy", "saga", "chronicle", "chronicles", "quartet", "cycle", "books", "box", "set", "collection", "bundle", "complete"}
+
+
+def norm_series(title: str) -> str:
+    """Identity of a series: case, punctuation, '&' = 'and', a leading 'the' / 'his', and the words series / trilogy / saga / chronicle(s) do
+    not make a second series ('Mistborn series' = 'The Mistborn Trilogy'). A title that is only such words keeps them."""
+    words = [w for w in norm_title(re.sub(r"\((?:series|trilogy|saga)\)", " ", title, flags=re.I)).split()]
+    if words and words[0] in ("the", "his", "a", "an"):
+        words = words[1:]
+    core = [w for w in words if w not in _SERIES_WORDS]
+    return " ".join(core or words)
+
+
 def heading_key(h: str) -> str:
     h = re.sub(r"^(?:[IVXL]+\.|\d{1,2}\))\s+", "", h.strip())
     h = re.sub(r"^(dr|mr|ms|mrs)\.?\s+", "", h.rstrip(":-– "), flags=re.I)
