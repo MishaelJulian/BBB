@@ -67,26 +67,31 @@ def test_orm_reads_and_writes_the_new_fields(db):
             s.flush()                                                                    # neither target: refused
 
 
-def test_guest_promotion_suggestion_after_three_in_a_row(db):
-    """A guest at three meetups in a row, ending at the latest, is offered; a gap, a member or only two are not."""
+def test_attendance_drives_the_three_in_a_row_suggestion(db, monkeypatch):
+    """Guests who only came (no book) count; a gap, two in a row, or a full member do not; the presenter's click makes a member."""
+    from fastapi import HTTPException
     from sqlalchemy import create_engine, text
-    from sqlalchemy.orm import Session
+    from sqlalchemy.orm import Session, sessionmaker
+    from app.api import main
     from app.services.membership import promotion_candidates
 
     eng = create_engine(f"sqlite:///{db}")
+    monkeypatch.setattr(main, "SessionLocal", sessionmaker(bind=eng))
     with eng.begin() as c:
-        c.execute(text("select 1"))
+        pairs = c.execute(text("select count(*) from (select 1 from discussions where member_id is not null group by meetup_id, member_id)")).scalar()
+        assert pairs > 300 and c.execute(text("select count(*) from meetup_attendance where source='backfill'")).scalar() == pairs   # history rebuilt from discussions
         for pid, status in (("g3", "guest"), ("g2", "guest"), ("gap", "guest"), ("m3", "member")):
             c.execute(text("insert into members(id,display_name,normalized_name,status,created_at,updated_at) values(:i,:i,:i,:s,datetime('now'),datetime('now'))"), {"i": pid, "s": status})
-        mids = {n: i for i, n in c.execute(text("select id, meetup_number from meetups where meetup_number in (96,97,98,99)")).all()}
-        book = c.execute(text("select id from canonical_books limit 1")).scalar()
-        att = {"g3": (97, 98, 99), "g2": (98, 99), "gap": (96, 98, 99), "m3": (97, 98, 99)}
-        k = 0
-        for who, nums in att.items():
-            for n in nums:
-                k += 1
-                c.execute(text("insert into discussions(id,meetup_id,canonical_book_id,member_id,confidence_score,created_at,updated_at) values(:i,:m,:b,:w,1.0,datetime('now'),datetime('now'))"), {"i": f"d{k}", "m": mids[n], "b": book, "w": who})
         with pytest.raises(Exception, match="guest or member"):
             c.execute(text("update members set status='bogus' where id='g3'"))
-    with Session(eng) as s:
-        assert [r["member_id"] for r in promotion_candidates(s)] == ["g3"]
+    for n, who in ((96, ["gap"]), (97, ["g3", "m3"]), (98, ["g3", "g2", "gap", "m3"])):
+        main.save_meetup_attendance(n, main.AttendanceRequest(member_ids=who))
+    out = main.save_meetup_attendance(99, main.AttendanceRequest(member_ids=["g3", "g2", "gap", "m3", "g3"]))   # repeat id is harmless
+    assert out["recorded"] == 4 and [r["member_id"] for r in out["suggestions"]] == ["g3"]
+    assert main.save_meetup_attendance(99, main.AttendanceRequest(member_ids=["g3"]))["recorded"] == 0       # saving twice adds nothing
+    assert [r["member_id"] for r in main.get_promotion_suggestions()["suggestions"]] == ["g3"]
+    with pytest.raises(HTTPException) as e:
+        main.save_meetup_attendance(99, main.AttendanceRequest(member_ids=["nobody"]))
+    assert e.value.status_code == 404
+    assert main.confirm_member("g3")["status"] == "member"
+    assert main.get_promotion_suggestions()["suggestions"] == []

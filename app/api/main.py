@@ -1075,6 +1075,53 @@ class MemberVisibilityRequest(BaseModel):
 
 
 @app.put("/admin/members/{member_id}/visibility")
+class AttendanceRequest(BaseModel):
+    member_ids: List[str]
+
+
+@app.post("/admin/meetups/{meetup_number}/attendance")
+def save_meetup_attendance(meetup_number: int, req: AttendanceRequest):
+    """The presenter ticks who came. Returns the guests now due the 'make them a member?' prompt."""
+    from app.services.membership import promotion_candidates, record_attendance
+    db = SessionLocal()
+    try:
+        try:
+            new = record_attendance(db, meetup_number, req.member_ids)
+        except LookupError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        db.commit()
+        return {"recorded": new, "suggestions": promotion_candidates(db, latest=meetup_number)}
+    finally:
+        db.close()
+
+
+@app.get("/admin/members/promotion-suggestions")
+def get_promotion_suggestions():
+    """Guests at three meetups in a row, ending at the latest meetup."""
+    from app.services.membership import promotion_candidates
+    db = SessionLocal()
+    try:
+        return {"suggestions": promotion_candidates(db)}
+    finally:
+        db.close()
+
+
+@app.post("/admin/members/{member_id}/make-member")
+def confirm_member(member_id: str):
+    """The presenter confirms: this guest is now a member."""
+    from app.services.membership import make_member
+    db = SessionLocal()
+    try:
+        try:
+            m = make_member(db, member_id)
+        except LookupError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        db.commit()
+        return {"id": m.id, "display_name": m.display_name, "status": m.status}
+    finally:
+        db.close()
+
+
 @app.post("/admin/members/{member_id}/toggle-hide")
 def set_member_visibility(member_id: str, req: Optional[MemberVisibilityRequest] = None):
     """Temporarily hide or restore a member from the public Readers Archive."""

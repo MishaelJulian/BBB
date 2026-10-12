@@ -110,6 +110,17 @@ class Publisher(Base, UUIDMixin, TimestampMixin):
     )
 
 
+class MeetupAttendance(Base, UUIDMixin, TimestampMixin):
+    """Who was at a meetup. status: registered / attended / presenter. source: form / gforms / backfill."""
+
+    __tablename__ = "meetup_attendance"
+
+    meetup_id: Mapped[str] = mapped_column(String(36), ForeignKey("meetups.id", ondelete="CASCADE"), nullable=False)
+    member_id: Mapped[str] = mapped_column(String(36), ForeignKey("members.id", ondelete="CASCADE"), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="attended")
+    source: Mapped[str] = mapped_column(String(16), nullable=False, default="form")
+
+
 class MediaCategory(Base):
     """Allowed values for canonical_books.media_type. Data, not code: add a row to add a category."""
 
