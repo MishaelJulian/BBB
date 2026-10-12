@@ -96,3 +96,19 @@ def test_attendance_drives_the_three_in_a_row_suggestion(db, monkeypatch):
     assert main.confirm_member("g3")["status"] == "member"
     assert main.confirm_member("b3")["status"] == "member"     # the quick change from BYOB to BBB member
     assert main.get_promotion_suggestions()["suggestions"] == []
+
+
+def test_committed_database_has_no_dangling_references():
+    """Ratchet: the committed database must pass SQLite's own foreign-key check."""
+    c = sqlite3.connect(f"file:{ROOT / 'book_club_archivist.db'}?mode=ro", uri=True)
+    assert c.execute("pragma foreign_key_check").fetchall() == []
+
+
+@pytest.mark.parametrize("fk", ["ON", "OFF"])
+def test_deleting_a_book_clears_its_import_links(db, fk):
+    c = sqlite3.connect(db); c.execute(f"PRAGMA foreign_keys={fk}")
+    bid = c.execute("select canonical_book_id from imported_books where canonical_book_id is not null and canonical_book_id not in (select canonical_book_id from discussions where canonical_book_id is not null) limit 1").fetchone()[0]
+    assert c.execute("select count(*) from imported_books where canonical_book_id=?", (bid,)).fetchone()[0] >= 1
+    c.execute("delete from canonical_books where id=?", (bid,))
+    assert c.execute("select count(*) from imported_books where canonical_book_id=?", (bid,)).fetchone()[0] == 0
+    assert c.execute("pragma foreign_key_check").fetchall() == []
