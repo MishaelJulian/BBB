@@ -17,7 +17,9 @@ def run(db, *args):
 def db(tmp_path):
     p = tmp_path / "copy.db"
     src = sqlite3.connect(f"file:{ROOT / 'book_club_archivist.db'}?mode=ro", uri=True)
-    dst = sqlite3.connect(p); src.backup(dst); src.close(); dst.close()
+    dst = sqlite3.connect(p); src.backup(dst)
+    # going back before 0003 drops discussions.series_id, so a series mention would be left with no target: replay from a copy without them
+    dst.execute("DELETE FROM discussions WHERE series_id IS NOT NULL"); dst.commit(); src.close(); dst.close()
     run(p, "downgrade", "a1d3e5f70002"); run(p, "upgrade", "head")   # prove the migration from the previous revision
     return p
 
@@ -28,7 +30,7 @@ def test_rules_hold_with_foreign_keys_on_and_off(db, fk):
     assert c.execute("select count(*) from media_categories").fetchone()[0] == 11        # 10 approved + 'creator' (0011); the legacy 'tangent' row is gone
     assert c.execute("select count(*) from media_categories where code in ('tangent','creator')").fetchone()[0] == 1
     assert c.execute("select count(*) from canonical_books where media_type='youtube'").fetchone()[0] == 0   # 0010 switched the app to the new codes
-    assert c.execute("select sum(is_tangent) from discussions").fetchone()[0] == 77                      # the flag kept every tangent mention
+    assert c.execute("select sum(is_tangent) from discussions").fetchone()[0] == 73                      # the flag kept every tangent mention (77 in the archive, less the 4 series mentions the fixture removes)
     assert c.execute("select count(*) from discussions where media_type='tangent'").fetchone()[0] == 0     # 0011 retyped the last two; tangent lives only in the flag
     now = "datetime('now')"
     ins = f"insert into canonical_books(id,title,normalized_title,language,media_type,created_at,updated_at) values(?,?,?,'en',?,{now},{now})"
@@ -61,7 +63,7 @@ def test_orm_reads_and_writes_the_new_fields(db):
     eng = create_engine(f"sqlite:///{db}")
     with Session(eng) as s:
         assert s.query(MediaCategory).count() == 11
-        assert s.query(Discussion).filter(Discussion.is_tangent.is_(True)).count() == 77
+        assert s.query(Discussion).filter(Discussion.is_tangent.is_(True)).count() == 73
         meetup = s.query(Meetup).first()
         series = Series(title="Red Rising Saga", normalized_title="red rising"); s.add(series); s.flush()
         s.add(Discussion(meetup_id=meetup.id, series_id=series.id)); s.flush()          # a series mention

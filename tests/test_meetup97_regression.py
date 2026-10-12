@@ -152,6 +152,8 @@ class TestMeetup97Books:
         books = db_session.query(ImportedBook).filter_by(source_id=source.id).all()
         # the garbled heading "@@ TT HH EE ..." is not a book; its junk record was removed on purpose
         books = [b for b in books if not b.raw_title.startswith("@@")]
+        # a series line ("Heartstopper (series)") is a mention of the series table, not of a book row
+        books = [b for b in books if "(series)" not in b.raw_title.lower()]
 
         linked = sum(1 for b in books if b.canonical_book_id is not None)
         assert linked == len(books), f"All {len(books)} books should be linked to canonical books"
