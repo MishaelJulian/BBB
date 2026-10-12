@@ -10,6 +10,7 @@ from sqlalchemy import (
     Date,
     ForeignKey,
     Index,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -107,6 +108,16 @@ class Publisher(Base, UUIDMixin, TimestampMixin):
     canonical_books: Mapped[List["CanonicalBook"]] = relationship(
         "CanonicalBook", back_populates="publisher"
     )
+
+
+class MediaCategory(Base):
+    """Allowed values for canonical_books.media_type. Data, not code: add a row to add a category."""
+
+    __tablename__ = "media_categories"
+
+    code: Mapped[str] = mapped_column(String(32), primary_key=True)
+    label: Mapped[str] = mapped_column(String(64), nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 class Series(Base, UUIDMixin, TimestampMixin):
@@ -395,6 +406,12 @@ class Discussion(Base, UUIDMixin, TimestampMixin):
     confidence_score: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
     media_type: Mapped[str] = mapped_column(String(32), nullable=False, default="book")
     external_url: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    # A tangent is how the thing was mentioned, not what kind of thing it is.
+    is_tangent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("0"))
+    # Exactly one of canonical_book_id / series_id is set; the database enforces it with a trigger.
+    series_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("series.id"), nullable=True, index=True,
+    )
     source_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("sources.id"), nullable=True, index=True,
     )

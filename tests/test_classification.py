@@ -43,3 +43,23 @@ def test_rules_hold_with_foreign_keys_on_and_off(db, fk):
             c.execute(d, args)
     with pytest.raises(sqlite3.DatabaseError, match="exactly one"):
         c.execute("update discussions set series_id='s1' where id='m-book'")
+
+
+def test_orm_reads_and_writes_the_new_fields(db):
+    """The models match the migrated database: tangent flag, series mention, media categories."""
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.exc import DatabaseError
+    from sqlalchemy.orm import Session
+    from app.database.models import CanonicalBook, Discussion, MediaCategory, Meetup, Series
+
+    eng = create_engine(f"sqlite:///{db}")
+    with Session(eng) as s:
+        assert s.query(MediaCategory).count() == 10
+        assert s.query(Discussion).filter(Discussion.is_tangent.is_(True)).count() == 77
+        meetup = s.query(Meetup).first()
+        series = Series(title="Red Rising Saga"); s.add(series); s.flush()
+        s.add(Discussion(meetup_id=meetup.id, series_id=series.id)); s.flush()          # a series mention
+        s.add(Discussion(meetup_id=meetup.id, canonical_book_id=s.query(CanonicalBook).first().id, is_tangent=True)); s.flush()
+        s.add(Discussion(meetup_id=meetup.id)); 
+        with pytest.raises(DatabaseError, match="exactly one"):
+            s.flush()                                                                    # neither target: refused
