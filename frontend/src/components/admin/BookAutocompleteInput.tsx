@@ -245,7 +245,7 @@ export function BookAutocompleteInput({
     <div ref={containerRef} className="relative w-full space-y-2">
       {/* Media Type Selector Pills */}
       {showMediaTypeSelector && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+        <div className="flex flex-wrap items-center gap-1.5">
           {MEDIA_TYPES.map((t) => {
             const isSelected = currentMediaType === t.id
             return (

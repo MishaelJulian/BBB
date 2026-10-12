@@ -1,9 +1,9 @@
-// The ten media categories the club approved. The server keeps the authoritative list (media_categories table);
+// The eleven media categories the club approved. The server keeps the authoritative list (media_categories table);
 // this file only gives each code a label, an icon and the words the admin forms use for it.
 
 export type MediaTypeOption =
   | 'book' | 'article' | 'movie' | 'tv_series' | 'anime' | 'documentary'
-  | 'podcast' | 'video' | 'website_app' | 'poem'
+  | 'podcast' | 'video' | 'website_app' | 'poem' | 'creator'
 
 export interface MediaMeta {
   id: MediaTypeOption
@@ -28,6 +28,7 @@ export const MEDIA_TYPES: MediaMeta[] = [
   { id: 'video', label: 'Video / YouTube', icon: '▶️', placeholder: 'Paste a YouTube link or enter a channel / video name...', titleLabel: 'Video / Channel Title *', creatorLabel: 'Channel / Creator', creatorPlaceholder: 'e.g. 3Blue1Brown', source: 'YouTube channels & videos', badgeClass: 'bg-rose-100 text-rose-800 border-rose-200' },
   { id: 'website_app', label: 'Website / app', icon: '🌐', placeholder: 'e.g. Wondrium, Substack, Tachiyomi...', titleLabel: 'Website / App Name *', creatorLabel: 'Creator / Platform', creatorPlaceholder: 'e.g. The Teaching Company', source: 'Web link resolver', badgeClass: 'bg-teal-100 text-teal-800 border-teal-200' },
   { id: 'poem', label: 'Poem', icon: '🪶', placeholder: 'e.g. Death Be Not Proud...', titleLabel: 'Poem Title *', creatorLabel: 'Poet', creatorPlaceholder: 'e.g. John Donne', source: 'BBB Archive', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
+  { id: 'creator', label: 'Creator', icon: '🧑‍🎨', placeholder: 'e.g. Paul Thomas Anderson, Hayao Miyazaki...', titleLabel: 'Creator Name *', creatorLabel: 'Known for', creatorPlaceholder: 'e.g. film director', source: 'BBB Archive', badgeClass: 'bg-orange-100 text-orange-800 border-orange-200' },
 ]
 
 // Values saved before the switch; the server still accepts them, so old data and old links keep working.

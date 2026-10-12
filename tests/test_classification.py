@@ -25,15 +25,16 @@ def db(tmp_path):
 @pytest.mark.parametrize("fk", ["ON", "OFF"])
 def test_rules_hold_with_foreign_keys_on_and_off(db, fk):
     c = sqlite3.connect(db); c.execute(f"PRAGMA foreign_keys={fk}")
-    assert c.execute("select count(*) from media_categories").fetchone()[0] == 11        # 10 approved + the legacy 'tangent' kept until two books are retyped
+    assert c.execute("select count(*) from media_categories").fetchone()[0] == 11        # 10 approved + 'creator' (0011); the legacy 'tangent' row is gone
+    assert c.execute("select count(*) from media_categories where code in ('tangent','creator')").fetchone()[0] == 1
     assert c.execute("select count(*) from canonical_books where media_type='youtube'").fetchone()[0] == 0   # 0010 switched the app to the new codes
     assert c.execute("select sum(is_tangent) from discussions").fetchone()[0] == 77                      # the flag kept every tangent mention
-    assert c.execute("select count(*) from discussions where media_type='tangent'").fetchone()[0] == 2     # only the two books still typed tangent
+    assert c.execute("select count(*) from discussions where media_type='tangent'").fetchone()[0] == 0     # 0011 retyped the last two; tangent lives only in the flag
     now = "datetime('now')"
     ins = f"insert into canonical_books(id,title,normalized_title,language,media_type,created_at,updated_at) values(?,?,?,'en',?,{now},{now})"
     c.execute(ins, ("t-poem", "A poem", "a poem", "poem"))
-    c.execute(ins, ("t-tangent", "tangent", "tangent", "tangent"))   # the one legacy value still allowed
-    for gone in ("youtube", "show"):
+    c.execute(ins, ("t-creator", "A creator", "a creator", "creator"))   # the eleventh category (0011)
+    for gone in ("youtube", "show", "tangent"):
         with pytest.raises(sqlite3.DatabaseError, match="unknown media category"):
             c.execute(ins, (f"t-{gone}", gone, gone, gone))
     with pytest.raises(sqlite3.DatabaseError, match="unknown media category"):

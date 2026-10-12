@@ -33,4 +33,4 @@ def downgrade() -> None:
     op.execute("INSERT OR IGNORE INTO media_categories(code,label,sort_order) VALUES ('youtube','YouTube (legacy, use Video)',101),('show','Show (legacy, use TV / web series)',102)")
     op.execute("UPDATE canonical_books SET media_type='youtube' WHERE media_type='video'")
     op.execute("UPDATE discussions SET media_type='youtube' WHERE media_type='video'")
-    op.execute("UPDATE discussions SET media_type='tangent' WHERE is_tangent=1 AND media_type='book'")
+    op.execute("UPDATE discussions SET media_type='tangent' WHERE is_tangent=1")
