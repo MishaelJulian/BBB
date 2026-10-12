@@ -176,7 +176,7 @@ The "take a book out and discover its history" interaction is a core product req
 | Admin | A founder | Everything a presenter can do, plus edit or merge records, approve review-queue items, manage users and run reports |
 
 - Public pages never call a write route. Every write route checks the role on the server (FastAPI), on every request.
-- **Attendee and member.** Everyone who attends is recorded in `meetup_attendance` (status: registered, attended or presenter). A member is someone who attended BBB at least twice and is part of the WhatsApp group. After a meetup is saved, the app suggests "X attended Y times, make them a member?". The presenter confirms, because only the presenter knows about the WhatsApp group.
+- **Attendee and member.** Everyone who attends is recorded in `meetup_attendance` (status: registered, attended or presenter). A person is a **guest** (`members.status = 'guest'`) until the presenter confirms them as a **member** (`'member'`); a member is part of the WhatsApp group. When a guest or new joiner has attended three meetups in a row (consecutive meetup numbers, ending at the meetup just saved; the number is `STREAK` in `app/services/membership.py`), the presenter sees "X has attended three in a row, make them a member?". Only the presenter confirms, because only the presenter knows about the WhatsApp group. Attendance counts whether or not the person brought a book. (Revised 2026-10-12: the earlier rule said "at least twice".)
 - Registrations from Google Forms enter the same table with status `registered` and source `gforms`. The presenter ticks who actually came.
 
 ---
