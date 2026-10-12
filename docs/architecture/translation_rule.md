@@ -8,7 +8,8 @@ Decided by the founder on 2026-10-12. This replaces the earlier unwritten idea "
 4. **A mention that names no translator stays on the original record.** A translator is attached only when the source names one (for example "tr. Pavitra Srinivasan"). A translator is never taken from Goodreads or another outside source: if the source names none, the record is the English version "as is".
 5. **Volumes get no record of their own.** A "Vol. 1" record is merged into the work, unless a source literally says volume 2 or higher was also read.
 6. **Audiobooks** carry the label in the title string: `Balakumaranin Udayar Part 1 (audiobook)`.
-7. **Several authors** go in one string in `authors.full_name`, joined as the source joins them: `Mary Ann Shaffer & Annie Barrows`. There is no co-author table and no translator column (founder, 2026-10-12).
+7. **One English edition in the club's data: one row, no link** (founder, 2026-10-12). The translator goes in that row's title. A `translation_of` link is used only when the club has both an original-language or as-is record and a separately named translation of the same work (Ponniyin Selvan).
+8. **Several authors** go in one string in `authors.full_name`, joined as the source joins them: `Mary Ann Shaffer & Annie Barrows`. There is no co-author table and no translator column (founder, 2026-10-12).
 
 ## In use today (2026-10-12)
 
@@ -17,9 +18,9 @@ Decided by the founder on 2026-10-12. This replaces the earlier unwritten idea "
 | Ponniyin Selvan (tr. Varalotti Rengasamy), mention at #83 | Ponniyin Selvan (mentions #54, #62, #98) |
 | Ponniyin Selvan (tr. Pavitra Srinivasan), mention at #88 | Ponniyin Selvan |
 | Sivagami's Vow (no translator named; the English version as is), mention at #97 | Sivagamiyin Sabatham, mention at #62 |
-| Heart Lamp (tr. Deepa Bhasthi), mentions #84, #92 | Heart Lamp (as is: #83, #85) |
-| Bhima (tr. Gita Krishnankutty), mention #92 | Bhima: Lone Warrior (as is: #80) |
-| The Secret Garland (tr. Archana Venkatesan), mention #92 | none in the DB (the Tamil original is not recorded) |
+| Heart Lamp (tr. Deepa Bhasthi), one row, mentions #83 to #92 | none (the Kannada original is not in the DB) |
+| Bhima: Lone Warrior (tr. Gita Krishnankutty), one row, mentions #80, #92 | none (the Malayalam original is not in the DB) |
+| The Secret Garland (tr. Archana Venkatesan), one row, mention #92 | none (the Tamil original is not in the DB) |
 
 The meetup 97 PDF names no translator for Sivagami's Vow (founder, 2026-10-12), so none is recorded.
 
