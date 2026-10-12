@@ -59,7 +59,8 @@ export const auth = betterAuth({
     minPasswordLength: 8,
   },
   session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24 },
-  advanced: { useSecureCookies: baseURL.startsWith("https://") },
+  // The frontend proxy sets x-real-ip from the visitor; without naming it every visitor shares one rate-limit bucket.
+  advanced: { useSecureCookies: baseURL.startsWith("https://"), ipAddress: { ipAddressHeaders: ["x-real-ip"] } },
   plugins: [adminPlugin({ ac, roles, defaultRole: "presenter", adminRoles: ["admin"] })],
 });
 
