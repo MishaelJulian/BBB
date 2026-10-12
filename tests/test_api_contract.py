@@ -116,3 +116,11 @@ def test_series_endpoints_and_links(main):
         assert any(x["id"] == s["id"] for x in m["series"]) and m["series_count"] == len(m["series"])
     with pytest.raises(Exception):
         main.get_series("no-such-series", Response())
+
+
+def test_docs_pages_scalar_default_swagger_kept(main):
+    """/docs is Scalar, /docs-swagger is Swagger UI; both read the spec by a relative URL so they work behind the /api proxy."""
+    assert b"@scalar/api-reference" in main.scalar_docs().body
+    swagger = main.swagger_docs().body
+    assert b"swagger-ui" in swagger and b"openapi.json" in swagger
+    assert main.app.openapi()["paths"].get("/series")

@@ -10,7 +10,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.gzip import GZipMiddleware
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, List
@@ -46,6 +47,7 @@ app = FastAPI(
     title="BBB Library API",
     description="REST API for the Broke Bibliophiles of Bangalore Digital Archive",
     version="1.0.0",
+    docs_url=None,  # /docs is Scalar and /docs-swagger is Swagger UI; both are routes below
 )
 
 # Ensure assets directories exist and mount them at /assets
@@ -563,6 +565,25 @@ def health():
         return JSONResponse(status_code=503, content={"status": "error", "database": "unreachable"})
     finally:
         db.close()
+
+
+# The spec is fetched by a relative URL so both pages also work behind the frontend's /api proxy (/api/docs -> /api/openapi.json).
+_SCALAR_PAGE = """<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BBB Library API</title></head>
+<body><script id="api-reference" data-url="openapi.json"></script>
+<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script></body></html>"""
+
+
+@app.get("/docs", include_in_schema=False)
+def scalar_docs():
+    """API reference (Scalar). The older Swagger UI page stays at /docs-swagger."""
+    return HTMLResponse(_SCALAR_PAGE)
+
+
+@app.get("/docs-swagger", include_in_schema=False)
+def swagger_docs():
+    return get_swagger_ui_html(openapi_url="openapi.json", title="BBB Library API - Swagger UI")
 
 
 @app.get("/stats")

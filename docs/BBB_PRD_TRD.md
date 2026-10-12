@@ -656,7 +656,7 @@ This proves that the backend is capable of serving book data. It does NOT by its
 ## 11.1 Contract and inspection
 
 - The backend is authoritative. The frontend never guesses database structure; every field it uses (`book.id`, `book.title` ...) is checked against the real response.
-- Every route declares a **Pydantic response model**. The models are the contract, and FastAPI turns them into an accurate Swagger page at `/docs` and a schema at `/openapi.json`.
+- Every route declares a **Pydantic response model**. The models are the contract, and FastAPI turns them into an accurate Scalar reference at `/docs`, the Swagger page at `/docs-swagger`, and a schema at `/openapi.json`.
 - When debugging, inspect the real JSON (`GET /books?limit=10`): status, top-level shape, field names, nullability, nested objects, pagination fields, ordering, error structure. Then compare with the TypeScript types.
 - Never paper over a mismatch with `as any`. If backend and frontend disagree, change the model deliberately.
 - **Swagger exposure:** public routes appear in the public `/docs`; admin and presenter routes appear only to a logged-in admin.
