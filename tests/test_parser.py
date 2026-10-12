@@ -384,3 +384,12 @@ def test_only_the_approved_held_move_is_applied(conn, tmp_path):
     from app.parsers.changeset import n3
     reconcile(conn, ps, 90, MemberResolver(members), BookMatcher(books), allow_moves={(90, n3("The Gormenghast Trilogy"))})
     assert conn.execute("select member_id from discussions where id='d1'").fetchone()[0] == "u10"
+
+
+def test_the_importer_reads_member_aliases_from_the_aliases_table(conn):
+    from app.parsers.changeset import load_world
+    now = "datetime('now')"
+    conn.execute(f"insert into aliases(id, entity_type, entity_id, alias_name, created_at, updated_at) values ('a1','member','u0','JOHN .A.R.',{now},{now})")
+    members, books, aliases = load_world(conn)
+    r = MemberResolver(members, aliases=aliases)
+    assert r.resolve("JOHN .A.R.").member_id == "u0" and r.resolve("JOHN .A.R.").how == "explicit alias"

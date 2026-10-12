@@ -35,12 +35,19 @@ def _run(a, parsed, wanted, allow, print_report):
     c.row_factory = sqlite3.Row
     c.execute("pragma foreign_keys = on")
     c.execute("begin")
-    members, books = load_world(c)
-    resolver, matcher = MemberResolver(members, learn_evidence(c, [(ps, n) for ps, n, _, _ in parsed])), BookMatcher(books)
+    members, books, aliases = load_world(c)
+    evidence = learn_evidence(c, [(ps, n) for ps, n, _, _ in parsed])
+    matcher = BookMatcher(books)
+    scoped = {}
+    for x in a.heading_alias:
+        left, name = x.split("=", 1)
+        mn, heading = left.split(":", 1)
+        scoped.setdefault(int(mn), {})[heading.strip()] = name.strip()
     report = []
     for ps, n, how, p in parsed:
         if wanted is not None and n not in wanted:
             continue
+        resolver = MemberResolver(load_world(c)[0], evidence, {**aliases, **scoped.get(n, {})})
         ops = reconcile(c, ps, n, resolver, matcher, source_name=os.path.basename(p)[:-4] + ".pdf", allow_guest=allow, allow_moves=_moves(a), allow_creators=set(a.creator))
         report.append((n, os.path.basename(p), ps.layout, len(ps.items), Counter(o.kind for o in ops), ps.warnings, how, ops))
     bad = invariants(c)
@@ -68,6 +75,7 @@ def main() -> int:
     ap.add_argument("--quiet", action="store_true", help="counts only")
     ap.add_argument("--allow-moves", action="store_true", help="re-credit EVERY held mention from one reader to another (held by default)")
     ap.add_argument("--allow-move", action="append", default=[], metavar="MEETUP:TITLE", help="re-credit one held mention, e.g. 76:Gormenghast (title may be a prefix)")
+    ap.add_argument("--heading-alias", action="append", default=[], metavar="MEETUP:HEADING=Name", help="for one meetup only, read a printed heading as this member (e.g. 65:Amit=Amit Charles)")
     ap.add_argument("--creator", action="append", default=[], metavar="NAME", help="a line that is only a person's name becomes a 'creator' row")
     a = ap.parse_args()
 

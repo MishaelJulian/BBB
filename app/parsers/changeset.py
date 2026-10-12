@@ -36,10 +36,12 @@ def n3(t: str) -> str:
     return " ".join(norm_title(re.sub(r"\s*\([^()]*\)\s*$", "", t.split(", by ")[0].split(" by ")[0])).split()[:3])
 
 
-def load_world(c: sqlite3.Connection) -> tuple[dict, list]:
+def load_world(c: sqlite3.Connection) -> tuple[dict, list, dict]:
+    """(members by display name, books, heading aliases). Aliases come from the `aliases` table (entity_type 'member'): alias_name -> display name."""
     members = {r[1]: r[0] for r in c.execute("select id, display_name from members")}
     books = [(r[0], r[1], r[2] or "", r[3] or "book") for r in c.execute("select b.id, b.title, a.full_name, b.media_type from canonical_books b left join authors a on a.id = b.author_id")]
-    return members, books
+    aliases = {r[0]: r[1] for r in c.execute("select a.alias_name, m.display_name from aliases a join members m on m.id = a.entity_id where a.entity_type = 'member'")}
+    return members, books, aliases
 
 
 def learn_evidence(c: sqlite3.Connection, parsed: list[tuple[ParsedSource, int]]) -> dict[str, Counter]:

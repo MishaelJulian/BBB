@@ -576,8 +576,8 @@ sources/*.pdf|txt -> register (meetup number) -> extract lines -> detect layout 
 
 - **Code:** `app/parsers/meetup_parser.py` (stages 1-4), `app/parsers/resolve.py` and `changeset.py` (stage 5), `scripts/import_meetups.py MEETUPS [--commit]` (stages 6-7), identity layer `app/identity/*`, the admin Enrich button `POST /admin/meetups/{n}/enrich-goodreads`.
 - **Principles:** stages 1-6 are offline and repeatable; nothing is guessed (an unresolved heading, an unknown layout or an unclear title/author order is reported and held); the report says why for every change; a re-import must reproduce the repairs already made by hand (acceptance test: the meetups repaired on 2026-10-12 produce no changes).
-- **Not yet read automatically:** #66 (name-colon list), #67 (chat export), #96 (ChatGPT summary), #97 (image-only), #99 (author interaction). They were repaired from their sources by hand.
-- **Known limit:** a re-import can still overwrite a manual fix; a "human-fixed" flag and heading aliases read from `aliases` are on the backlog (`docs/plans/backlog.md`, architecture findings 2026-10-12).
+- **Not yet read automatically:** #67 (chat export) and #97 (image-only pages; the OCR needs `tesseract-data-eng`). #66, #96 and #99 have their own readers.
+- **Known limit:** a re-import can still overwrite a manual fix; the importer now reads heading aliases from `aliases`, but a "human-fixed" flag is on the backlog (`docs/plans/backlog.md`, architecture findings 2026-10-12).
 
 ## 9.2 Flow D: "thin shelf, rich pull" (DECIDED 2026-10-08; target loading strategy, not yet implemented)
 
