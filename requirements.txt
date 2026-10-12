@@ -7,5 +7,5 @@ rich>=13.7.0
 loguru>=0.7.0
 pytest>=8.0.0
 pytest-cov>=5.0.0
-httpx2>=2.0  # starlette.testclient (tests/test_member_sorting.py) requires it
-tzdata>=2024.1
+httpx2>=2.13.1  # starlette.testclient (tests/test_member_sorting.py) requires it
+tzdata>=2026.5
