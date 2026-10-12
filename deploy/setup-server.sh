@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# One-time setup of a fresh Ubuntu 24.04 droplet for BBB (run as root over SSH). Safe to re-run.
-#   curl -fsSL https://raw.githubusercontent.com/MishaelJulian/BBB/main/deploy/setup-droplet.sh | bash
+# One-time setup of a fresh Ubuntu 24.04 server for BBB (DigitalOcean droplet, Hetzner Cloud server or any
+# other VPS; nothing here is provider-specific). Run as root over SSH. Safe to re-run.
+#   curl -fsSL https://raw.githubusercontent.com/MishaelJulian/BBB/main/deploy/setup-server.sh | bash
 set -euo pipefail
 
 apt-get update -y
@@ -17,7 +18,9 @@ ufw allow 443/tcp
 ufw --force enable
 
 # SSH: keys only
-sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication no/' /etc/ssh/sshd_config
+# A drop-in named 00-* is read before the provider's cloud-init file, and sshd keeps the first value it sees.
+mkdir -p /etc/ssh/sshd_config.d
+printf 'PasswordAuthentication no\n' > /etc/ssh/sshd_config.d/00-bbb.conf
 systemctl reload ssh || systemctl reload sshd || true
 
 # App code and data directories (api data owned by uid 10001, auth data by uid 1000)
@@ -31,7 +34,7 @@ chown -R 10001:10001 /srv/bbb/data /srv/bbb/assets   # api container user
 chown -R 1000:1000 /srv/bbb/auth                     # auth container user (node)
 chmod 700 /srv/bbb/auth /srv/bbb/backups             # auth.db and its backups hold personal data
 
-# Nightly backup at 02:30 IST (21:00 UTC), kept 30 days on the droplet; a founder pulls copies off-box.
+# Nightly backup at 02:30 IST (21:00 UTC), kept 30 days on the server (cron uses the server's clock, UTC by default); a founder pulls copies off-box.
 cat >/etc/cron.d/bbb-backup <<'CRON'
 0 21 * * * root cd /srv/bbb/app && python3 scripts/backup_db.py --dest /srv/bbb/backups --keep-days 30 /srv/bbb/data/book_club_archivist.db /srv/bbb/auth/auth.db >> /var/log/bbb-backup.log 2>&1
 CRON
