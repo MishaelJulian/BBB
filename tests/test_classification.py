@@ -80,18 +80,19 @@ def test_attendance_drives_the_three_in_a_row_suggestion(db, monkeypatch):
     with eng.begin() as c:
         pairs = c.execute(text("select count(*) from (select 1 from discussions where member_id is not null group by meetup_id, member_id)")).scalar()
         assert pairs > 300 and c.execute(text("select count(*) from meetup_attendance where source='backfill'")).scalar() == pairs   # history rebuilt from discussions
-        for pid, status in (("g3", "guest"), ("g2", "guest"), ("gap", "guest"), ("m3", "member")):
+        for pid, status in (("g3", "guest"), ("g2", "guest"), ("gap", "guest"), ("m3", "member"), ("b3", "byob")):
             c.execute(text("insert into members(id,display_name,normalized_name,status,created_at,updated_at) values(:i,:i,:i,:s,datetime('now'),datetime('now'))"), {"i": pid, "s": status})
-        with pytest.raises(Exception, match="guest or member"):
+        with pytest.raises(Exception, match="guest, byob or member"):
             c.execute(text("update members set status='bogus' where id='g3'"))
-    for n, who in ((96, ["gap"]), (97, ["g3", "m3"]), (98, ["g3", "g2", "gap", "m3"])):
+    for n, who in ((96, ["gap"]), (97, ["g3", "m3", "b3"]), (98, ["g3", "g2", "gap", "m3", "b3"])):
         main.save_meetup_attendance(n, main.AttendanceRequest(member_ids=who))
-    out = main.save_meetup_attendance(99, main.AttendanceRequest(member_ids=["g3", "g2", "gap", "m3", "g3"]))   # repeat id is harmless
-    assert out["recorded"] == 4 and [r["member_id"] for r in out["suggestions"]] == ["g3"]
+    out = main.save_meetup_attendance(99, main.AttendanceRequest(member_ids=["g3", "g2", "gap", "m3", "b3", "g3"]))   # repeat id is harmless
+    assert out["recorded"] == 5 and [r["member_id"] for r in out["suggestions"]] == ["b3", "g3"]
     assert main.save_meetup_attendance(99, main.AttendanceRequest(member_ids=["g3"]))["recorded"] == 0       # saving twice adds nothing
-    assert [r["member_id"] for r in main.get_promotion_suggestions()["suggestions"]] == ["g3"]
+    assert [r["member_id"] for r in main.get_promotion_suggestions()["suggestions"]] == ["b3", "g3"]
     with pytest.raises(HTTPException) as e:
         main.save_meetup_attendance(99, main.AttendanceRequest(member_ids=["nobody"]))
     assert e.value.status_code == 404
     assert main.confirm_member("g3")["status"] == "member"
+    assert main.confirm_member("b3")["status"] == "member"     # the quick change from BYOB to BBB member
     assert main.get_promotion_suggestions()["suggestions"] == []

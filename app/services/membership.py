@@ -1,6 +1,6 @@
 """Attendance and the guest-to-member suggestion.
 
-Rule (founder, 2026-10-12): a guest who has been at three meetups in a row, ending at the meetup just saved, is offered to the
+Rule (founder, 2026-10-12): a guest (or BYOB person) who has been at three meetups in a row, ending at the meetup just saved, is offered to the
 presenter, who decides. "Been at" = a meetup_attendance row with status attended or presenter, whether or not they brought a book.
 """
 import uuid
@@ -38,7 +38,7 @@ def promotion_candidates(session: Session, latest: int | None = None, streak: in
         select(Member.id, Member.display_name, Meetup.meetup_number)
         .join(MeetupAttendance, MeetupAttendance.member_id == Member.id)
         .join(Meetup, Meetup.id == MeetupAttendance.meetup_id)
-        .where(Member.status == "guest", MeetupAttendance.status.in_(("attended", "presenter")), Meetup.meetup_number <= latest)
+        .where(Member.status.in_(("guest", "byob")), MeetupAttendance.status.in_(("attended", "presenter")), Meetup.meetup_number <= latest)
     ).all()
     seen: dict[str, tuple[str, set[int]]] = {}
     for mid, name, n in rows:
