@@ -25,12 +25,14 @@ def db(tmp_path):
 @pytest.mark.parametrize("fk", ["ON", "OFF"])
 def test_rules_hold_with_foreign_keys_on_and_off(db, fk):
     c = sqlite3.connect(db); c.execute(f"PRAGMA foreign_keys={fk}")
-    assert c.execute("select count(*) from media_categories").fetchone()[0] == 10
-    assert c.execute("select count(*) from canonical_books where media_type='youtube'").fetchone()[0] == 0
+    assert c.execute("select count(*) from media_categories").fetchone()[0] == 13        # 10 approved + 3 legacy kept until the app switches
+    assert c.execute("select count(*) from canonical_books where media_type='video'").fetchone()[0] == 0   # 0004 put the two renamed rows back
     assert c.execute("select sum(is_tangent) from discussions").fetchone()[0] == c.execute("select count(*) from discussions where media_type='tangent'").fetchone()[0] > 0
     now = "datetime('now')"
     ins = f"insert into canonical_books(id,title,normalized_title,language,media_type,created_at,updated_at) values(?,?,?,'en',?,{now},{now})"
     c.execute(ins, ("t-poem", "A poem", "a poem", "poem"))
+    for legacy in ("youtube", "show", "tangent"):            # what the running admin screens still write
+        c.execute(ins, (f"t-{legacy}", legacy, legacy, legacy))
     with pytest.raises(sqlite3.DatabaseError, match="unknown media category"):
         c.execute(ins, ("t-bad", "Bad", "bad", "bogus"))
     meetup = c.execute("select id from meetups limit 1").fetchone()[0]
@@ -54,7 +56,7 @@ def test_orm_reads_and_writes_the_new_fields(db):
 
     eng = create_engine(f"sqlite:///{db}")
     with Session(eng) as s:
-        assert s.query(MediaCategory).count() == 10
+        assert s.query(MediaCategory).count() == 13
         assert s.query(Discussion).filter(Discussion.is_tangent.is_(True)).count() == 77
         meetup = s.query(Meetup).first()
         series = Series(title="Red Rising Saga"); s.add(series); s.flush()
