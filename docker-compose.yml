@@ -1,7 +1,11 @@
 # ponytail: SQLite file mounted from host; add a postgres service when the planned SQLite→PostgreSQL move happens.
 services:
   backend:
-    build: .
+    # Local dev builds the image so its app user has YOUR uid (/app, logs and the SQLite -wal file must be writable by the user the container runs as).
+    build:
+      context: .
+      args:
+        APP_UID: ${UID:-1000}
     restart: unless-stopped
     # Local dev: run as your own user so the mounted DB and assets stay writable (prod uses uid 10001).
     user: "${UID:-1000}:${GID:-1000}"

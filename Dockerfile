@@ -10,8 +10,9 @@ WORKDIR /app
 COPY requirements.txt requirements-api.txt ./
 RUN pip install -r requirements.txt -r requirements-api.txt
 
-# F6: run as an unprivileged user (uid 10001). Mounted /data and /app/assets must be writable by it.
-RUN useradd --create-home --uid 10001 app && chown app:app /app
+# F6: run as an unprivileged user (uid 10001 by default; docker-compose passes your uid for local development). Mounted /data and /app/assets must be writable by it.
+ARG APP_UID=10001
+RUN useradd --create-home --uid ${APP_UID} app && chown app:app /app
 COPY --chown=app:app . .
 USER app
 
