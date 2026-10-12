@@ -1694,7 +1694,8 @@ export function CriterionBookCloset() {
                 <button
                   key={`marquee-slot-${i}`}
                   onClick={() => setIsPicksTrayOpen(true)}
-                  className={`w-4 h-5 rounded-[2px] border transition-all flex items-center justify-center text-[8px] ${
+                  aria-label={userPicks[i] ? `Pick ${i + 1}: ${userPicks[i].title}. Open your picks` : `Empty pick slot ${i + 1}. Open your picks`}
+                  className={`w-6 h-6 rounded-[3px] border transition-all flex items-center justify-center text-[11px] ${
                     i < userPicks.length
                       ? 'bg-amber-400 border-amber-300 text-black shadow-[0_0_8px_rgba(251,191,36,0.95)]'
                       : 'bg-white/5 border-white/20 text-white/30 hover:border-white/40'

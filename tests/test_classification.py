@@ -160,7 +160,7 @@ def test_tangent_is_a_flag_in_the_api(db, monkeypatch):
     def add(title, **kw):
         return main.add_book_to_meetup(99, main.AddBookToMeetupRequest(title=title, **kw))
     add("Mindy shorts", media_type="youtube", url="https://youtube.com/@mindy")
-    add("Wondrium", media_type="tangent")
+    add("Test Learning Site", media_type="tangent")
     add("Plain book tangent", is_tangent=True)
     add("A film", media_type="movie", is_general_discussion=True)
     add("Plain book")
@@ -170,7 +170,7 @@ def test_tangent_is_a_flag_in_the_api(db, monkeypatch):
     with eng.connect() as c:
         row = lambda t: c.execute(text("select b.media_type, d.is_tangent from canonical_books b join discussions d on d.canonical_book_id=b.id where b.title=:t"), {"t": t}).one()
         assert tuple(row("Mindy shorts")) == ("video", 0)
-        assert tuple(row("Wondrium")) == ("website_app", 1)                  # old 'tangent' type: a website, mentioned as a tangent
+        assert tuple(row("Test Learning Site")) == ("website_app", 1)                  # old 'tangent' type: a website, mentioned as a tangent
         assert tuple(row("Plain book tangent")) == ("book", 1)
         assert tuple(row("Plain book")) == ("book", 0)
         assert tuple(row("A film")) == ("movie", 0)                           # general-discussion grouping does not set the flag

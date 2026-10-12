@@ -2227,6 +2227,59 @@ def add_book_to_meetup(meetup_number: int, req: AddBookToMeetupRequest):
 
 _SUGGESTION_CACHE = {}
 
+def _goodreads_search(q_clean: str) -> list:
+    """Goodreads autocomplete. Raises on transport or parse errors so a caller can retry; search_external_books swallows them."""
+    results = []
+    url = f"https://www.goodreads.com/book/auto_complete?format=json&q={urllib.parse.quote(q_clean)}"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        },
+    )
+    with urllib.request.urlopen(req, timeout=3.0) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+        for item in data[:8]:
+            raw_title = item.get("bookTitleBare") or item.get("title") or ""
+            if not raw_title:
+                continue
+            # Skip standalone study guides unless explicitly searched
+            if "study guide" in raw_title.lower() and "study guide" not in q_clean.lower():
+                continue
+            if "summary & study" in raw_title.lower():
+                continue
+
+            author_obj = item.get("author")
+            author = author_obj.get("name") if isinstance(author_obj, dict) else None
+            if author:
+                author = re.sub(r"\s+", " ", author).strip()
+
+            img = item.get("imageUrl")
+            # Upgrade Goodreads thumbnail to higher resolution
+            high_img = re.sub(r"\._S[XY]\d+_\.", "._SY450_.", img) if img else None
+
+            rating = None
+            try:
+                if item.get("avgRating"):
+                    rating = float(item.get("avgRating"))
+            except (ValueError, TypeError):
+                pass
+
+            results.append({
+                "title": raw_title.strip(),
+                "author": author,
+                "cover_url": high_img,
+                "thumbnail_url": img,
+                "goodreads_id": str(item.get("bookId")) if item.get("bookId") else None,
+                "rating": rating,
+                "ratings_count": item.get("ratingsCount"),
+                "num_pages": item.get("numPages"),
+                "source": "goodreads",
+                "source_label": "Goodreads",
+            })
+    return results
+
+
 def search_external_books(q: str) -> list:
     """
     Search external book sources (Goodreads autocomplete with Apple Books fallback).
@@ -2239,53 +2292,7 @@ def search_external_books(q: str) -> list:
 
     # 1. Query Goodreads autocomplete
     try:
-        url = f"https://www.goodreads.com/book/auto_complete?format=json&q={urllib.parse.quote(q_clean)}"
-        req = urllib.request.Request(
-            url,
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-            },
-        )
-        with urllib.request.urlopen(req, timeout=3.0) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            for item in data[:8]:
-                raw_title = item.get("bookTitleBare") or item.get("title") or ""
-                if not raw_title:
-                    continue
-                # Skip standalone study guides unless explicitly searched
-                if "study guide" in raw_title.lower() and "study guide" not in q_clean.lower():
-                    continue
-                if "summary & study" in raw_title.lower():
-                    continue
-
-                author_obj = item.get("author")
-                author = author_obj.get("name") if isinstance(author_obj, dict) else None
-                if author:
-                    author = re.sub(r"\s+", " ", author).strip()
-
-                img = item.get("imageUrl")
-                # Upgrade Goodreads thumbnail to higher resolution
-                high_img = re.sub(r"\._S[XY]\d+_\.", "._SY450_.", img) if img else None
-
-                rating = None
-                try:
-                    if item.get("avgRating"):
-                        rating = float(item.get("avgRating"))
-                except (ValueError, TypeError):
-                    pass
-
-                results.append({
-                    "title": raw_title.strip(),
-                    "author": author,
-                    "cover_url": high_img,
-                    "thumbnail_url": img,
-                    "goodreads_id": str(item.get("bookId")) if item.get("bookId") else None,
-                    "rating": rating,
-                    "ratings_count": item.get("ratingsCount"),
-                    "num_pages": item.get("numPages"),
-                    "source": "goodreads",
-                    "source_label": "Goodreads",
-                })
+        results = _goodreads_search(q_clean)
     except Exception as e:
         # Fall through to Apple Books fallback
         pass
@@ -2825,62 +2832,107 @@ def suggest_members(
         db.close()
 
 
+_PLACEHOLDER_COVER = re.compile(r"goodreads_wide|nophoto|nocover|no-cover|placeholder", re.I)
+
+
+def _cover_url_ok(url: str | None) -> bool:
+    """True only for a public image URL that answers 200 right now (Goodreads image links go stale and start returning 403)."""
+    if not url or _PLACEHOLDER_COVER.search(url) or not _is_public_http_url(url):
+        return False
+    try:
+        req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=6.0) as resp:
+            return resp.status == 200 and "image" in (resp.headers.get("Content-Type") or "image")
+    except Exception:
+        return False
+
+
+def _search_with_retry(q: str, attempts: int = 3) -> tuple[list, str | None]:
+    """(results, error). Goodreads is retried with growing waits; an empty answer is 'no result', a failure is reported."""
+    err = None
+    for n in range(attempts):
+        try:
+            res = _goodreads_search(q.strip())
+            if res:
+                return res, None
+            err = None
+            break
+        except Exception as exc:                       # transport error, rate limit, bad JSON
+            err = f"{type(exc).__name__}: {exc}"[:120]
+            time.sleep(0.6 * (2 ** n))
+    if err is None:
+        return search_external_books(q), None          # Goodreads answered with nothing: let the Apple Books fallback try
+    return [], err
+
+
+def _title_agrees(book_title: str, cand_title: str) -> bool:
+    """The candidate's title must BEGIN with the book's first two meaningful words, so a longer, different book that merely
+    mentions them ("The Lost Founder: ... a People's Constitution") is not taken for the book."""
+    def words(t):
+        return [w for w in re.findall(r"[a-z0-9']+", t.lower().replace("’", "'")) if w not in ("the", "a", "an", "of")]
+    bw = words(book_title)[:2]
+    return bool(bw) and words(cand_title)[: len(bw)] == bw
+
+
 def enrich_canonical_book_from_goodreads(book_id: str, db, force: bool = False) -> dict:
-    """Enrich a single canonical book by fetching metadata from Goodreads API."""
+    """Enrich one canonical book from Goodreads. Returns {"status": enriched | skipped | no_result | failed, ...}.
+    `success` stays True for enriched and skipped so older callers keep working."""
     book = db.query(CanonicalBook).filter(CanonicalBook.id == book_id).first()
     if not book:
-        return {"success": False, "message": "Book not found"}
+        return {"success": False, "status": "failed", "message": "Book not found"}
 
-    if not force and book.goodreads_id and book.cover_url:
-        return {"success": True, "book_id": book.id, "title": book.title, "already_enriched": True}
-    
+    if (book.media_type or "book") != "book":
+        return {"success": True, "status": "skipped", "book_id": book.id, "title": book.title, "message": "not a book: Goodreads does not apply"}
+
+    if not force and book.goodreads_id and book.cover_url and _cover_url_ok(book.cover_url):
+        return {"success": True, "status": "skipped", "book_id": book.id, "title": book.title, "already_enriched": True}
+
     author_obj = db.query(Author).filter(Author.id == book.author_id).first() if book.author_id else None
     author_name = author_obj.full_name if author_obj else None
-    
+
     title_clean = book.title.strip()
     if "@" in title_clean or "participants" in title_clean.lower() or len(title_clean) < 2:
-        return {"success": False, "message": "Skipped invalid title"}
-    
+        return {"success": False, "status": "no_result", "message": "Skipped invalid title"}
+
     query_title = re.sub(r"[\u2018\u2019\u201c\u201d]", "'", title_clean)
+    query_title = re.sub(r"\s*\((?:tr\.|audiobook)[^)]*\)\s*$", "", query_title)       # our own translator / audiobook labels
     query = f"{query_title} {author_name}" if author_name else query_title
-    results = search_external_books(query)
-    if not results and author_name:
-        results = search_external_books(query_title)
-    
+    results, err = _search_with_retry(query)
+    if not results and not err and author_name:
+        results, err = _search_with_retry(query_title)
+    if err and not results:
+        return {"success": False, "status": "failed", "message": f"Goodreads did not answer: {err}"}
     if not results:
-        return {"success": False, "message": "No Goodreads results found"}
-        
-    filtered = []
-    for r in results:
-        t = r.get("title", "").lower()
-        if any(bad in t for bad in ["summary of", "summary & study", "study guide", "analysis of", "workbook for", "trivia-on-books", "summary:"]):
-            continue
-        filtered.append(r)
-        
-    candidates = filtered if filtered else results
-    best = candidates[0]
-    
+        return {"success": False, "status": "no_result", "message": "No Goodreads results found"}
+
+    filtered = [r for r in results if not any(bad in r.get("title", "").lower() for bad in
+                ["summary of", "summary & study", "study guide", "analysis of", "workbook for", "trivia-on-books", "summary:"])]
+    candidates = filtered or results
+    best = None
     if author_name:
-        auth_clean = author_name.lower()
-        auth_tokens = [tok for tok in re.split(r'\W+', auth_clean) if len(tok) > 2]
-        for c in candidates:
-            c_auth = (c.get("author") or "").lower()
-            if any(tok in c_auth for tok in auth_tokens):
-                best = c
-                break
-                
-    if best.get("cover_url"):
+        auth_tokens = [tok for tok in re.split(r"\W+", author_name.lower()) if len(tok) > 2]
+        best = next((c for c in candidates if any(tok in (c.get("author") or "").lower() for tok in auth_tokens) and _title_agrees(query_title, c.get("title", ""))), None)
+    if best is None:      # a title-only match is accepted only when there is no author on one side to disagree with
+        best = next((c for c in candidates if _title_agrees(query_title, c.get("title", "")) and (not author_name or not c.get("author"))), None)
+    if best is None:
+        return {"success": False, "status": "no_result", "message": f"Closest Goodreads result ({candidates[0].get('title')!r}) is not this book"}
+    if not author_name and len(re.findall(r"[A-Za-z0-9']+", query_title)) < 3:
+        return {"success": False, "status": "no_result", "message": "title is too short to match without an author (add the author, then enrich)"}
+
+    if _cover_url_ok(best.get("cover_url")):
         book.cover_url = best["cover_url"]
-        book.thumbnail_url = best.get("thumbnail_url") or best["cover_url"]
-    if best.get("rating") is not None:
-        book.rating = best["rating"]
-    if best.get("goodreads_id"):
-        book.goodreads_id = best["goodreads_id"]
-    if best.get("publication_year"):
-        book.publication_year = best["publication_year"]
+        book.thumbnail_url = best.get("thumbnail_url") if _cover_url_ok(best.get("thumbnail_url")) else best["cover_url"]
+    same_edition = not book.goodreads_id or str(book.goodreads_id) == str(best.get("goodreads_id"))
+    if same_edition:                                           # keep the id (and its rating and year) we already hold
+        if best.get("rating") is not None:
+            book.rating = best["rating"]
+        if best.get("goodreads_id"):
+            book.goodreads_id = best["goodreads_id"]
+        if best.get("publication_year") and not book.publication_year:
+            book.publication_year = best["publication_year"]
     if best.get("description") and not book.description:
         book.description = best["description"]
-        
+
     if not book.author_id and best.get("author"):
         c_author = best["author"].strip()
         auth_record = db.query(Author).filter(Author.full_name.ilike(c_author)).first()
@@ -2889,10 +2941,11 @@ def enrich_canonical_book_from_goodreads(book_id: str, db, force: bool = False) 
             db.add(auth_record)
             db.flush()
         book.author_id = auth_record.id
-        
+
     db.commit()
     return {
         "success": True,
+        "status": "enriched",
         "book_id": book.id,
         "title": book.title,
         "matched_title": best.get("title"),
@@ -2937,23 +2990,29 @@ def enrich_meetup_books_endpoint(meetup_number: int):
             finally:
                 thread_db.close()
 
-        enriched_count = 0
-        with ThreadPoolExecutor(max_workers=8) as executor:
-            futures = [executor.submit(_enrich_worker, b_id) for b_id in book_ids]
+        counts = {"enriched": 0, "skipped": 0, "no_result": 0, "failed": 0}
+        failures = []
+        with ThreadPoolExecutor(max_workers=3) as executor:       # Goodreads rate-limits; 3 at a time, with retries inside each
+            futures = {executor.submit(_enrich_worker, b_id): b_id for b_id in book_ids}
             for f in as_completed(futures):
                 try:
                     res = f.result()
-                    if res.get("success"):
-                        enriched_count += 1
-                except Exception:
-                    pass
+                    status = res.get("status") or ("enriched" if res.get("success") else "failed")
+                except Exception as exc:
+                    status, res = "failed", {"message": f"{type(exc).__name__}: {exc}"[:120]}
+                counts[status if status in counts else "failed"] += 1
+                if status == "failed":
+                    failures.append(res.get("message"))
 
         return {
             "success": True,
             "meetup_number": meetup_number,
             "total_books": total_books,
-            "enriched_count": enriched_count,
-            "message": f"Enriched {enriched_count} of {total_books} books in Meetup #{meetup_number} from Goodreads"
+            "enriched_count": counts["enriched"],
+            **{f"{k}_count": v for k, v in counts.items() if k != "enriched"},
+            "failures": failures[:5],
+            "message": (f"Meetup #{meetup_number}: {counts['enriched']} enriched, {counts['skipped']} already complete, "
+                        f"{counts['no_result']} with no matching Goodreads result, {counts['failed']} failed (of {total_books})"),
         }
     finally:
         db.close()

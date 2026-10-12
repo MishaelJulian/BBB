@@ -157,8 +157,8 @@ Decisions and sources: `imperative_decisions.md` §6.
 
 ### Attendance and the member lifecycle (D9, D10)
 
-- **`MeetupAttendance`** (planned): one row per person per meetup, with `status` (registered, attended, presenter) and `source` (presenter form, Google Forms). A Google Forms registration arrives as `registered`; the presenter ticks who actually came.
-- **Attendee to member:** a `Member` row exists for everyone recorded; `members.status` is `attendee` or `member`. The rule for a member is: attended at least twice **and** part of the WhatsApp group. The app computes the first half and suggests the promotion; the presenter confirms the second half. Nothing flips automatically.
+- **`MeetupAttendance`** (built 2026-10-12, migration `a1d3e5f70006`; sources `form`, `gforms`, `backfill`): one row per person per meetup, with `status` (registered, attended, presenter) and `source` (presenter form, Google Forms). A Google Forms registration arrives as `registered`; the presenter ticks who actually came.
+- **Attendee to member:** a `Member` row exists for everyone recorded; `members.status` is `guest`, `byob` or `member` (built 2026-10-12). The rule revised 2026-10-12: a guest or new joiner who attended three meetups in a row is offered to the presenter, who confirms; attendance counts even without a book. (Earlier text: attended at least twice and part of the WhatsApp group.) The app computes the first half and suggests the promotion; the presenter confirms the second half. Nothing flips automatically.
 - **New attendee / rejoiner:** derived counts over `MeetupAttendance` (first attendance; second attendance after a gap), shown on the presenter's meetup summary.
 
 ### Inflows into the layers (D4)
@@ -184,3 +184,10 @@ Every inflow enters Layer 2 first; only a reviewed or rule-confirmed record reac
 ### OAIS mapping
 
 Raw import = Submission package (SIP), canonical record = Archival package (AIP), API response = Dissemination package (DIP). Details: `flow_comparison.md` §6.2 item 10.
+
+### Additions built 2026-10-12
+
+- **Media categories** are rows in `media_categories` (eleven); `Discussion.is_tangent` is a flag; `Discussion.series_id` and `canonical_book_id` are mutually exclusive (exactly one). `Member.member_code` is `MMM-NN`. `Source.meetup_number` is never null for a PDF; `Source.importer_name` records the parser version.
+- **Translations and several authors:** see `translation_rule.md`.
+- **Inflow:** the old-PDF inflow of D4 is now `app/parsers/meetup_parser.py` + `scripts/import_meetups.py` (`import_process_flow.md`). It works on the staging layer and a founder-approved diff, as D4 says; a reviewed ChangeSet is applied in one transaction after an automatic backup.
+- **Provenance gap:** a mention does not yet record whether a human fixed it; a re-import could overwrite a fix. Backlog.

@@ -298,7 +298,7 @@ Archival data is not disposable seed data. Never:
 
 **Before any write to the archive:** back up `book_club_archivist.db`, dry-run and report per-table counts, get approval for anything beyond a single targeted fix, apply, verify counts before vs after, and record it in `docs/health/SESSION_LOG.md`.
 
-**Migrations:** Alembic is configured but unused (empty migration folder; the schema comes from `Base.metadata.create_all`). Schema changes follow the checklist above by hand and are ARCHITECTURAL (§23).
+**Migrations:** Alembic is in use (11 migrations, head `a1d3e5f70011`, stamped on the live database on 2026-10-12; see `docs/architecture/DatabaseSchema.md`). Rules: schema and data are separate migrations, each with up and down, rehearsed on a copy of the live database, with a backup in `~/bbb_backups/` first. Rules that SQLite cannot express as a CHECK (media categories, member status, one target per mention) are triggers. A fresh database gets its tables from `Base.metadata.create_all` and then the migrations. Schema changes remain ARCHITECTURAL (§23).
 
 ## 5.3 API contract before UI assumptions
 
@@ -399,6 +399,15 @@ If the current implementation differs, inspect the repository and record the dif
 # 7. TECHNICAL ARCHITECTURE
 
 > **Status: INITIAL: NOT FINAL.** The stack, and especially additional software and its tentative usage, is expected to change significantly.
+
+## 5.10 Data model rules decided 2026-10-12
+
+- **Media categories are data.** Eleven codes live in `media_categories`: book, article, movie, tv_series, anime, documentary, podcast, video, website_app, poem, creator ("creator" is a person or organisation, for example a director or a publisher). The admin screens read the same list (`frontend/src/lib/mediaTypes.ts`).
+- **Tangent is a flag on the mention** (`discussions.is_tangent`), never a type. A mention points at exactly one of a book or a series (database trigger).
+- **Translation:** a translation is its own book row, the translator is in the title string (`Heart Lamp (tr. Deepa Bhasthi)`), a translator is never taken from an outside source, one edition in the club's data means one row and no link (`docs/architecture/translation_rule.md`). Several authors are one string.
+- **Members:** `status` is guest, byob or member; a guest or new joiner who attends three meetups in a row is offered to the presenter to confirm as a member; attendance counts even when no book was brought. `member_code` is `MMM-NN` (first recorded meetup, then order), permanent, next suffix = highest + 1. A name that is only an author, translator or publisher word is not a member.
+- **Reader of a mention** comes from the heading printed in the source, resolved by evidence (exact name, first name plus initial, the heading already attached elsewhere, a unique prefix, a close spelling marked inferred). Anything ambiguous is held for the founder; no heading is assumed.
+- **Month and year of a meetup is the emphasis**; when only the month is known, the stored day is the first.
 
 ## 7.0 Constraints at a glance
 
@@ -551,7 +560,24 @@ The first place where the real data stops flowing is the place to fix.
 
 Do not rewrite the whole application because one boundary is broken.
 
-**Current loading behaviour (verified 2026-10-08):** the Library Room (`CriterionBookCloset.tsx`) makes one request, `GET /books?limit=3000&only_discussed=true&exclude_general=true`. It returns 2,018 books in 2,151,353 bytes, uncompressed (the API has no gzip middleware), in 0.51 s locally. Each row carries nested `meetups[]`, `members[]`, `description` and Goodreads fields. Pulling a book needs no further book request because the data is already in memory; only the synopsis is fetched. The closet draws one section at a time (3 shelves of 120 books, 360 books) and pages through the rest.
+**Current loading behaviour (verified 2026-10-08):** the Library Room (`CriterionBookCloset.tsx`) makes one request, `GET /books?limit=3000&only_discussed=true&exclude_general=true`. It returns 2,018 books in 2,151,353 bytes, uncompressed at the time of measurement (`GZipMiddleware` was added afterwards, `app/api/main.py` line ~76, so the wire size is now the gzip figure in the table below), in 0.51 s locally. Each row carries nested `meetups[]`, `members[]`, `description` and Goodreads fields. Pulling a book needs no further book request because the data is already in memory; only the synopsis is fetched. The closet draws one section at a time (3 shelves of 120 books, 360 books) and pages through the rest.
+
+## 9.1a Import pipeline: how a source file becomes archive rows (built 2026-10-12)
+
+Upstream of the runtime path above. Full flow, with each stage's input, processing, output type and database shape: `docs/architecture/import_process_flow.md`.
+
+```text
+sources/*.pdf|txt -> register (meetup number) -> extract lines -> detect layout -> parse items
+  -> relation checks (heading -> member, title -> book) -> ChangeSet
+  -> staging diff on the live DB inside a transaction, rolled back -> founder approves
+  -> automatic backup, one transaction, triggers enforce the rules
+  -> identity hand-off (Goodreads, Open Library, Inventaire, ISBN) -> Enrich button (covers, ratings) -> verify
+```
+
+- **Code:** `app/parsers/meetup_parser.py` (stages 1-4), `app/parsers/resolve.py` and `changeset.py` (stage 5), `scripts/import_meetups.py MEETUPS [--commit]` (stages 6-7), identity layer `app/identity/*`, the admin Enrich button `POST /admin/meetups/{n}/enrich-goodreads`.
+- **Principles:** stages 1-6 are offline and repeatable; nothing is guessed (an unresolved heading, an unknown layout or an unclear title/author order is reported and held); the report says why for every change; a re-import must reproduce the repairs already made by hand (acceptance test: the meetups repaired on 2026-10-12 produce no changes).
+- **Not yet read automatically:** #66 (name-colon list), #67 (chat export), #96 (ChatGPT summary), #97 (image-only), #99 (author interaction). They were repaired from their sources by hand.
+- **Known limit:** a re-import can still overwrite a manual fix; a "human-fixed" flag and heading aliases read from `aliases` are on the backlog (`docs/plans/backlog.md`, architecture findings 2026-10-12).
 
 ## 9.2 Flow D: "thin shelf, rich pull" (DECIDED 2026-10-08; target loading strategy, not yet implemented)
 
@@ -696,6 +722,13 @@ Database
 ```
 
 Do not stop at "the backend returned 200."
+
+### Standing automated checks (added 2026-10-12)
+
+- `pytest -q --ignore=tests/test_member_sorting.py`: includes `tests/test_parser.py` (one test per importer fault), `tests/test_api_contract.py` (pins the `/books`, `/books/{id}`, `/meetups` shapes Flow D depends on), `tests/test_enrich.py` (the Enrich worker with the network patched out), `tests/test_classification.py` (migrations, triggers, foreign-key ratchet, member codes).
+- `cd frontend && npx tsc --noEmit`.
+- Playwright smoke against a local copy stack (`E2E_BASE_URL=http://localhost:3021 npx playwright test`): Library Room, failed-load retry, admin redirect, and axe accessibility on `/`, `/library-room`, `/privacy`, `/login`. The admin sign-in test needs `E2E_ADMIN_EMAIL` and `E2E_ADMIN_PASSWORD`.
+- Rate limiter (custom, in `app/api/main.py`): 300 reads and 30 writes per minute per IP; verified on 2026-10-12 that 429 starts at request 297 of a read burst and 31 of a write burst.
 
 ### Library Room verification checklist
 

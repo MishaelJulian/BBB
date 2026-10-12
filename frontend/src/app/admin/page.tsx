@@ -607,11 +607,15 @@ export default function AdminDatabasePage() {
       })
       if (!res.ok) throw new Error('Book enrichment failed')
       const data = await res.json()
-      if (data.success) {
+      if (data.status === 'failed') {
+        showToast(`Goodreads did not answer for "${book.title}": ${data.message || 'try again in a minute'}`)
+      } else if (data.status === 'skipped') {
+        showToast(`"${book.title}" already has a working cover and Goodreads id`)
+      } else if (data.success) {
         showToast(`✓ Matched "${data.matched_title || book.title}" on Goodreads!`)
         loadData()
       } else {
-        showToast(`No Goodreads match found for "${book.title}"`)
+        showToast(data.message || `No Goodreads match found for "${book.title}"`)
       }
     } catch (err) {
       console.error(err)

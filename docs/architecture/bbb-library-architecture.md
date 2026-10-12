@@ -21,6 +21,15 @@ One document owns each concern; the others link to it (decision D3).
 | Analysis behind loading and data flows | `docs/architecture/flow_comparison.md` |
 | Measured health, risks and open findings | `docs/health/*` |
 
+## Ingest side (built 2026-10-12)
+
+```
+sources/*.pdf|txt -> app/parsers/meetup_parser.py -> resolve.py + changeset.py (relation checks)
+   -> scripts/import_meetups.py (staging diff, approval, backup, one transaction) -> SQLite
+   -> identity layer (Goodreads / Open Library / Inventaire) and the admin Enrich button -> covers, ratings
+```
+Details and every stage's input and output: `import_process_flow.md`. The read path below is unchanged by it.
+
 ## Architecture today (local)
 
 ```

@@ -133,3 +133,12 @@ The co-founder's 30 commits (`74207d7..2f27b2e`, tag `v1.0`) were compared with 
 | X7 | Meetup #99 now has 63 discussions (62 recorded before) | `a3f62f0` | Q1 (diff the PDF against the stored discussions) | Open: PDF restored, diff not run |
 | X8 | Meetup numbers for #62, 63, 66, 67 and 87 to 92 are still missing | none | Q8 | Open: roadmap P0 |
 | X9 | SQLite pragmas `synchronous=NORMAL`, mmap, 64 MB cache | `bff48b7` | D33 (restore drill) | Re-run the timed restore drill after the change |
+
+## Architecture findings, 2026-10-12 (documented, not built)
+1. **No replay, and facts / founder decisions / the read model share one file.** `app/pipeline/full_import.py` runs a whole parse in one job and merges/deletes; the new parser (`docs/architecture/import_process_flow.md`) is replayable and shows a diff first, but a re-import can still overwrite a manual fix. The `Alias` table exists (`app/database/models.py` ~219) and nothing reads or writes it; mentions have no "human-fixed" flag. Direction: decisions (aliases, merges, overrides) as data the importer reads.
+2. **Flow D shelf is recomputed per call and cached up to 24 h** (`app/api/main.py` `set_public_cache`, `/books`). After a presenter saves, the shelf can be stale. Direction, in the Flow D phase: a shelf snapshot written on save, which also covers D11's statistics file; a CDN purge after any production data swap.
+3. **SQLite file in git is both dev data and production** (PRD §8.3): a deploy can overwrite live writes; backups and git can diverge.
+4. **No audit log for admin writes** (D30 open) although delete, merge and make-member endpoints exist.
+5. **Series modelling waits on the series table** (Red Rising, Riftwar, Malazan); `/books` has no series field; the parser skips series mentions until then.
+6. **Doc and code contradictions:** PRD §9.1 "no gzip" vs `GZipMiddleware`; fuzzy threshold 0.75 in `full_import.py` vs the 0.90 / 0.75-0.90 two-band decision; "Flow E" cited in a code comment but undefined; `main.py` is about 3,000 lines vs D12's 2,226.
+7. **Layouts the parser does not read yet:** #66 (name-colon), #67 (chat), #96 (ChatGPT summary), #97 (image-only), #99 (author interaction). Repaired by hand; a later pass can add readers.
