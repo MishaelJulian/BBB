@@ -188,6 +188,9 @@ class Member(Base, UUIDMixin, TimestampMixin):
     # 'guest' or 'byob' (BYOB crossover only) until the presenter confirms membership (see app/services/membership.py); the database refuses other values.
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="member", server_default=text("'member'"))
 
+    # Permanent id MMM-NN: first meetup number, then order within that meetup (see app/services/membership.py). Unique when set.
+    member_code: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+
     # Relationships
     discussions: Mapped[List["Discussion"]] = relationship(
         "Discussion", back_populates="member"

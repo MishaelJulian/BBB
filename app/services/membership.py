@@ -5,12 +5,23 @@ presenter, who decides. "Been at" = a meetup_attendance row with status attended
 """
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.database.models import Meetup, MeetupAttendance, Member
 
 STREAK = 3  # ponytail: one number, change it here
+
+
+def assign_member_code(session: Session, member: Member, meetup_number: int) -> str:
+    """Give a member their permanent id the first time they are recorded at a meetup: MMM-NN. Keeps an existing code."""
+    if member.member_code:
+        return member.member_code
+    prefix = f"{meetup_number:03d}-"
+    taken = session.scalar(select(func.count()).select_from(Member).where(Member.member_code.like(prefix + "%"))) or 0
+    member.member_code = f"{prefix}{taken + 1:02d}"
+    session.flush()
+    return member.member_code
 
 
 def record_attendance(session: Session, meetup_number: int, member_ids: list[str], source: str = "form") -> int:
@@ -27,6 +38,8 @@ def record_attendance(session: Session, meetup_number: int, member_ids: list[str
     for m in new:
         session.add(MeetupAttendance(id=str(uuid.uuid4()), meetup_id=meetup.id, member_id=m, status="attended", source=source))
     session.flush()
+    for m in session.scalars(select(Member).where(Member.id.in_(new), Member.member_code.is_(None)).order_by(Member.display_name)):
+        assign_member_code(session, m, meetup_number)
     return len(new)
 
 
@@ -49,7 +62,7 @@ def promotion_candidates(session: Session, latest: int | None = None, streak: in
         while latest - run in nums:      # meetup numbers, so a missing meetup number breaks the run
             run += 1
         if run >= streak:
-            out.append({"member_id": mid, "display_name": name, "consecutive_meetups": run, "latest_meetup": latest})
+            out.append({"member_id": mid, "display_name": name, "member_code": session.get(Member, mid).member_code, "consecutive_meetups": run, "latest_meetup": latest})
     return sorted(out, key=lambda r: r["display_name"])
 
 

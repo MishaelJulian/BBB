@@ -112,3 +112,33 @@ def test_deleting_a_book_clears_its_import_links(db, fk):
     c.execute("delete from canonical_books where id=?", (bid,))
     assert c.execute("select count(*) from imported_books where canonical_book_id=?", (bid,)).fetchone()[0] == 0
     assert c.execute("pragma foreign_key_check").fetchall() == []
+
+
+def test_member_codes_backfilled_unique_and_assigned_to_newcomers(db, monkeypatch):
+    """Existing members get MMM-NN from their first meetup; a newcomer recorded at a meetup gets the next number there."""
+    import re
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.exc import IntegrityError
+    from sqlalchemy import text
+    from app.api import main
+
+    eng = create_engine(f"sqlite:///{db}")
+    monkeypatch.setattr(main, "SessionLocal", sessionmaker(bind=eng))
+    with eng.begin() as c:
+        codes = [r[0] for r in c.execute(text("select member_code from members where member_code is not null")).all()]
+        assert len(codes) > 100 and len(codes) == len(set(codes)) and all(re.fullmatch(r"\d{3}-\d{2}", x) for x in codes)
+        # the fixture rebuilds attendance from discussions (migration 0006), so only people with a book at #66 are there
+        assert c.execute(text("select count(*) from members where member_code like '066-%'")).scalar() >= 5
+        for pid in ("n1", "n2"):
+            c.execute(text("insert into members(id,display_name,normalized_name,status,created_at,updated_at) values(:i,:i,:i,'guest',datetime('now'),datetime('now'))"), {"i": pid})
+        with pytest.raises(IntegrityError):
+            c.execute(text("update members set member_code=(select member_code from members where member_code is not null limit 1) where id='n1'"))
+    first = main.save_meetup_attendance(99, main.AttendanceRequest(member_ids=["n2", "n1"]))
+    with eng.begin() as c:
+        got = dict(c.execute(text("select id, member_code from members where id in ('n1','n2')")).all())
+        taken = c.execute(text("select count(*) from members where member_code like '099-%'")).scalar()
+    assert got["n1"].startswith("099-") and got["n2"].startswith("099-") and got["n1"] != got["n2"] and taken >= 2
+    again = dict(main.save_meetup_attendance(98, main.AttendanceRequest(member_ids=["n1"])) or {})
+    with eng.begin() as c:
+        assert c.execute(text("select member_code from members where id='n1'")).scalar() == got["n1"]      # a code never changes
