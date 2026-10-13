@@ -11,6 +11,7 @@ const footerLinks = [
   { href: '/members', label: 'Readers Archive' },
   { href: '/admin', label: 'Database Admin' },
   { href: '/privacy', label: 'Privacy' },
+  { href: '/terms', label: 'Terms' },
 ]
 
 export function Footer() {

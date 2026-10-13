@@ -135,15 +135,17 @@ export default function MeetupPage() {
 
           {/* Action links */}
           <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
-            <a
-              href={`/api/meetups/${meetup.number}/pdf`}
-              target="_blank"
-              rel="noreferrer"
-              className="px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-sm font-semibold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
-            >
-              <span>📑</span>
-              <span>Download Publication PDF</span>
-            </a>
+            {meetup.pdf_url && (
+              <a
+                href={meetup.pdf_url}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-sm font-semibold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+              >
+                <span>📑</span>
+                <span>Download Publication PDF</span>
+              </a>
+            )}
             <Link
               href="/admin"
               className="px-4 py-2 rounded-xl border border-border bg-paper hover:bg-paper-dark text-sm font-medium text-ink transition-all shadow-xs flex items-center gap-1.5"

@@ -11,7 +11,9 @@ export default function PrivacyPage() {
     <main className="mx-auto max-w-2xl px-4 py-12 space-y-8 text-ink">
       <header className="space-y-2">
         <h1 className="font-display text-3xl">Privacy</h1>
-        <p className="text-sm text-muted">Last updated 9 October 2026</p>
+        <p className="text-sm text-muted">
+          Last updated 13 October 2026 · see also the <a href="/terms" className="underline">Terms</a>
+        </p>
       </header>
 
       <section className="space-y-3">

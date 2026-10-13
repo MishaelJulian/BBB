@@ -6,7 +6,7 @@ export const revalidate = 86400
 
 // Static pages plus one entry per meetup number. If the database is unreachable the static pages still list.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const pages = ['', '/library-room', '/meetups', '/members', '/privacy'].map((p) => ({ url: `${SITE_URL}${p}` }))
+  const pages = ['', '/library-room', '/meetups', '/members', '/privacy', '/terms'].map((p) => ({ url: `${SITE_URL}${p}` }))
   try {
     const rows = await sql()<{ meetup_number: number }[]>`select meetup_number from meetups order by meetup_number`
     return [...pages, ...rows.map((r) => ({ url: `${SITE_URL}/meetups/${r.meetup_number}` }))]

@@ -115,6 +115,12 @@ function LoginForm() {
         <button type="submit" disabled={busy} className="w-full h-11 rounded-md bg-amber-800 text-white font-semibold disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">
           {busy ? (signingUp ? 'Creating…' : 'Signing in…') : signingUp ? 'Create account' : 'Sign in'}
         </button>
+        {signingUp && (
+          <p className="text-xs text-muted">
+            By creating an account you agree to the <a href="/terms" className="underline text-ink">Terms</a> and{' '}
+            <a href="/privacy" className="underline text-ink">Privacy</a> notice.
+          </p>
+        )}
         {oauthProviders.length > 0 && (
           <div className="space-y-2">
             <p className="text-center text-xs text-muted">or</p>
