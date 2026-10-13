@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from './db'
 
-const ERROR_TYPES: Record<number, string> = { 400: 'validation_error', 404: 'not_found', 422: 'validation_error', 429: 'rate_limited' }
+const ERROR_TYPES: Record<number, string> = { 400: 'validation_error', 401: 'auth_error', 403: 'permission_error', 404: 'not_found', 422: 'validation_error', 429: 'rate_limited' }
 
 /** The same envelope the FastAPI service used: `detail` for old clients, `error` as the standard (PRD 11.2). */
 export function apiError(status: number, message: string, headers?: Record<string, string>) {

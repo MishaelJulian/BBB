@@ -6,7 +6,7 @@ import { BookAutocompleteInput, BookSuggestion } from '@/components/admin/BookAu
 import { MediaTypeOption, mediaMeta, normalizeMediaType } from '@/lib/mediaTypes'
 import { MemberAutocompleteInput } from '@/components/admin/MemberAutocompleteInput'
 import { getApiBase, invalidateApiCache } from '@/lib/api'
-import { getSession, type SessionUser } from '@/lib/auth'
+import { accessToken, getSession, type SessionUser } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 
 // Only http(s) links are rendered, so a stored javascript:/data: URL can't run on click.
@@ -126,10 +126,16 @@ export default function AdminDatabasePage() {
 
   // Same-origin API calls (Next.js / Vercel rewrite /api/* to the backend) so the login cookie is sent.
   const apiFetch = React.useCallback(async (path: string, init?: RequestInit): Promise<Response> => {
+    // Read-only demo: every write is refused here, before it leaves the browser.
+    if ((init?.method ?? 'GET').toUpperCase() !== 'GET') {
+      return new Response(JSON.stringify({ detail: 'This demo is read-only.' }), { status: 403, headers: { 'Content-Type': 'application/json' } })
+    }
     const cleanPath = path.startsWith('/') ? path : `/${path}`
+    const token = await accessToken()
     const res = await fetch(cleanPath.startsWith('/api') ? cleanPath : `/api${cleanPath}`, {
       credentials: 'same-origin',
       ...init,
+      headers: { ...(init?.headers as Record<string, string> | undefined), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     })
     if (res.status === 401) router.replace('/login?next=/admin')
     return res
@@ -723,6 +729,10 @@ export default function AdminDatabasePage() {
         </div>
       )}
 
+      <p role="status" className="bg-amber-100 text-amber-900 text-xs text-center px-4 py-2 border-b border-amber-200">
+        Read-only demo: you can browse everything here, but saving, uploading and deleting are switched off.
+      </p>
+
       {/* Top Navbar */}
       <header className="sticky top-0 z-30 bg-white/95 border-b border-[#E5E0DB] px-4 sm:px-6 py-3 backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
@@ -737,7 +747,7 @@ export default function AdminDatabasePage() {
               BBB Archive Manager
             </h1>
             <span className="hidden md:inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-mono text-[10px] font-semibold shrink-0">
-              SQLite · Live
+              Supabase · Live
             </span>
           </div>
 

@@ -34,6 +34,12 @@ export async function getSession(): Promise<SessionUser | null> {
   return u.user ? toUser(u.user) : null
 }
 
+/** The current access token, for calls to admin routes (which check it server-side). */
+export async function accessToken(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
+}
+
 export async function signIn(email: string, password: string, captchaToken?: string): Promise<void> {
   const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } })
   if (error) throw new Error(error.message || 'Sign-in failed.')
