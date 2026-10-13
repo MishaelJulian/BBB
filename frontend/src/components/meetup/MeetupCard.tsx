@@ -69,7 +69,7 @@ export function MeetupCard({
           {covers.slice(0, 5).map((cover, idx) => (
             <div
               key={idx}
-              className="w-8 aspect-[2/3] rounded-[2px] shadow-xs overflow-hidden border border-border/80 shrink-0 bg-neutral-900 group-hover:scale-105 transition-transform"
+              className="w-8 aspect-2/3 rounded-[2px] shadow-2xs overflow-hidden border border-border/80 shrink-0 bg-neutral-900 group-hover:scale-105 transition-transform"
             >
               <img
                 src={cover}

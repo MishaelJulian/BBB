@@ -285,7 +285,7 @@ export function MemberAutocompleteInput({
                 : '+ Add another reader (or type & press Enter)...'
             }
             autoFocus={autoFocus}
-            className="w-full py-1 px-1 text-xs text-neutral-900 bg-transparent focus:outline-none placeholder:text-neutral-400"
+            className="w-full py-1 px-1 text-xs text-neutral-900 bg-transparent focus:outline-hidden placeholder:text-neutral-400"
           />
           {loading && (
             <div className="absolute right-1 flex items-center pointer-events-none">
@@ -329,7 +329,7 @@ export function MemberAutocompleteInput({
       {/* Dropdown Menu */}
       {isOpen && (filteredSuggestions.length > 0 || (inputValue.trim() && !hasExactMatch)) && (
         <div className="absolute left-0 right-0 z-50 mt-1 bg-white border border-[#DDD6C7] rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto divide-y divide-neutral-100 text-xs scrollbar-thin">
-          <div className="px-3 py-1.5 bg-[#FAF8F5] border-b border-[#E5E0DB] flex items-center justify-between text-[10px] font-mono text-neutral-500 uppercase tracking-wider">
+          <div className="px-3 py-1.5 bg-paper border-b border-[#E5E0DB] flex items-center justify-between text-[10px] font-mono text-neutral-500 uppercase tracking-wider">
             <span>👤 BBB Club Readers</span>
             <span>
               {filteredSuggestions.length} available

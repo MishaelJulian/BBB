@@ -64,7 +64,7 @@ export default function AccountPage() {
               type="button"
               onClick={() => setShowCurrent((prev) => !prev)}
               aria-label={showCurrent ? 'Hide current password' : 'Show current password'}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink focus:outline-none focus:text-ink p-1 rounded"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink focus:outline-hidden focus:text-ink p-1 rounded"
             >
               {showCurrent ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -99,7 +99,7 @@ export default function AccountPage() {
               type="button"
               onClick={() => setShowNext((prev) => !prev)}
               aria-label={showNext ? 'Hide new password' : 'Show new password'}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink focus:outline-none focus:text-ink p-1 rounded"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink focus:outline-hidden focus:text-ink p-1 rounded"
             >
               {showNext ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -118,12 +118,12 @@ export default function AccountPage() {
           </div>
         </div>
         {status && <p role={status.ok ? 'status' : 'alert'} className={status.ok ? 'text-sm text-green-800' : 'text-sm text-red-700'}>{status.text}</p>}
-        <button type="submit" className="h-11 px-5 rounded-md bg-amber-800 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">Change password</button>
+        <button type="submit" className="h-11 px-5 rounded-md bg-amber-800 text-white font-semibold focus:outline-hidden focus:ring-2 focus:ring-accent focus:ring-offset-2">Change password</button>
       </form>
       <button
         type="button"
         onClick={async () => { await signOut(); router.replace('/') }}
-        className="h-11 px-5 rounded-md border border-border text-ink focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+        className="h-11 px-5 rounded-md border border-border text-ink focus:outline-hidden focus:ring-2 focus:ring-accent focus:ring-offset-2"
       >
         Sign out
       </button>

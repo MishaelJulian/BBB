@@ -63,7 +63,7 @@ export function Shelf({ title, books, className }: ShelfProps) {
       {title && (
         <div className="mb-4 flex items-center gap-4">
           <h3 className="font-display text-lg font-semibold text-ink tracking-wide">{title}</h3>
-          <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+          <div className="flex-1 h-px bg-linear-to-r from-border to-transparent" />
           <span className="text-xs text-muted font-mono tracking-wider">{books.length} volumes</span>
         </div>
       )}
@@ -82,7 +82,7 @@ export function Shelf({ title, books, className }: ShelfProps) {
         {canScrollLeft && (
           <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-20 bg-paper/95 border border-border/50 rounded-r-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center hover:bg-paper-dark backdrop-blur-sm"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-20 bg-paper/95 border border-border/50 rounded-r-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center hover:bg-paper-dark backdrop-blur-xs"
             aria-label="Scroll left"
           >
             <svg className="h-5 w-5 text-ink/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -95,7 +95,7 @@ export function Shelf({ title, books, className }: ShelfProps) {
         {canScrollRight && (
           <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-20 bg-paper/95 border border-border/50 rounded-l-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center hover:bg-paper-dark backdrop-blur-sm"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-20 bg-paper/95 border border-border/50 rounded-l-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center hover:bg-paper-dark backdrop-blur-xs"
             aria-label="Scroll right"
           >
             <svg className="h-5 w-5 text-ink/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -210,11 +210,11 @@ export function Shelf({ title, books, className }: ShelfProps) {
 
         {/* Shelf brackets — brass/bronze */}
         <div className="absolute -bottom-6 left-12">
-          <div className="w-3 h-6 bg-gradient-to-b from-amber-700/60 to-amber-900/40 rounded-b-sm" />
+          <div className="w-3 h-6 bg-linear-to-b from-amber-700/60 to-amber-900/40 rounded-b-sm" />
           <div className="w-5 h-1 bg-amber-800/40 rounded-b-sm -ml-1" />
         </div>
         <div className="absolute -bottom-6 right-12">
-          <div className="w-3 h-6 bg-gradient-to-b from-amber-700/60 to-amber-900/40 rounded-b-sm" />
+          <div className="w-3 h-6 bg-linear-to-b from-amber-700/60 to-amber-900/40 rounded-b-sm" />
           <div className="w-5 h-1 bg-amber-800/40 rounded-b-sm -ml-1" />
         </div>
 

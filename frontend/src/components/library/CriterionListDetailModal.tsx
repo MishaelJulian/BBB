@@ -23,7 +23,7 @@ interface CriterionListDetailModalProps {
  * from Screenshot 2026-10-01 201506.png & Screenshot 2026-10-01 201512.png:
  * - Centered clean white card with rounded-3xl corners
  * - Top-right circular close button
- * - Centered front cover with soft drop-shadow
+ * - Centered front cover with soft drop-shadow-sm
  * - Large bold Spine # (e.g. #5)
  * - Large Book Title & Subtitle (Year · Author)
  * - Category / Meta pills (Meetup #, Genre, Brought by Reader, Venue)
@@ -207,7 +207,7 @@ export function CriterionListDetailModal({
         {/* =======================================================
             1. CENTERED BOOK COVER WITH SOFT SHADOW (Screenshot 1)
             ======================================================= */}
-        <div className="relative mx-auto mt-1 mb-4 w-40 sm:w-44 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border border-neutral-200/70 bg-[#1A1816] group">
+        <div className="relative mx-auto mt-1 mb-4 w-40 sm:w-44 aspect-2/3 rounded-2xl overflow-hidden shadow-2xl border border-neutral-200/70 bg-[#1A1816] group">
           {hasCover ? (
             <img
               src={coverSrc}
@@ -244,7 +244,7 @@ export function CriterionListDetailModal({
           )}
 
           {/* Criterion / BBB Monogram Badge in top left corner of cover */}
-          <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-[9px] font-serif font-bold text-white shadow-sm pointer-events-none">
+          <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-black/60 backdrop-blur-xs border border-white/20 flex items-center justify-center text-[9px] font-serif font-bold text-white shadow-xs pointer-events-none">
             B
           </div>
         </div>
@@ -296,7 +296,7 @@ export function CriterionListDetailModal({
             onClick={() => onTogglePick(book)}
             className={`flex-1 py-2.5 px-4 rounded-xl border text-xs font-semibold transition flex items-center justify-center gap-1.5 ${
               isSaved
-                ? 'bg-amber-400 border-amber-500 text-black shadow-sm font-bold'
+                ? 'bg-amber-400 border-amber-500 text-black shadow-xs font-bold'
                 : 'bg-[#F7F4EE] hover:bg-[#EFEAE2] border-[#DDD5C7] text-neutral-800'
             }`}
           >
@@ -364,7 +364,7 @@ export function CriterionListDetailModal({
           {latestMeetup && (
             <Link
               href={`/meetups/${latestMeetup.id || latestMeetup.number}`}
-              className="w-full py-2.5 mt-2 rounded-xl bg-[#FAF8F5] hover:bg-[#F3EFE8] border border-[#DDD5C7] text-neutral-800 font-semibold text-xs transition flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 mt-2 rounded-xl bg-paper hover:bg-[#F3EFE8] border border-[#DDD5C7] text-neutral-800 font-semibold text-xs transition flex items-center justify-center gap-1.5"
             >
               <span>Explore Meetup #{latestMeetup.number} Discussion</span>
               <span className="text-neutral-400">↗</span>
@@ -436,7 +436,7 @@ export function CriterionListDetailModal({
                     className="group flex flex-col items-center gap-1 shrink-0 p-1.5 rounded-xl hover:bg-neutral-100 transition"
                     title={`View ${member.display_name}'s Dossier`}
                   >
-                    <div className="w-10 h-10 rounded-full bg-[#14130F] text-amber-200 border-2 border-neutral-200 group-hover:border-amber-500 font-serif font-bold text-xs flex items-center justify-center shadow-sm transition">
+                    <div className="w-10 h-10 rounded-full bg-[#14130F] text-amber-200 border-2 border-neutral-200 group-hover:border-amber-500 font-serif font-bold text-xs flex items-center justify-center shadow-xs transition">
                       {initials}
                     </div>
                     <span className="text-[10px] font-medium text-neutral-700 group-hover:text-black truncate max-w-[64px] text-center">

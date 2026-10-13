@@ -121,7 +121,7 @@ export function CommandPalette() {
     <div className="fixed inset-0 z-command-palette">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-ink/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-ink/50 backdrop-blur-xs"
         onClick={() => setOpen(false)}
       />
 
@@ -153,7 +153,7 @@ export function CommandPalette() {
               }}
               onKeyDown={handleKeyDown}
               placeholder="Search books, meetups, authors..."
-              className="flex-1 h-12 px-3 bg-transparent text-sm focus:outline-none"
+              className="flex-1 h-12 px-3 bg-transparent text-sm focus:outline-hidden"
             />
             {loading && (
               <div className="animate-spin h-4 w-4 border-2 border-accent border-t-transparent rounded-full" />

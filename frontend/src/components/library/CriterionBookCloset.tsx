@@ -106,7 +106,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
   return (
     <div
       data-book-id={book.id}
-      className={`relative select-none transition-all duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+      className={`relative select-none transition-all duration-200 cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
         rowIsFull ? 'flex-1 min-w-[24px] max-w-[42px]' : 'shrink-0'
       }`}
       style={{
@@ -296,7 +296,7 @@ const ShelfWall = React.memo(function ShelfWall({
       style={{ transformStyle: isMobile ? 'flat' : 'preserve-3d' }}
     >
       {/* Brass Plaque Archival Header at top of each shelf wall */}
-      <div className="flex items-center justify-between px-4 pb-1 border-b border-amber-500/30 bg-gradient-to-r from-black/60 via-amber-950/30 to-black/60 rounded-t backdrop-blur-sm">
+      <div className="flex items-center justify-between px-4 pb-1 border-b border-amber-500/30 bg-linear-to-r from-black/60 via-amber-950/30 to-black/60 rounded-t backdrop-blur-xs">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]" />
           <span className="font-mono text-[10.5px] tracking-[0.25em] text-amber-200 font-bold uppercase">
@@ -314,7 +314,7 @@ const ShelfWall = React.memo(function ShelfWall({
         return (
           <div key={`shelf-${shelfNumber}-row-${rIdx}`} className="relative flex flex-col">
             {/* Spines on Row (Sitting closely touching on the shelf plank) */}
-            <div className="flex items-end px-2 space-x-[1px] w-full min-h-[220px] overflow-hidden">
+            <div className="flex items-end px-2 space-x-px w-full min-h-[220px] overflow-hidden">
               {rowBooks.map((book) => (
                 <ClosetSpine
                   key={`b-${book.id}`}
@@ -420,7 +420,7 @@ function PicksTray({
                     onSelectBook(book)
                   }}
                 >
-                  <div className="relative w-full aspect-[2/3] rounded-xl overflow-hidden shadow-lg border border-white/20 bg-[#1E1B18]">
+                  <div className="relative w-full aspect-2/3 rounded-xl overflow-hidden shadow-lg border border-white/20 bg-[#1E1B18]">
                     {hasCover ? (
                       <img
                         src={coverSrc}
@@ -467,7 +467,7 @@ function PicksTray({
             return (
               <div
                 key={`empty-slot-${idx}`}
-                className="w-full aspect-[2/3] rounded-xl border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center p-3 text-center text-white/30"
+                className="w-full aspect-2/3 rounded-xl border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center p-3 text-center text-white/30"
               >
                 <span className="text-xl mb-1">♡</span>
                 <span className="text-[9px] font-mono">Empty Slot</span>
@@ -740,7 +740,7 @@ function PolaroidModal({
         className="relative z-10 w-full max-w-lg flex flex-col items-center"
       >
         {/* POLAROID FRAME */}
-        <div className="w-full bg-[#FAF8F5] p-5 pb-7 rounded-sm shadow-[0_25px_60px_rgba(0,0,0,0.85)] border border-neutral-300 flex flex-col items-center">
+        <div className="w-full bg-paper p-5 pb-7 rounded-xs shadow-[0_25px_60px_rgba(0,0,0,0.85)] border border-neutral-300 flex flex-col items-center">
           
           <div className="relative w-full aspect-square bg-[#100D0B] rounded-[2px] overflow-hidden flex flex-col justify-end p-4 shadow-inner border border-black/30">
             <div
@@ -763,7 +763,7 @@ function PolaroidModal({
                 return (
                   <div
                     key={`polaroid-book-${book.id}`}
-                    className="relative w-20 sm:w-24 md:w-28 aspect-[2/3] rounded-[3px] overflow-hidden shadow-2xl border border-white/20 bg-[#1E1B18] flex flex-col shrink-0"
+                    className="relative w-20 sm:w-24 md:w-28 aspect-2/3 rounded-[3px] overflow-hidden shadow-2xl border border-white/20 bg-[#1E1B18] flex flex-col shrink-0"
                   >
                     {hasCover ? (
                       <img
@@ -807,7 +807,7 @@ function PolaroidModal({
                 value={signee}
                 onChange={(e) => setSignee(e.target.value)}
                 placeholder="sign here"
-                className="bg-transparent border-b border-neutral-300 font-serif italic text-lg text-neutral-900 focus:outline-none focus:border-amber-600 w-48 mt-0.5"
+                className="bg-transparent border-b border-neutral-300 font-serif italic text-lg text-neutral-900 focus:outline-hidden focus:border-amber-600 w-48 mt-0.5"
               />
             </div>
 
@@ -1680,7 +1680,7 @@ export function CriterionBookCloset() {
               {/* Mobile Closet Picks Button */}
               <button
                 onClick={() => setIsPicksTrayOpen(true)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono font-bold transition-all shadow-sm ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono font-bold transition-all shadow-xs ${
                   userPicks.length > 0
                     ? 'bg-amber-400 text-black border-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.6)]'
                     : viewMode === 'closet'
@@ -1764,7 +1764,7 @@ export function CriterionBookCloset() {
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
                   placeholder="Title, author, spine #…"
-                  className={`w-full px-3.5 py-1.5 rounded-xl text-xs border transition-all focus:outline-none ${
+                  className={`w-full px-3.5 py-1.5 rounded-xl text-xs border transition-all focus:outline-hidden ${
                     viewMode === 'closet'
                       ? 'bg-black/50 border-white/15 text-white placeholder-white/40 focus:border-amber-400'
                       : 'bg-white border-[#DDD6C7] text-[#14130F] placeholder-neutral-400 focus:border-black'
@@ -1835,7 +1835,7 @@ export function CriterionBookCloset() {
 
             {/* Desktop Sliding Pill Switcher */}
             <nav
-              className="hidden md:flex relative items-center p-1 rounded-full border shadow-sm"
+              className="hidden md:flex relative items-center p-1 rounded-full border shadow-xs"
               style={{
                 backgroundColor: viewMode === 'closet' ? 'rgba(255,255,255,0.06)' : '#FAF8F4',
                 borderColor: viewMode === 'closet' ? 'rgba(255,255,255,0.15)' : '#DDD6C7',
@@ -1958,7 +1958,7 @@ export function CriterionBookCloset() {
                   aria-label="Jump to shelf section"
                   value={safeSection}
                   onChange={(e) => setShelfSection(Number(e.target.value))}
-                  className="bg-transparent text-amber-300 font-mono text-[10px] sm:text-[11px] appearance-none cursor-pointer focus:outline-none pr-3 sm:pr-4"
+                  className="bg-transparent text-amber-300 font-mono text-[10px] sm:text-[11px] appearance-none cursor-pointer focus:outline-hidden pr-3 sm:pr-4"
                 >
                   {Array.from({ length: totalSections }).map((_, idx) => {
                     const startShelf = idx * 3 + 1
@@ -2029,7 +2029,7 @@ export function CriterionBookCloset() {
               <button
                 type="button"
                 onClick={() => loadBooks()}
-                className="px-4 py-2 rounded-lg bg-amber-700 hover:bg-amber-700 text-white text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                className="px-4 py-2 rounded-lg bg-amber-700 hover:bg-amber-700 text-white text-sm font-semibold focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-300"
               >
                 Try again
               </button>
@@ -2130,7 +2130,7 @@ export function CriterionBookCloset() {
                   borderRight: '1px solid rgba(201,158,82,0.3)',
                 }}
               >
-                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-gradient-to-b from-amber-600/30 via-amber-400/50 to-amber-700/30" />
+                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-linear-to-b from-amber-600/30 via-amber-400/50 to-amber-700/30" />
               </div>
 
               {/* ========================================================
@@ -2173,7 +2173,7 @@ export function CriterionBookCloset() {
                   borderRight: '1px solid rgba(201,158,82,0.3)',
                 }}
               >
-                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-gradient-to-b from-amber-600/30 via-amber-400/50 to-amber-700/30" />
+                <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-linear-to-b from-amber-600/30 via-amber-400/50 to-amber-700/30" />
               </div>
 
               {/* ========================================================
@@ -2340,7 +2340,7 @@ export function CriterionBookCloset() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Title, author or spine #…"
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl text-xs bg-white border border-[#DDD6C7] text-[#14130F] placeholder-neutral-400 focus:outline-none focus:border-black shadow-sm"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl text-xs bg-white border border-[#DDD6C7] text-[#14130F] placeholder-neutral-400 focus:outline-hidden focus:border-black shadow-xs"
               />
               <svg className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -2355,7 +2355,7 @@ export function CriterionBookCloset() {
                   aria-label="Filter by meetup"
                   value={selectedMeetup ?? ''}
                   onChange={(e) => setSelectedMeetup(e.target.value ? Number(e.target.value) : null)}
-                  className={`pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-none transition-colors shadow-sm ${
+                  className={`pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-hidden transition-colors shadow-xs ${
                     selectedMeetup !== null
                       ? 'bg-amber-700 text-white border-amber-600'
                       : 'bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400'
@@ -2379,7 +2379,7 @@ export function CriterionBookCloset() {
                   aria-label="Filter by number of discussions"
                   value={discussionFilter}
                   onChange={(e) => setDiscussionFilter(e.target.value as any)}
-                  className={`pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-none transition-colors shadow-sm ${
+                  className={`pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-hidden transition-colors shadow-xs ${
                     discussionFilter !== 'all'
                       ? 'bg-amber-700 text-white border-amber-600'
                       : 'bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400'
@@ -2404,7 +2404,7 @@ export function CriterionBookCloset() {
                     setSortBy(e.target.value as any)
                     if (e.target.value === 'random') setShuffleSeed((s) => s + 1)
                   }}
-                  className="pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-none transition-colors bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400 shadow-sm"
+                  className="pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-hidden transition-colors bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400 shadow-xs"
                 >
                   <option value="latest">Sort: Latest to Oldest</option>
                   <option value="spine-asc">Sort: Spine # (Ascending)</option>
@@ -2433,7 +2433,7 @@ export function CriterionBookCloset() {
                 }}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   discussionFilter === 'all' && selectedLetter === null && selectedMeetup === null && searchQuery === ''
-                    ? 'bg-[#14130F] text-white shadow-sm'
+                    ? 'bg-[#14130F] text-white shadow-xs'
                     : 'bg-white border border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
                 }`}
               >
@@ -2454,7 +2454,7 @@ export function CriterionBookCloset() {
                 onClick={() => setDiscussionFilter(discussionFilter === 'popular' ? 'all' : 'popular')}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   discussionFilter === 'popular'
-                    ? 'bg-amber-700 text-white shadow-sm'
+                    ? 'bg-amber-700 text-white shadow-xs'
                     : 'bg-white border border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
                 }`}
               >
@@ -2512,10 +2512,10 @@ export function CriterionBookCloset() {
                     }
                   }}
                   style={{ contentVisibility: 'auto', containIntrinsicSize: '320px' }}
-                  className="group flex flex-col cursor-pointer text-left select-none transition-all duration-200 hover:-translate-y-1.5 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+                  className="group flex flex-col cursor-pointer text-left select-none transition-all duration-200 hover:-translate-y-1.5 outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
                 >
                   {/* Card Front Cover with Criterion Spine Badge */}
-                  <div className="relative w-full aspect-[2/3] rounded-2xl overflow-hidden shadow-md group-hover:shadow-2xl transition-all duration-300 border border-[#DDD6C7] bg-[#1E1B18]">
+                  <div className="relative w-full aspect-2/3 rounded-2xl overflow-hidden shadow-md group-hover:shadow-2xl transition-all duration-300 border border-[#DDD6C7] bg-[#1E1B18]">
                     {hasCover ? (
                       <img
                         src={coverSrc}
@@ -2634,7 +2634,7 @@ export function CriterionBookCloset() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs"
               onClick={() => setIsFilterSheetOpen(false)}
             />
 
@@ -2683,7 +2683,7 @@ export function CriterionBookCloset() {
                       aria-label="Filter by meetup"
                       value={selectedMeetup ?? ''}
                       onChange={(e) => setSelectedMeetup(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+                      className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-xs text-white focus:outline-hidden focus:border-amber-400 cursor-pointer"
                     >
                       <option value="" className="bg-[#14100D] text-white">All Meetups ({availableMeetups.length})</option>
                       {availableMeetups.map((m) => (
@@ -2700,7 +2700,7 @@ export function CriterionBookCloset() {
                         onClick={() => setSelectedMeetup(selectedMeetup === m.number ? null : m.number)}
                         className={`px-2 py-1 rounded text-[10px] font-mono font-medium transition-colors ${
                           selectedMeetup === m.number
-                            ? 'bg-amber-500 text-black font-bold shadow-sm'
+                            ? 'bg-amber-500 text-black font-bold shadow-xs'
                             : 'bg-white/5 hover:bg-white/15 text-white/80'
                         }`}
                       >

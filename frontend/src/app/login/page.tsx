@@ -103,7 +103,7 @@ function LoginForm() {
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               aria-label={showPassword ? 'Hide password' : 'Show password'}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink focus:outline-none focus:text-ink p-1 rounded"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink focus:outline-hidden focus:text-ink p-1 rounded"
             >
               <Eye off={showPassword} />
             </button>
@@ -112,7 +112,7 @@ function LoginForm() {
         <Turnstile ref={captcha} onToken={setToken} />
         {notice && <p role="status" className="text-sm text-green-800">{notice}</p>}
         {error && <p id="login-error" role="alert" className="text-sm text-red-700">{error}</p>}
-        <button type="submit" disabled={busy} className="w-full h-11 rounded-md bg-amber-800 text-white font-semibold disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">
+        <button type="submit" disabled={busy} className="w-full h-11 rounded-md bg-amber-800 text-white font-semibold disabled:opacity-60 focus:outline-hidden focus:ring-2 focus:ring-accent focus:ring-offset-2">
           {busy ? (signingUp ? 'Creating…' : 'Signing in…') : signingUp ? 'Create account' : 'Sign in'}
         </button>
         {signingUp && (
@@ -129,7 +129,7 @@ function LoginForm() {
                 key={p}
                 type="button"
                 onClick={() => signInWithProvider(p).catch((err) => setError(err instanceof Error ? err.message : 'Could not start sign-in.'))}
-                className="w-full h-11 rounded-md border border-border text-ink font-medium focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
+                className="w-full h-11 rounded-md border border-border text-ink font-medium focus:outline-hidden focus:ring-2 focus:ring-accent focus:ring-offset-2"
               >
                 Continue with {p === 'google' ? 'Google' : 'Apple'}
               </button>

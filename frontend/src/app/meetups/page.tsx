@@ -88,7 +88,7 @@ export default function MeetupsPage() {
           <select
             value={year}
             onChange={(e) => setYear(e.target.value)}
-            className="flex h-10 rounded-md border border-border bg-paper px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="flex h-10 rounded-md border border-border bg-paper px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-accent"
           >
             <option value="">All years</option>
             {years.map(y => (

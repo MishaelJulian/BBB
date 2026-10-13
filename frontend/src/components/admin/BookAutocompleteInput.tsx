@@ -255,8 +255,8 @@ export function BookAutocompleteInput({
                 onClick={() => handleMediaTypeSelect(t.id)}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                   isSelected
-                    ? 'bg-neutral-900 text-white shadow-xs'
-                    : 'bg-[#FAF8F5] text-neutral-600 hover:bg-[#F0ECE1] border border-[#DDD6C7]'
+                    ? 'bg-neutral-900 text-white shadow-2xs'
+                    : 'bg-paper text-neutral-600 hover:bg-[#F0ECE1] border border-[#DDD6C7]'
                 }`}
               >
                 <span>{t.icon}</span>
@@ -287,7 +287,7 @@ export function BookAutocompleteInput({
           autoComplete="off"
           className={
             className ||
-            'w-full p-2.5 pr-10 rounded-xl border border-[#DDD6C7] bg-white focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-500 text-xs font-medium text-neutral-900 transition-all shadow-xs'
+            'w-full p-2.5 pr-10 rounded-xl border border-[#DDD6C7] bg-white focus:outline-hidden focus:border-amber-600 focus:ring-1 focus:ring-amber-500 text-xs font-medium text-neutral-900 transition-all shadow-2xs'
           }
         />
 
@@ -333,7 +333,7 @@ export function BookAutocompleteInput({
       {isOpen && (
         <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-xl shadow-2xl border border-[#DDD6C7] overflow-hidden max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
           {/* Header */}
-          <div className="px-3 py-1.5 bg-[#FAF8F5] border-b border-[#EEE8DE] flex items-center justify-between text-[10px] text-neutral-500 font-mono font-medium">
+          <div className="px-3 py-1.5 bg-paper border-b border-[#EEE8DE] flex items-center justify-between text-[10px] text-neutral-500 font-mono font-medium">
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
               {mediaMeta(currentMediaType).source}
@@ -360,7 +360,7 @@ export function BookAutocompleteInput({
                   }`}
                 >
                   {/* Thumbnail / Cover */}
-                  <div className="w-9 h-12 flex-shrink-0 bg-neutral-100 rounded border border-neutral-200 overflow-hidden shadow-xs relative flex items-center justify-center">
+                  <div className="w-9 h-12 shrink-0 bg-neutral-100 rounded border border-neutral-200 overflow-hidden shadow-2xs relative flex items-center justify-center">
                     {cover ? (
                       <img
                         src={cover}
@@ -428,7 +428,7 @@ export function BookAutocompleteInput({
                 className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors border-t border-[#EEE8DE] mt-1 ${
                   selectedIndex === suggestions.length
                     ? 'bg-amber-100 text-amber-950 font-medium ring-1 ring-amber-300'
-                    : 'bg-[#FAF8F5] hover:bg-amber-50 text-neutral-700'
+                    : 'bg-paper hover:bg-amber-50 text-neutral-700'
                 }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-amber-200/80 flex items-center justify-center text-amber-800 text-xs shrink-0 font-bold">

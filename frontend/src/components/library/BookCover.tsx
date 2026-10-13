@@ -57,7 +57,7 @@ export function BookCover({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-xs"
             onClick={onClose}
           />
 
@@ -78,7 +78,7 @@ export function BookCover({
 
               {/* Front cover */}
               <div
-                className="relative w-80 h-[480px] rounded-sm overflow-hidden"
+                className="relative w-80 h-[480px] rounded-xs overflow-hidden"
                 style={{
                   backgroundColor: color,
                   boxShadow: '8px 8px 24px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.1)',

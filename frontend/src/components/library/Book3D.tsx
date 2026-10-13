@@ -172,8 +172,8 @@ export function Book3D({
     <div
       className={cn(
         'relative block select-none transition-all duration-300 transform-gpu',
-        isDimmed ? 'opacity-20 grayscale-[70%]' : 'opacity-100',
-        isHighlighted && !isSelected && 'ring-2 ring-amber-400/80 rounded-sm ring-offset-2 ring-offset-black',
+        isDimmed ? 'opacity-20 grayscale-70' : 'opacity-100',
+        isHighlighted && !isSelected && 'ring-2 ring-amber-400/80 rounded-xs ring-offset-2 ring-offset-black',
         className
       )}
       style={{
@@ -221,7 +221,7 @@ export function Book3D({
       >
         {/* FRONT COVER */}
         <div
-          className="absolute inset-0 rounded-sm overflow-hidden"
+          className="absolute inset-0 rounded-xs overflow-hidden"
           style={{
             backgroundColor: palette.bg,
             transform: `translateZ(${depth / 2}px)`,
@@ -243,7 +243,7 @@ export function Book3D({
 
           {/* Foil border frame */}
           <div
-            className="absolute inset-2 border rounded-sm pointer-events-none"
+            className="absolute inset-2 border rounded-xs pointer-events-none"
             style={{ borderColor: `${palette.foil}35` }}
           />
 
@@ -284,7 +284,7 @@ export function Book3D({
 
         {/* BACK COVER */}
         <div
-          className="absolute inset-0 rounded-sm"
+          className="absolute inset-0 rounded-xs"
           style={{
             backgroundColor: palette.accent,
             transform: `translateZ(-${depth / 2}px) rotateY(180deg)`,
@@ -311,14 +311,14 @@ export function Book3D({
           }}
         >
           {/* Top Headband Rib */}
-          <div className="absolute top-2 inset-x-0 h-1.5 bg-gradient-to-r from-amber-700/50 via-amber-500/70 to-amber-700/50 border-y border-white/25 shadow-sm" />
+          <div className="absolute top-2 inset-x-0 h-1.5 bg-linear-to-r from-amber-700/50 via-amber-500/70 to-amber-700/50 border-y border-white/25 shadow-xs" />
 
           {/* Raised Spine Ribs (Archival binding bands) */}
           <div className="absolute top-[28%] inset-x-0 h-[2px] bg-black/40 border-t border-white/20" />
           <div className="absolute bottom-[28%] inset-x-0 h-[2px] bg-black/40 border-b border-white/20" />
 
           {/* Bottom Headband Rib */}
-          <div className="absolute bottom-2 inset-x-0 h-1.5 bg-gradient-to-r from-amber-700/50 via-amber-500/70 to-amber-700/50 border-y border-white/25 shadow-sm" />
+          <div className="absolute bottom-2 inset-x-0 h-1.5 bg-linear-to-r from-amber-700/50 via-amber-500/70 to-amber-700/50 border-y border-white/25 shadow-xs" />
 
           {/* Vertical Spine Title & Catalog Number */}
           <div

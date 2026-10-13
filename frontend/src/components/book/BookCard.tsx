@@ -33,7 +33,7 @@ export function BookCard({
         >
           {/* Mini cover */}
           <div
-            className="w-10 h-14 rounded-sm shrink-0 shadow-sm"
+            className="w-10 h-14 rounded-xs shrink-0 shadow-xs"
             style={{ backgroundColor: coverColor }}
           />
 
@@ -65,7 +65,7 @@ export function BookCard({
   return (
     <div className="group block">
       <Link href={`/books/${id}`}>
-        <div className="relative aspect-[2/3] rounded-sm overflow-hidden shadow-book group-hover:shadow-book-hover transition-shadow">
+        <div className="relative aspect-2/3 rounded-xs overflow-hidden shadow-book group-hover:shadow-book-hover transition-shadow">
           {/* Book cover */}
           <div
             className="absolute inset-0 flex flex-col items-center justify-between p-4 text-center"

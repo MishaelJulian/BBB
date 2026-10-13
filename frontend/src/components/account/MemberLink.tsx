@@ -76,15 +76,15 @@ export function MemberLink() {
             You are <Link href={`/members/${member.id}`} className="underline text-ink">{member.display_name}</Link> in the archive.
           </p>
           <label htmlFor="bio" className="block text-sm font-medium text-ink">About you (shown on your member page)</label>
-          <textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={1000} rows={4} className="w-full rounded-md border border-border bg-white p-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent" />
-          <button type="submit" disabled={busy} className="h-11 px-5 rounded-md bg-amber-800 text-white font-semibold disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">{busy ? 'Saving…' : 'Save bio'}</button>
+          <textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} maxLength={1000} rows={4} className="w-full rounded-md border border-border bg-white p-2 text-sm text-ink focus:outline-hidden focus:ring-2 focus:ring-accent" />
+          <button type="submit" disabled={busy} className="h-11 px-5 rounded-md bg-amber-800 text-white font-semibold disabled:opacity-60 focus:outline-hidden focus:ring-2 focus:ring-accent focus:ring-offset-2">{busy ? 'Saving…' : 'Save bio'}</button>
         </form>
       ) : (
         <form onSubmit={claim} className="space-y-3">
           <p className="text-sm text-muted">Got an invite code from the club? Enter it to link this account to your member record.</p>
           <label htmlFor="invite-code" className="block text-sm font-medium text-ink">Invite code</label>
           <Input id="invite-code" autoComplete="off" autoCapitalize="characters" placeholder="XXXXX-XXXXX" required value={code} onChange={(e) => setCode(e.target.value)} />
-          <button type="submit" disabled={busy || !code.trim()} className="h-11 px-5 rounded-md bg-amber-800 text-white font-semibold disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">{busy ? 'Checking…' : 'Link my record'}</button>
+          <button type="submit" disabled={busy || !code.trim()} className="h-11 px-5 rounded-md bg-amber-800 text-white font-semibold disabled:opacity-60 focus:outline-hidden focus:ring-2 focus:ring-accent focus:ring-offset-2">{busy ? 'Checking…' : 'Link my record'}</button>
         </form>
       )}
       {status && <p role={status.ok ? 'status' : 'alert'} className={status.ok ? 'text-sm text-green-800' : 'text-sm text-red-700'}>{status.text}</p>}

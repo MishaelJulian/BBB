@@ -34,7 +34,7 @@ export function ClosetPicksTray({
         <button
           onClick={onSurpriseMe}
           suppressHydrationWarning
-          className="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-600/90 to-amber-700/90 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-serif font-medium tracking-wide shadow-lg border border-amber-400/40 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
+          className="px-3 py-1.5 rounded-full bg-linear-to-r from-amber-600/90 to-amber-700/90 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-serif font-medium tracking-wide shadow-lg border border-amber-400/40 flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
           title="Pick a random volume from the library stacks"
         >
           <span className="text-sm">🎲</span>

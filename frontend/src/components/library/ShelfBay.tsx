@@ -160,7 +160,7 @@ export function ShelfBay({
       )}
 
       {/* Architectural Solid Walnut Bookcase Tier */}
-      <div className="relative group rounded-xl bg-gradient-to-b from-[#1C1612] via-[#140F0C] to-[#0D0A08] border border-amber-950/40 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden">
+      <div className="relative group rounded-xl bg-linear-to-b from-[#1C1612] via-[#140F0C] to-[#0D0A08] border border-amber-950/40 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden">
         
         {/* Overhead Brass Picture Light / Downward Lamp Falloff */}
         <div
@@ -174,12 +174,12 @@ export function ShelfBay({
         />
 
         {/* Left Wood Pillar with Brass Trim */}
-        <div className="absolute top-0 bottom-0 left-0 w-3 sm:w-4 z-20 pointer-events-none bg-gradient-to-r from-[#2C1D14] via-[#1E130D] to-transparent border-r border-amber-900/30">
+        <div className="absolute top-0 bottom-0 left-0 w-3 sm:w-4 z-20 pointer-events-none bg-linear-to-r from-[#2C1D14] via-[#1E130D] to-transparent border-r border-amber-900/30">
           <div className="absolute top-4 left-0.5 bottom-4 w-1 border-r border-amber-500/20" />
         </div>
 
         {/* Right Wood Pillar with Brass Trim */}
-        <div className="absolute top-0 bottom-0 right-0 w-3 sm:w-4 z-20 pointer-events-none bg-gradient-to-l from-[#2C1D14] via-[#1E130D] to-transparent border-l border-amber-900/30">
+        <div className="absolute top-0 bottom-0 right-0 w-3 sm:w-4 z-20 pointer-events-none bg-linear-to-l from-[#2C1D14] via-[#1E130D] to-transparent border-l border-amber-900/30">
           <div className="absolute top-4 right-0.5 bottom-4 w-1 border-l border-amber-500/20" />
         </div>
 
@@ -318,8 +318,8 @@ export function ShelfBay({
           />
 
           {/* Brass mounting bracket accents */}
-          <div className="absolute -bottom-3 left-12 w-4 h-3 bg-gradient-to-b from-amber-700 via-amber-800 to-amber-950 rounded-b-sm border-t border-amber-400/50 shadow-lg" />
-          <div className="absolute -bottom-3 right-12 w-4 h-3 bg-gradient-to-b from-amber-700 via-amber-800 to-amber-950 rounded-b-sm border-t border-amber-400/50 shadow-lg" />
+          <div className="absolute -bottom-3 left-12 w-4 h-3 bg-linear-to-b from-amber-700 via-amber-800 to-amber-950 rounded-b-sm border-t border-amber-400/50 shadow-lg" />
+          <div className="absolute -bottom-3 right-12 w-4 h-3 bg-linear-to-b from-amber-700 via-amber-800 to-amber-950 rounded-b-sm border-t border-amber-400/50 shadow-lg" />
         </div>
       </div>
     </div>

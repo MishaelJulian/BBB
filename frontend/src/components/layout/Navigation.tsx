@@ -24,7 +24,7 @@ export function Navigation() {
         'sticky top-0 z-navigation border-b transition-colors duration-300',
         isLibraryRoom
           ? 'bg-[#14100D]/95 border-amber-950/50 text-[#F4EFE6] backdrop-blur-xl'
-          : 'bg-paper/95 border-border text-ink backdrop-blur supports-[backdrop-filter]:bg-paper/60'
+          : 'bg-paper/95 border-border text-ink backdrop-blur-sm supports-backdrop-filter:bg-paper/60'
       )}
     >
       <nav className="container-library flex h-16 items-center justify-between">

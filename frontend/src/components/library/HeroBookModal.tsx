@@ -303,7 +303,7 @@ export function HeroBookModal({
               >
                 {/* FRONT COVER */}
                 <div
-                  className="absolute inset-0 rounded-sm overflow-hidden"
+                  className="absolute inset-0 rounded-xs overflow-hidden"
                   style={{
                     backgroundColor: palette.bg,
                     transform: `translateZ(${bookDepth / 2}px)`,
@@ -325,14 +325,14 @@ export function HeroBookModal({
 
                   {/* Gold Foil Embossed Filigree Border */}
                   <div
-                    className="absolute inset-3.5 border rounded-sm pointer-events-none"
+                    className="absolute inset-3.5 border rounded-xs pointer-events-none"
                     style={{
                       borderColor: `${palette.foil}45`,
                       boxShadow: `inset 0 0 1px 1px ${palette.foil}30, 0 0 1px ${palette.foil}35`,
                     }}
                   />
                   <div
-                    className="absolute inset-5 border rounded-sm pointer-events-none"
+                    className="absolute inset-5 border rounded-xs pointer-events-none"
                     style={{
                       borderColor: `${palette.foil}25`,
                     }}
@@ -413,7 +413,7 @@ export function HeroBookModal({
 
                 {/* BACK COVER */}
                 <div
-                  className="absolute inset-0 rounded-sm"
+                  className="absolute inset-0 rounded-xs"
                   style={{
                     backgroundColor: palette.accent,
                     transform: `translateZ(-${bookDepth / 2}px) rotateY(180deg)`,
@@ -599,7 +599,7 @@ export function HeroBookModal({
                 {/* Primary CTA: Examine Full Record */}
                 <Link
                   href={`/books/${book.id}`}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-semibold text-xs tracking-wider uppercase shadow-xl transition-all flex items-center justify-center gap-2 group mb-3"
+                  className="w-full py-3 px-4 rounded-xl bg-linear-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-semibold text-xs tracking-wider uppercase shadow-xl transition-all flex items-center justify-center gap-2 group mb-3"
                 >
                   <span>Examine Full Record</span>
                   <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -611,7 +611,7 @@ export function HeroBookModal({
                 <button
                   onClick={onClose}
                   suppressHydrationWarning
-                  className="w-full py-2.5 px-4 rounded-xl border border-amber-500/30 hover:border-amber-400/60 bg-white/5 hover:bg-amber-950/40 text-amber-100 hover:text-white font-serif text-xs tracking-wider transition-all flex items-center justify-center gap-2 mb-6 shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                  className="w-full py-2.5 px-4 rounded-xl border border-amber-500/30 hover:border-amber-400/60 bg-white/5 hover:bg-amber-950/40 text-amber-100 hover:text-white font-serif text-xs tracking-wider transition-all flex items-center justify-center gap-2 mb-6 shadow-xs hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M19 12H5M12 19l-7-7 7-7" />

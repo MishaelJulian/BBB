@@ -68,7 +68,7 @@ export function MyEntries() {
                 <span className="font-mono text-xs text-muted">#{en.meetup_number}</span> {en.title}
                 {en.author ? <span className="text-muted"> by {en.author}</span> : null}
               </span>
-              <button type="button" onClick={() => remove(en.id)} className="shrink-0 text-xs underline text-red-700 focus:outline-none focus:ring-2 focus:ring-accent">Remove</button>
+              <button type="button" onClick={() => remove(en.id)} className="shrink-0 text-xs underline text-red-700 focus:outline-hidden focus:ring-2 focus:ring-accent">Remove</button>
             </li>
           ))}
         </ul>
@@ -76,7 +76,7 @@ export function MyEntries() {
       <form onSubmit={add} className="space-y-3 border-t border-border pt-3">
         <h3 className="text-sm font-medium text-ink">Add a book</h3>
         <label htmlFor="entry-meetup" className="block text-sm text-ink">Meetup</label>
-        <select id="entry-meetup" required value={meetup} onChange={(e) => setMeetup(e.target.value)} className="w-full h-11 rounded-md border border-border bg-white px-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent">
+        <select id="entry-meetup" required value={meetup} onChange={(e) => setMeetup(e.target.value)} className="w-full h-11 rounded-md border border-border bg-white px-2 text-sm text-ink focus:outline-hidden focus:ring-2 focus:ring-accent">
           <option value="">Choose a meetup…</option>
           {data.meetups.map((m) => <option key={m.meetup_number} value={m.meetup_number}>#{m.meetup_number}{m.date ? ` · ${m.date}` : ''}</option>)}
         </select>
@@ -86,7 +86,7 @@ export function MyEntries() {
         <Input id="entry-author" value={author} onChange={(e) => setAuthor(e.target.value)} />
         <label htmlFor="entry-notes" className="block text-sm text-ink">Notes (optional)</label>
         <Input id="entry-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
-        <button type="submit" disabled={busy || !meetup || !title.trim()} className="h-11 px-5 rounded-md bg-amber-800 text-white font-semibold disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">{busy ? 'Adding…' : 'Add book'}</button>
+        <button type="submit" disabled={busy || !meetup || !title.trim()} className="h-11 px-5 rounded-md bg-amber-800 text-white font-semibold disabled:opacity-60 focus:outline-hidden focus:ring-2 focus:ring-accent focus:ring-offset-2">{busy ? 'Adding…' : 'Add book'}</button>
       </form>
       {status && <p role={status.ok ? 'status' : 'alert'} className={status.ok ? 'text-sm text-green-800' : 'text-sm text-red-700'}>{status.text}</p>}
     </section>

@@ -140,7 +140,7 @@ export default function MeetupPage() {
                 href={meetup.pdf_url}
                 target="_blank"
                 rel="noreferrer"
-                className="px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-sm font-semibold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-sm font-semibold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
               >
                 <span>📑</span>
                 <span>Download Publication PDF</span>
@@ -148,7 +148,7 @@ export default function MeetupPage() {
             )}
             <Link
               href="/admin"
-              className="px-4 py-2 rounded-xl border border-border bg-paper hover:bg-paper-dark text-sm font-medium text-ink transition-all shadow-xs flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl border border-border bg-paper hover:bg-paper-dark text-sm font-medium text-ink transition-all shadow-2xs flex items-center gap-1.5"
             >
               <span>⚙️</span>
               <span>Admin: Manage Meetup</span>
@@ -201,7 +201,7 @@ export default function MeetupPage() {
               <Link
                 key={member.id}
                 href={`/members/${member.id}`}
-                className="px-4 py-2 rounded-full border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/50 hover:text-amber-900 text-sm text-ink transition-all shadow-sm flex items-center gap-1.5"
+                className="px-4 py-2 rounded-full border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/50 hover:text-amber-900 text-sm text-ink transition-all shadow-xs flex items-center gap-1.5"
               >
                 <span>{member.display_name}</span>
                 <span className="text-xs text-muted/60">→</span>
@@ -226,12 +226,12 @@ export default function MeetupPage() {
                 return (
                   <div
                     key={book.id}
-                    className="flex items-start gap-3.5 p-3.5 rounded-xl border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/40 transition-all group shadow-xs hover:shadow-sm"
+                    className="flex items-start gap-3.5 p-3.5 rounded-xl border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/40 transition-all group shadow-2xs hover:shadow-xs"
                   >
                     {/* Book Cover Artwork */}
                     <Link
                       href={`/books/${book.id}`}
-                      className="w-14 sm:w-16 aspect-[2/3] rounded-md shrink-0 shadow-sm overflow-hidden relative border border-border/80 bg-neutral-900 group-hover:scale-[1.03] transition-transform"
+                      className="w-14 sm:w-16 aspect-2/3 rounded-md shrink-0 shadow-xs overflow-hidden relative border border-border/80 bg-neutral-900 group-hover:scale-[1.03] transition-transform"
                     >
                       {coverSrc ? (
                         <img
@@ -314,7 +314,7 @@ export default function MeetupPage() {
                       href={`/books/${book.id}`}
                       className="flex items-center gap-3.5 p-3 rounded-xl border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/40 transition-all group"
                     >
-                      <div className="w-12 aspect-[2/3] rounded shrink-0 shadow-sm overflow-hidden relative border border-border/80 bg-neutral-900">
+                      <div className="w-12 aspect-2/3 rounded shrink-0 shadow-xs overflow-hidden relative border border-border/80 bg-neutral-900">
                         {coverSrc ? (
                           <img
                             src={coverSrc}

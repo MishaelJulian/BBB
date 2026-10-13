@@ -16,7 +16,7 @@ export function PageSkeleton() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="space-y-3">
-              <Skeleton className="aspect-[2/3] w-full rounded-lg" />
+              <Skeleton className="aspect-2/3 w-full rounded-lg" />
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-3 w-1/2" />
             </div>
@@ -32,7 +32,7 @@ export function BookPageSkeleton() {
     <Section size="lg">
       <Container size="narrow">
         <div className="flex flex-col md:flex-row gap-8 md:gap-12">
-          <Skeleton className="w-full md:w-64 aspect-[2/3] rounded-lg shrink-0" />
+          <Skeleton className="w-full md:w-64 aspect-2/3 rounded-lg shrink-0" />
           <div className="flex-1 space-y-4">
             <Skeleton className="h-10 w-3/4" />
             <Skeleton className="h-6 w-1/2" />

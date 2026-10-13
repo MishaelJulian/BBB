@@ -717,7 +717,7 @@ export default function AdminDatabasePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#14130F] font-sans antialiased pb-16">
+    <div className="min-h-screen bg-paper text-[#14130F] font-sans antialiased pb-16">
       {/* Toast */}
       {toast && (
         <div className="fixed top-5 right-5 z-50 px-5 py-2.5 rounded-xl bg-[#14130F] text-white text-xs font-mono shadow-2xl animate-fade-in border border-white/20">
@@ -777,14 +777,14 @@ export default function AdminDatabasePage() {
       {/* Main Workspace */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         {/* Search & Stats Bar */}
-        <div className="bg-white rounded-2xl border border-[#E5E0DB] p-4 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl border border-[#E5E0DB] p-4 shadow-xs mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="relative w-full sm:w-80">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search meetups, book titles, authors…"
-              className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-[#DDD6C7] text-xs bg-[#FAF8F5] focus:bg-white focus:outline-none focus:border-amber-600 transition-all"
+              className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-[#DDD6C7] text-xs bg-paper focus:bg-white focus:outline-hidden focus:border-amber-600 transition-all"
             />
             <svg
               className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2"
@@ -825,8 +825,8 @@ export default function AdminDatabasePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
             {/* Left Column: All Meetups List */}
-            <div className={`${mobileDetailView ? 'hidden lg:flex' : 'flex'} lg:col-span-4 bg-white rounded-2xl border border-[#E5E0DB] shadow-sm flex-col h-[750px] overflow-hidden`}>
-              <div className="p-3.5 border-b border-[#E5E0DB] bg-[#FAF8F5] flex items-center justify-between gap-2">
+            <div className={`${mobileDetailView ? 'hidden lg:flex' : 'flex'} lg:col-span-4 bg-white rounded-2xl border border-[#E5E0DB] shadow-xs flex-col h-[750px] overflow-hidden`}>
+              <div className="p-3.5 border-b border-[#E5E0DB] bg-paper flex items-center justify-between gap-2">
                 <div>
                   <span className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-600 block">
                     Select Meetup ({filteredMeetups.length})
@@ -836,7 +836,7 @@ export default function AdminDatabasePage() {
                 <button
                   type="button"
                   onClick={handleOpenCreateMeetup}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-semibold text-xs shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-amber-700 focus:ring-offset-1 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-semibold text-xs shadow-xs transition-all focus:outline-hidden focus:ring-2 focus:ring-amber-700 focus:ring-offset-1 cursor-pointer"
                   title="Create a new meetup record"
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
@@ -847,7 +847,7 @@ export default function AdminDatabasePage() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto divide-y divide-[#F0EDE8] scrollbar-thin">
+              <div className="flex-1 overflow-y-auto divide-y divide-paper-dark scrollbar-thin">
                 {filteredMeetups.map((m) => {
                   const isSelected = m.number === selectedMeetupNumber
                   return (
@@ -891,17 +891,17 @@ export default function AdminDatabasePage() {
             </div>
 
             {/* Right Column: Selected Meetup Books & Actions */}
-            <div className={`${mobileDetailView ? 'flex' : 'hidden lg:flex'} lg:col-span-8 bg-white rounded-2xl border border-[#E5E0DB] shadow-sm flex-col h-[750px] overflow-hidden`}>
+            <div className={`${mobileDetailView ? 'flex' : 'hidden lg:flex'} lg:col-span-8 bg-white rounded-2xl border border-[#E5E0DB] shadow-xs flex-col h-[750px] overflow-hidden`}>
               {currentMeetup ? (
                 <>
                   {/* Meetup Header */}
-                  <div className="p-5 border-b border-[#E5E0DB] bg-[#FAF8F5] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="p-5 border-b border-[#E5E0DB] bg-paper flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       {/* Mobile Back Button to list */}
                       <button
                         type="button"
                         onClick={() => setMobileDetailView(false)}
-                        className="inline-flex lg:hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#E5E0DB] hover:bg-neutral-100 text-neutral-800 font-semibold text-xs transition-colors mb-3 w-fit cursor-pointer shadow-sm"
+                        className="inline-flex lg:hidden items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#E5E0DB] hover:bg-neutral-100 text-neutral-800 font-semibold text-xs transition-colors mb-3 w-fit cursor-pointer shadow-xs"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -946,7 +946,7 @@ export default function AdminDatabasePage() {
                       <button
                         onClick={handleEnrichMeetup}
                         disabled={isEnrichingMeetup}
-                        className="px-2.5 py-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                         title="Search and select Goodreads covers and ratings for all books in this meetup"
                       >
                         {isEnrichingMeetup ? (
@@ -968,7 +968,7 @@ export default function AdminDatabasePage() {
                           setPhotoPreviewUrl(currentMeetup.photo_url ? `${getApiBase()}${currentMeetup.photo_url}` : null)
                           setIsPhotoModalOpen(true)
                         }}
-                        className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer ${
+                        className={`px-2.5 py-1.5 rounded-xl border text-xs font-semibold transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer ${
                           currentMeetup.photo_url
                             ? 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900'
                             : 'border-[#DDD6C7] bg-white hover:bg-neutral-50 text-neutral-800'
@@ -982,7 +982,7 @@ export default function AdminDatabasePage() {
                       <button
                         onClick={() => setIsPdfStyleModalOpen(true)}
                         disabled={isGeneratingPdf}
-                        className="px-2.5 py-1.5 rounded-xl border border-amber-600 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-xl border border-amber-600 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-all shadow-2xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                         title="Choose PDF layout style (Canva magazine or Classic document) for this meetup"
                       >
                         {isGeneratingPdf ? (
@@ -1002,7 +1002,7 @@ export default function AdminDatabasePage() {
                         href={`${getApiBase()}/admin/meetups/${currentMeetup.number}/pdf`}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2.5 py-1.5 rounded-xl border border-neutral-800 bg-[#14130F] hover:bg-neutral-800 text-white text-xs font-semibold transition-colors shadow-xs flex items-center gap-1.5"
+                        className="px-2.5 py-1.5 rounded-xl border border-neutral-800 bg-[#14130F] hover:bg-neutral-800 text-white text-xs font-semibold transition-colors shadow-2xs flex items-center gap-1.5"
                         title="View or download the publication PDF magazine for this meetup"
                       >
                         <span>⬇️</span>
@@ -1011,7 +1011,7 @@ export default function AdminDatabasePage() {
 
                       <button
                         onClick={handleOpenEditMeetup}
-                        className="px-2.5 py-1.5 rounded-xl border border-[#DDD6C7] bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-800 transition-colors shadow-xs cursor-pointer flex items-center gap-1"
+                        className="px-2.5 py-1.5 rounded-xl border border-[#DDD6C7] bg-white hover:bg-neutral-50 text-xs font-semibold text-neutral-800 transition-colors shadow-2xs cursor-pointer flex items-center gap-1"
                       >
                         <span>✏️</span>
                         <span>Edit</span>
@@ -1019,7 +1019,7 @@ export default function AdminDatabasePage() {
 
                       <button
                         onClick={handleDeleteMeetup}
-                        className="px-2.5 py-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 transition-colors shadow-xs cursor-pointer flex items-center gap-1"
+                        className="px-2.5 py-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 transition-colors shadow-2xs cursor-pointer flex items-center gap-1"
                         title="Delete this meetup from the database"
                       >
                         <span>🗑️</span>
@@ -1028,7 +1028,7 @@ export default function AdminDatabasePage() {
 
                       <button
                         onClick={() => setIsAddBookOpen(true)}
-                        className="px-3 py-1.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-xs font-semibold transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-xs font-semibold transition-colors shadow-2xs flex items-center gap-1.5 cursor-pointer"
                       >
                         <span>+ Add Book</span>
                       </button>
@@ -1059,7 +1059,7 @@ export default function AdminDatabasePage() {
                             <th className="pb-2.5 pr-2 text-right font-semibold">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#F0EDE8]">
+                        <tbody className="divide-y divide-paper-dark">
                           {currentMeetup.books.map((book, idx) => {
                             const isFirstGeneral =
                               Boolean(book.is_general_discussion) &&
@@ -1077,7 +1077,7 @@ export default function AdminDatabasePage() {
                                     </td>
                                   </tr>
                                 )}
-                                <tr className={`transition-colors group ${book.is_general_discussion ? 'bg-amber-50/20 hover:bg-amber-50/50' : 'hover:bg-[#FAF8F5]'}`}>
+                                <tr className={`transition-colors group ${book.is_general_discussion ? 'bg-amber-50/20 hover:bg-amber-50/50' : 'hover:bg-paper'}`}>
                                   <td className="py-3 pl-2 text-neutral-400 font-mono">{idx + 1}</td>
                                   <td className="py-2 font-medium text-neutral-900 font-serif text-sm">
                                     <div className="flex items-center gap-2.5">
@@ -1085,7 +1085,7 @@ export default function AdminDatabasePage() {
                                         <img
                                           src={book.cover_url || book.thumbnail_url || ''}
                                           alt={book.title}
-                                          className="w-7 h-10 object-cover rounded shadow-xs border border-[#E5E0DB] shrink-0"
+                                          className="w-7 h-10 object-cover rounded shadow-2xs border border-[#E5E0DB] shrink-0"
                                           loading="lazy"
                                         />
                                       ) : (
@@ -1175,7 +1175,7 @@ export default function AdminDatabasePage() {
                                       onClick={() => handleToggleGeneralDiscussion(book)}
                                       className={`px-2.5 py-1 rounded-full text-[11px] font-sans font-medium transition-all inline-flex items-center gap-1.5 border cursor-pointer ${
                                         book.is_general_discussion
-                                          ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200 shadow-xs'
+                                          ? 'bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200 shadow-2xs'
                                           : 'bg-neutral-100 text-neutral-600 border-neutral-200 hover:bg-neutral-200 hover:text-neutral-900'
                                       }`}
                                       title={
@@ -1242,7 +1242,7 @@ export default function AdminDatabasePage() {
       {/* MODAL 0: Create New Meetup */}
       {isCreateMeetupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isCreatingMeetup && setIsCreateMeetupOpen(false)} />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => !isCreatingMeetup && setIsCreateMeetupOpen(false)} />
           <div className="relative z-10 w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-[#DDD6C7]">
             <div className="flex items-center justify-between mb-1">
               <h3 className="font-display font-bold text-lg text-neutral-900">
@@ -1273,7 +1273,7 @@ export default function AdminDatabasePage() {
                         setCreateTitle(`BBB Meetup #${num}`)
                       }
                     }}
-                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600 font-mono"
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600 font-mono"
                     required
                   />
                 </div>
@@ -1285,7 +1285,7 @@ export default function AdminDatabasePage() {
                   <select
                     value={createFormat}
                     onChange={(e) => setCreateFormat(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600 bg-white"
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600 bg-white"
                   >
                     <option value="IN_PERSON">In-person</option>
                     <option value="ONLINE">Online</option>
@@ -1302,7 +1302,7 @@ export default function AdminDatabasePage() {
                   type="text"
                   value={createTitle}
                   onChange={(e) => setCreateTitle(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600"
                   placeholder="e.g. BBB Meetup #100"
                   required
                 />
@@ -1315,7 +1315,7 @@ export default function AdminDatabasePage() {
                     type="date"
                     value={createDate}
                     onChange={(e) => setCreateDate(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600"
                   />
                 </div>
 
@@ -1326,7 +1326,7 @@ export default function AdminDatabasePage() {
                     value={createVenue}
                     onChange={(e) => setCreateVenue(e.target.value)}
                     placeholder="e.g. Bookworm, Atta Galatta"
-                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600"
                   />
                 </div>
               </div>
@@ -1338,7 +1338,7 @@ export default function AdminDatabasePage() {
                   onChange={(e) => setCreateDescription(e.target.value)}
                   placeholder="Optional meetup theme or notes..."
                   rows={2}
-                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600 resize-none"
+                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600 resize-none"
                 />
               </div>
 
@@ -1354,7 +1354,7 @@ export default function AdminDatabasePage() {
                 <button
                   type="submit"
                   disabled={isCreatingMeetup}
-                  className="px-5 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-semibold shadow-sm disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-semibold shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   {isCreatingMeetup ? (
                     <>
@@ -1374,7 +1374,7 @@ export default function AdminDatabasePage() {
       {/* MODAL 1: Edit Meetup Info */}
       {isEditMeetupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsEditMeetupOpen(false)} />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setIsEditMeetupOpen(false)} />
           <div className="relative z-10 w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-[#DDD6C7]">
             <h3 className="font-display font-bold text-lg text-neutral-900 mb-1">
               Edit Meetup #{currentMeetup?.number}
@@ -1390,7 +1390,7 @@ export default function AdminDatabasePage() {
                   type="text"
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600"
                   required
                 />
               </div>
@@ -1401,7 +1401,7 @@ export default function AdminDatabasePage() {
                   type="date"
                   value={editDate}
                   onChange={(e) => setEditDate(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600"
                 />
               </div>
 
@@ -1412,7 +1412,7 @@ export default function AdminDatabasePage() {
                   value={editVenue}
                   onChange={(e) => setEditVenue(e.target.value)}
                   placeholder="e.g. Bookworm, Atta Galatta, Online"
-                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600"
                 />
               </div>
 
@@ -1438,7 +1438,7 @@ export default function AdminDatabasePage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm"
+                    className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-xs"
                   >
                     Save Changes
                   </button>
@@ -1452,7 +1452,7 @@ export default function AdminDatabasePage() {
       {/* MODAL 2: Add Book / Media to Meetup */}
       {isAddBookOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsAddBookOpen(false)} />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setIsAddBookOpen(false)} />
           <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl p-6 shadow-2xl border border-[#DDD6C7] max-h-[92vh] overflow-y-auto">
             <h3 className="font-display font-bold text-lg text-neutral-900 mb-1">
               Add Item to Meetup #{currentMeetup?.number}
@@ -1490,7 +1490,7 @@ export default function AdminDatabasePage() {
                     <img
                       src={newBookMeta.thumbnail_url || newBookMeta.cover_url || ''}
                       alt={newBookMeta.title}
-                      className="w-8 h-10 object-cover rounded shadow-xs border border-amber-300 shrink-0"
+                      className="w-8 h-10 object-cover rounded shadow-2xs border border-amber-300 shrink-0"
                     />
                   ) : (
                     <div className="w-8 h-10 bg-amber-200/60 rounded flex items-center justify-center text-amber-800 text-xs font-bold shrink-0">
@@ -1542,7 +1542,7 @@ export default function AdminDatabasePage() {
                     value={newBookUrl}
                     onChange={(e) => setNewBookUrl(e.target.value)}
                     placeholder="https://youtube.com/@channel or https://..."
-                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600 text-xs"
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600 text-xs"
                   />
                   {newBookUrl.trim() && (
                     <button
@@ -1598,7 +1598,7 @@ export default function AdminDatabasePage() {
                         setIsAddBookOpen(false)
                         handleOpenEditBook(existingDuplicateBook)
                       }}
-                      className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white font-semibold text-[11px] transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      className="px-3 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white font-semibold text-[11px] transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
                     >
                       <span>✏️ Edit Existing Item & Add Reader</span>
                     </button>
@@ -1618,7 +1618,7 @@ export default function AdminDatabasePage() {
                   value={newBookAuthor}
                   onChange={(e) => setNewBookAuthor(e.target.value)}
                   placeholder={mediaMeta(newMediaType).creatorPlaceholder}
-                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600"
                 />
               </div>
 
@@ -1645,18 +1645,18 @@ export default function AdminDatabasePage() {
                   value={newBookNotes}
                   onChange={(e) => setNewBookNotes(e.target.value)}
                   placeholder={newIsGeneralDiscussion ? 'General Discussion / Tangent' : 'e.g. Tangents, Community Discussion'}
-                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600"
                 />
               </div>
 
               {/* Tangent flag: how it was mentioned, not what kind of thing it is */}
-              <label className="flex items-center gap-2 p-3 rounded-xl bg-[#FAF8F5] border border-[#DDD6C7] text-xs font-semibold text-neutral-800 cursor-pointer">
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-paper border border-[#DDD6C7] text-xs font-semibold text-neutral-800 cursor-pointer">
                 <input type="checkbox" checked={newIsTangent} onChange={(e) => setNewIsTangent(e.target.checked)} />
                 <span>🌐 Mentioned as a tangent</span>
               </label>
 
               {/* General Discussion Toggle */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[#DDD6C7]">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-paper border border-[#DDD6C7]">
                 <div className="pr-3">
                   <div className="flex items-center gap-1.5 font-semibold text-neutral-800 text-xs">
                     <span>💬</span>
@@ -1689,7 +1689,7 @@ export default function AdminDatabasePage() {
                 <button
                   type="submit"
                   disabled={Boolean(existingDuplicateBook)}
-                  className={`px-5 py-2 rounded-xl font-semibold shadow-sm transition-all ${
+                  className={`px-5 py-2 rounded-xl font-semibold shadow-xs transition-all ${
                     existingDuplicateBook
                       ? 'bg-amber-100 text-amber-800 border border-amber-300 cursor-not-allowed opacity-90'
                       : 'bg-[#14130F] hover:bg-neutral-800 text-white cursor-pointer'
@@ -1707,7 +1707,7 @@ export default function AdminDatabasePage() {
       {/* MODAL 3: Edit Existing Book / Media Item */}
       {editingBook && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setEditingBook(null)} />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setEditingBook(null)} />
           <div className="relative z-10 w-full max-w-lg bg-white rounded-2xl p-6 shadow-2xl border border-[#DDD6C7] max-h-[92vh] overflow-y-auto">
             <h3 className="font-display font-bold text-lg text-neutral-900 mb-1">
               Edit Discussion Item
@@ -1745,7 +1745,7 @@ export default function AdminDatabasePage() {
                     <img
                       src={editBookMeta.thumbnail_url || editBookMeta.cover_url || ''}
                       alt={editBookMeta.title}
-                      className="w-8 h-10 object-cover rounded shadow-xs border border-amber-300 shrink-0"
+                      className="w-8 h-10 object-cover rounded shadow-2xs border border-amber-300 shrink-0"
                     />
                   ) : (
                     <div className="w-8 h-10 bg-amber-200/60 rounded flex items-center justify-center text-amber-800 text-xs font-bold shrink-0">
@@ -1797,7 +1797,7 @@ export default function AdminDatabasePage() {
                     value={editBookUrl}
                     onChange={(e) => setEditBookUrl(e.target.value)}
                     placeholder="https://youtube.com/@channel or https://..."
-                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600 text-xs"
+                    className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600 text-xs"
                   />
                   {editBookUrl.trim() && (
                     <button
@@ -1835,7 +1835,7 @@ export default function AdminDatabasePage() {
                   value={editBookAuthor}
                   onChange={(e) => setEditBookAuthor(e.target.value)}
                   placeholder={mediaMeta(editMediaType).creatorPlaceholder}
-                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600"
                 />
               </div>
 
@@ -1869,18 +1869,18 @@ export default function AdminDatabasePage() {
                   value={editBookNotes}
                   onChange={(e) => setEditBookNotes(e.target.value)}
                   placeholder={editIsGeneralDiscussion ? 'General Discussion / Tangent' : 'e.g. Tangents, Community Discussion'}
-                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-none focus:border-amber-600"
+                  className="w-full p-2.5 rounded-xl border border-[#DDD6C7] focus:outline-hidden focus:border-amber-600"
                 />
               </div>
 
               {/* Tangent flag: how it was mentioned, not what kind of thing it is */}
-              <label className="flex items-center gap-2 p-3 rounded-xl bg-[#FAF8F5] border border-[#DDD6C7] text-xs font-semibold text-neutral-800 cursor-pointer">
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-paper border border-[#DDD6C7] text-xs font-semibold text-neutral-800 cursor-pointer">
                 <input type="checkbox" checked={editIsTangent} onChange={(e) => setEditIsTangent(e.target.checked)} />
                 <span>🌐 Mentioned as a tangent</span>
               </label>
 
               {/* General Discussion Toggle */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[#DDD6C7]">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-paper border border-[#DDD6C7]">
                 <div className="pr-3">
                   <div className="flex items-center gap-1.5 font-semibold text-neutral-800 text-xs">
                     <span>💬</span>
@@ -1912,7 +1912,7 @@ export default function AdminDatabasePage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-sm cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-xs cursor-pointer"
                 >
                   Save Changes
                 </button>
@@ -1926,7 +1926,7 @@ export default function AdminDatabasePage() {
       {isPhotoModalOpen && currentMeetup && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border border-[#E5E0DB] shadow-2xl max-w-lg w-full overflow-hidden animate-scale-in">
-            <div className="p-6 border-b border-[#E5E0DB] bg-[#FAF8F5] flex items-center justify-between">
+            <div className="p-6 border-b border-[#E5E0DB] bg-paper flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-mono text-amber-700 font-bold uppercase tracking-wider block">
                   Meetup #{currentMeetup.number} Media
@@ -1953,11 +1953,11 @@ export default function AdminDatabasePage() {
               </p>
 
               {/* Photo Preview Area */}
-              <div className="border-2 border-dashed border-[#DDD6C7] rounded-2xl p-4 bg-[#FAF8F5] flex flex-col items-center justify-center text-center">
+              <div className="border-2 border-dashed border-[#DDD6C7] rounded-2xl p-4 bg-paper flex flex-col items-center justify-center text-center">
                 {photoPreviewUrl ? (
                   <div className="relative group max-w-xs mx-auto">
                     {/* Polaroid-styled preview frame */}
-                    <div className="bg-white p-3 pb-8 rounded-lg shadow-md border border-neutral-200 rotate-[-1deg] transition-transform group-hover:rotate-0">
+                    <div className="bg-white p-3 pb-8 rounded-lg shadow-md border border-neutral-200 -rotate-1 transition-transform group-hover:rotate-0">
                       <img
                         src={safeImageUrl(photoPreviewUrl)}
                         alt={`Group photo for Meetup #${currentMeetup.number}`}
@@ -1997,7 +1997,7 @@ export default function AdminDatabasePage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-2 flex items-center justify-between border-t border-[#F0EDE8]">
+              <div className="pt-2 flex items-center justify-between border-t border-paper-dark">
                 {currentMeetup.photo_url ? (
                   <button
                     type="button"
@@ -2025,7 +2025,7 @@ export default function AdminDatabasePage() {
                   <button
                     type="submit"
                     disabled={!selectedPhotoFile || isUploadingPhoto}
-                    className="px-5 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                    className="px-5 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                   >
                     {isUploadingPhoto ? (
                       <>
@@ -2047,7 +2047,7 @@ export default function AdminDatabasePage() {
       {isPdfStyleModalOpen && currentMeetup && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border border-[#E5E0DB] shadow-2xl max-w-xl w-full overflow-hidden animate-scale-in">
-            <div className="p-6 border-b border-[#E5E0DB] bg-[#FAF8F5] flex items-center justify-between">
+            <div className="p-6 border-b border-[#E5E0DB] bg-paper flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-mono text-amber-700 font-bold uppercase tracking-wider block">
                   Meetup #{currentMeetup.number} Publication
@@ -2072,7 +2072,7 @@ export default function AdminDatabasePage() {
               {/* 2 Style Choice Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                 {/* Style 1: Canva Magazine Zine */}
-                <div className="rounded-2xl border-2 border-amber-500/50 hover:border-amber-600 bg-amber-50/30 p-4.5 flex flex-col justify-between transition-all shadow-xs group">
+                <div className="rounded-2xl border-2 border-amber-500/50 hover:border-amber-600 bg-amber-50/30 p-4.5 flex flex-col justify-between transition-all shadow-2xs group">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded">
@@ -2093,7 +2093,7 @@ export default function AdminDatabasePage() {
                       type="button"
                       disabled={isGeneratingPdf}
                       onClick={() => handleGeneratePdf('magazine')}
-                      className="w-full py-2 px-3 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                      className="w-full py-2 px-3 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold shadow-2xs transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
                     >
                       {generatingPdfStyle === 'magazine' ? (
                         <>
@@ -2116,7 +2116,7 @@ export default function AdminDatabasePage() {
                 </div>
 
                 {/* Style 2: Classic Word-Style Document */}
-                <div className="rounded-2xl border-2 border-[#DDD6C7] hover:border-neutral-800 bg-[#FAF8F5] p-4.5 flex flex-col justify-between transition-all shadow-xs group">
+                <div className="rounded-2xl border-2 border-[#DDD6C7] hover:border-neutral-800 bg-paper p-4.5 flex flex-col justify-between transition-all shadow-2xs group">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-neutral-700 bg-neutral-200/80 px-2 py-0.5 rounded">
@@ -2137,7 +2137,7 @@ export default function AdminDatabasePage() {
                       type="button"
                       disabled={isGeneratingPdf}
                       onClick={() => handleGeneratePdf('classic')}
-                      className="w-full py-2 px-3 rounded-xl bg-[#14130F] hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                      className="w-full py-2 px-3 rounded-xl bg-[#14130F] hover:bg-neutral-800 text-white text-xs font-semibold shadow-2xs transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
                     >
                       {generatingPdfStyle === 'classic' ? (
                         <>
@@ -2161,7 +2161,7 @@ export default function AdminDatabasePage() {
               </div>
             </div>
 
-            <div className="p-4 bg-[#FAF8F5] border-t border-[#E5E0DB] flex justify-end">
+            <div className="p-4 bg-paper border-t border-[#E5E0DB] flex justify-end">
               <button
                 type="button"
                 onClick={() => setIsPdfStyleModalOpen(false)}

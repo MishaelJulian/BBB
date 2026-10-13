@@ -81,7 +81,7 @@ export default function AuthorRecordPage() {
             <span className="text-ink font-medium">{author.full_name}</span>
           </nav>
 
-          <div className="p-8 sm:p-10 rounded-xl border border-border bg-paper-dark/70 shadow-sm relative overflow-hidden">
+          <div className="p-8 sm:p-10 rounded-xl border border-border bg-paper-dark/70 shadow-xs relative overflow-hidden">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/20 border border-amber-800/30 text-amber-900 text-[11px] font-mono tracking-[0.2em] uppercase mb-4">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-700" />
               Author Archive Record
@@ -150,7 +150,7 @@ export default function AuthorRecordPage() {
                   {/* Book Cover Artwork */}
                   <Link
                     href={`/books/${book.id}`}
-                    className="w-14 sm:w-16 aspect-[2/3] rounded-md shrink-0 shadow-sm overflow-hidden relative border border-border/80 bg-neutral-900 group-hover:scale-[1.03] transition-transform"
+                    className="w-14 sm:w-16 aspect-2/3 rounded-md shrink-0 shadow-xs overflow-hidden relative border border-border/80 bg-neutral-900 group-hover:scale-[1.03] transition-transform"
                   >
                     {book.cover_url || book.thumbnail_url ? (
                       <img

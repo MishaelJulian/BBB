@@ -597,7 +597,7 @@ export function CriterionDetailModal({
       aria-modal="true"
       aria-label={book.title}
       tabIndex={-1}
-      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain outline-none"
+      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain outline-hidden"
     >
       {/* Dark Blurred Backdrop: Clicking puts the book back on the shelf */}
       <motion.div
@@ -768,7 +768,7 @@ export function CriterionDetailModal({
                       <Link
                         key={mem.id || idx}
                         href={`/members/${mem.id}`}
-                        className="group/mem flex flex-col items-center flex-shrink-0"
+                        className="group/mem flex flex-col items-center shrink-0"
                         title={mem.display_name}
                       >
                         <div className="w-8 h-8 rounded-full bg-neutral-800 text-amber-200 border border-white/30 flex items-center justify-center text-[10px] font-bold font-serif group-hover/mem:scale-110 transition-transform">

@@ -276,7 +276,7 @@ export default function MembersPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'books' | 'meetups' | 'name' | 'recent')}
-              className="h-10 rounded-md border border-border bg-paper px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-amber-700/50"
+              className="h-10 rounded-md border border-border bg-paper px-3 py-2 text-sm text-ink focus:outline-hidden focus:ring-2 focus:ring-amber-700/50"
             >
               <option value="books">Most Books Discussed</option>
               <option value="recent">Recently Active</option>
@@ -353,7 +353,7 @@ export default function MembersPage() {
                           {member.covers.map((cUrl, idx) => (
                             <div
                               key={idx}
-                              className="w-8 aspect-[2/3] rounded-[2px] shadow-xs overflow-hidden border border-border/70 shrink-0 bg-neutral-900 group-hover:scale-105 transition-transform"
+                              className="w-8 aspect-2/3 rounded-[2px] shadow-2xs overflow-hidden border border-border/70 shrink-0 bg-neutral-900 group-hover:scale-105 transition-transform"
                             >
                               <img
                                 src={cUrl}

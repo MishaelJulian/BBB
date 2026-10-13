@@ -156,7 +156,7 @@ export function BookSpine({
 
         {/* Front cover — cloth-bound texture */}
         <div
-          className="relative rounded-sm overflow-hidden"
+          className="relative rounded-xs overflow-hidden"
           style={{
             backgroundColor: colors.bg,
             boxShadow: isHovered
@@ -183,7 +183,7 @@ export function BookSpine({
 
           {/* Embossed border — inset frame */}
           <div
-            className="absolute inset-2 border border-white/[0.06] rounded-sm"
+            className="absolute inset-2 border border-white/6 rounded-xs"
             style={{
               boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.05), inset 0 -1px 1px rgba(0,0,0,0.1)',
             }}
@@ -218,7 +218,7 @@ export function BookSpine({
                 style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
               >
                 <span
-                  className="text-[8px] tracking-[0.1em] truncate"
+                  className="text-[8px] tracking-widest truncate"
                   style={{ color: 'rgba(245, 240, 232, 0.55)' }}
                 >
                   {author.split(' ').pop()}

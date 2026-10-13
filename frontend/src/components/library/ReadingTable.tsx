@@ -95,7 +95,7 @@ export function ReadingTable({
                 onMouseLeave={() => setIsHovered(false)}
               >
                 {/* Reading stand — brass bookends */}
-                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-44 h-2 bg-gradient-to-r from-amber-700/40 via-amber-600/50 to-amber-700/40 rounded-full" />
+                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-44 h-2 bg-linear-to-r from-amber-700/40 via-amber-600/50 to-amber-700/40 rounded-full" />
 
                 {/* Book cover — face out */}
                 <motion.div
@@ -104,7 +104,7 @@ export function ReadingTable({
                     rotateY: isHovered ? -3 : 0,
                   }}
                   transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="relative w-44 h-64 rounded-sm overflow-hidden"
+                  className="relative w-44 h-64 rounded-xs overflow-hidden"
                   style={{
                     backgroundColor: coverColor,
                     boxShadow: isHovered
@@ -123,7 +123,7 @@ export function ReadingTable({
                   />
 
                   {/* Embossed border */}
-                  <div className="absolute inset-3 border border-white/[0.06] rounded-sm" />
+                  <div className="absolute inset-3 border border-white/6 rounded-xs" />
 
                   {/* Cover content */}
                   <div className="relative h-full flex flex-col items-center justify-between p-5 text-center">
@@ -154,8 +154,8 @@ export function ReadingTable({
                   </div>
 
                   {/* Edge highlights */}
-                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-b from-white/10 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-t from-black/20 to-transparent" />
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-linear-to-b from-white/10 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-linear-to-t from-black/20 to-transparent" />
                 </motion.div>
               </Link>
             </div>
@@ -214,7 +214,7 @@ export function ReadingTable({
                         <Link
                           key={`reader-${member.id || idx}-${idx}`}
                           href={`/members/${member.id}`}
-                          className="px-2.5 py-0.5 rounded-full bg-amber-900/40 hover:bg-amber-800/60 border border-amber-600/40 hover:border-amber-400 text-amber-200 hover:text-amber-100 text-xs transition-all shadow-sm"
+                          className="px-2.5 py-0.5 rounded-full bg-amber-900/40 hover:bg-amber-800/60 border border-amber-600/40 hover:border-amber-400 text-amber-200 hover:text-amber-100 text-xs transition-all shadow-xs"
                         >
                           {member.display_name}
                         </Link>
@@ -282,8 +282,8 @@ export function ReadingTable({
         </div>
 
         {/* Table legs — subtle */}
-        <div className="absolute -bottom-3 left-8 w-2 h-3 bg-gradient-to-b from-amber-900/40 to-amber-950/20 rounded-b" />
-        <div className="absolute -bottom-3 right-8 w-2 h-3 bg-gradient-to-b from-amber-900/40 to-amber-950/20 rounded-b" />
+        <div className="absolute -bottom-3 left-8 w-2 h-3 bg-linear-to-b from-amber-900/40 to-amber-950/20 rounded-b" />
+        <div className="absolute -bottom-3 right-8 w-2 h-3 bg-linear-to-b from-amber-900/40 to-amber-950/20 rounded-b" />
       </div>
     </motion.div>
   )
