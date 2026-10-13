@@ -1,0 +1,12 @@
+# BBB Library
+
+> The digital archive of the Broke Bibliophiles of Bangalore book club: the meetups held, the books and other media discussed, and the readers who took part.
+
+## Pages
+- [Library Room](https://bbbdemo.vercel.app/library-room): browse the books the club has discussed
+- [Meetups](https://bbbdemo.vercel.app/meetups): every meetup, with its date, venue and what was discussed
+- [Members](https://bbbdemo.vercel.app/members): readers and their reading history (members who asked to be hidden are not listed)
+- [Privacy](https://bbbdemo.vercel.app/privacy): what data this site holds and why
+
+## Notes
+- This is a demo deployment. Data is read-only for visitors. Counts shown on the site come from the live database.

@@ -14,10 +14,20 @@ export const viewport: Viewport = {
   maximumScale: 5,
   userScalable: true,
   viewportFit: 'cover',
-  themeColor: '#070709',
+  themeColor: '#FAF8F5',
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bbbdemo.vercel.app'
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  openGraph: {
+    type: 'website',
+    siteName: 'BBB Library',
+    title: 'BBB Library — Broke Bibliophiles of Bangalore',
+    description: 'A living archive of conversations, books, and readers. Broke Bibliophiles of Bangalore, since 2017.',
+  },
+  twitter: { card: 'summary_large_image' },
   title: {
     default: 'BBB Library — Broke Bibliophiles of Bangalore',
     template: '%s | BBB Library',
