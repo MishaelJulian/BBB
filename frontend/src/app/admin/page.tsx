@@ -128,6 +128,8 @@ export default function AdminDatabasePage() {
   const apiFetch = React.useCallback(async (path: string, init?: RequestInit): Promise<Response> => {
     // Read-only demo: every write is refused here, before it leaves the browser.
     if ((init?.method ?? 'GET').toUpperCase() !== 'GET') {
+      // The caller's own catch shows a generic failure toast first; this one lands just after and replaces it.
+      setTimeout(() => showToast('Read-only demo: changes are switched off.'), 80)
       return new Response(JSON.stringify({ detail: 'This demo is read-only.' }), { status: 403, headers: { 'Content-Type': 'application/json' } })
     }
     const cleanPath = path.startsWith('/') ? path : `/${path}`
@@ -167,7 +169,7 @@ export default function AdminDatabasePage() {
     try {
       invalidateApiCache()
       await loadData()
-      showToast('⚡ Database synced with SQLite (all updates live in Library & List View)')
+      showToast('⚡ Database synced (all updates live in Library & List View)')
     } catch {
       showToast('Failed to sync database')
     } finally {
@@ -253,7 +255,7 @@ export default function AdminDatabasePage() {
         const data = await res.json().catch(() => ({}))
         throw new Error(data?.detail || data?.error?.message || 'Failed to create meetup')
       }
-      showToast(`✓ Created Meetup #${createNumber} in SQLite database`)
+      showToast(`✓ Created Meetup #${createNumber} in the database`)
       setIsCreateMeetupOpen(false)
       const newMeetupItem: MeetupAdminItem = {
         id: `meetup_${createNumber}`,
@@ -301,7 +303,7 @@ export default function AdminDatabasePage() {
         }),
       })
       if (!res.ok) throw new Error('Failed to update meetup')
-      showToast(`✓ Updated Meetup #${currentMeetup.number} in SQLite database`)
+      showToast(`✓ Updated Meetup #${currentMeetup.number} in the database`)
       setIsEditMeetupOpen(false)
       setMeetups((prev) =>
         prev.map((m) =>
@@ -572,7 +574,7 @@ export default function AdminDatabasePage() {
         }),
       })
       if (!res.ok) throw new Error('Failed to update item')
-      showToast(`✓ Updated "${editBookTitle}" in SQLite database`)
+      showToast(`✓ Updated "${editBookTitle}" in the database`)
       setEditingBook(null)
       setEditBookMeta(null)
       loadData(true)
@@ -809,7 +811,7 @@ export default function AdminDatabasePage() {
             <div className="h-6 w-px bg-neutral-200" />
             <div>
               <span className="text-neutral-400 uppercase text-[10px] block">Database Engine</span>
-              <span className="font-mono text-neutral-800">SQLite (WAL)</span>
+              <span className="font-mono text-neutral-800">Supabase Postgres</span>
             </div>
             <div className="h-6 w-px bg-neutral-200" />
             <div>
@@ -1384,7 +1386,7 @@ export default function AdminDatabasePage() {
               Edit Meetup #{currentMeetup?.number}
             </h3>
             <p className="text-xs text-neutral-500 mb-4">
-              Update date, venue, or title in the SQLite database.
+              Update date, venue, or title in the database.
             </p>
 
             <form onSubmit={handleSaveMeetup} className="space-y-4 text-xs">
