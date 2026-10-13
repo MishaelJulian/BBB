@@ -25,10 +25,13 @@ export const ok = (data: unknown, headers?: Record<string, string>) => NextRespo
 export const flag = (v: string | null) => v !== null && ['true', '1', 'yes', 'on'].includes(v.toLowerCase())
 
 // ponytail: fixed window, 300 reads/min per visitor, counted in Postgres (hit_rate_limit). Fails open: a limiter outage must not take the site down.
-async function limited(req: NextRequest): Promise<boolean> {
+type Kind = 'read' | 'write'
+const LIMITS: Record<Kind, number> = { read: 300, write: 30 } // per visitor per minute
+
+async function limited(req: NextRequest, kind: Kind): Promise<boolean> {
   const ip = req.headers.get('x-real-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
   try {
-    const [r] = await sql()<{ ok: boolean }[]>`select hit_rate_limit(${'read:' + ip}, 60, 300) as ok`
+    const [r] = await sql()<{ ok: boolean }[]>`select hit_rate_limit(${kind + ':' + ip}, 60, ${LIMITS[kind]}) as ok`
     return r ? !r.ok : false
   } catch (e) {
     console.error('rate limiter unavailable', e)
@@ -38,10 +41,10 @@ async function limited(req: NextRequest): Promise<boolean> {
 
 type Ctx<P> = { params: Promise<P> }
 
-/** Wraps a GET handler: rate limit, then run, with one error envelope for anything unexpected. */
-export function route<P = Record<string, never>>(handler: (req: NextRequest, ctx: Ctx<P>) => Promise<Response>) {
+/** Wraps a handler: rate limit (reads 300/min, writes 30/min per visitor), then run, with one error envelope for anything unexpected. */
+export function route<P = Record<string, never>>(handler: (req: NextRequest, ctx: Ctx<P>) => Promise<Response>, kind: Kind = 'read') {
   return async (req: NextRequest, ctx: Ctx<P>): Promise<Response> => {
-    if (await limited(req)) return apiError(429, 'Too many requests. Please wait a minute and try again.', { 'Retry-After': '60' })
+    if (await limited(req, kind)) return apiError(429, 'Too many requests. Please wait a minute and try again.', { 'Retry-After': '60' })
     try {
       return await handler(req, ctx)
     } catch (e) {

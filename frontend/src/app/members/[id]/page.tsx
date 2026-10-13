@@ -9,7 +9,7 @@ import { Divider } from '@/components/ui/Divider'
 import { LoadingState } from '@/components/shared/LoadingState'
 import { ErrorState } from '@/components/shared/ErrorState'
 import { fetchMember, deleteMember, getCachedData } from '@/lib/api'
-import { getSession } from '@/lib/auth'
+import { authFetch, getSession } from '@/lib/auth'
 import { formatDate, getBookColor } from '@/lib/utils'
 import type { MemberDetail } from '@/lib/api'
 
@@ -25,6 +25,19 @@ export default function MemberDossierPage() {
   const [loading, setLoading] = React.useState<boolean>(() => member === null)
   const [error, setError] = React.useState<string | null>(null)
   const [isAdmin, setIsAdmin] = React.useState(false)
+  const [invite, setInvite] = React.useState<{ code: string; expires_at: string } | { error: string } | null>(null)
+  const [inviteBusy, setInviteBusy] = React.useState(false)
+  const createInvite = async () => {
+    setInviteBusy(true)
+    setInvite(null)
+    try {
+      const res = await authFetch(`/api/admin/members/${member?.id}/invite`, { method: 'POST' })
+      const d = await res.json().catch(() => null)
+      setInvite(res.ok ? { code: d.code, expires_at: d.expires_at } : { error: d?.detail || 'Could not create a code.' })
+    } finally {
+      setInviteBusy(false)
+    }
+  }
   const [isUpdating, setIsUpdating] = React.useState(false)
   const [toast, setToast] = React.useState<string | null>(null)
 
@@ -178,6 +191,20 @@ export default function MemberDossierPage() {
                 </button>
               )}
             </div>
+
+            {isAdmin && (
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                <button type="button" onClick={createInvite} disabled={inviteBusy} className="px-3 py-1.5 text-xs font-mono tracking-wider rounded-lg border border-border bg-white hover:bg-paper-dark text-ink disabled:opacity-60">
+                  {inviteBusy ? 'Creating…' : 'Create invite code'}
+                </button>
+                {invite && 'code' in invite && (
+                  <p role="status" className="text-sm text-ink">
+                    Code: <strong className="font-mono text-base select-all">{invite.code}</strong> <span className="text-muted">(shown once; expires {new Date(invite.expires_at).toLocaleDateString()}). Send it to {member?.display_name}.</span>
+                  </p>
+                )}
+                {invite && 'error' in invite && <p role="alert" className="text-sm text-red-700">{invite.error}</p>}
+              </div>
+            )}
 
             <h1 className="font-display text-4xl sm:text-5xl font-bold text-ink mb-3">
               {member.display_name}

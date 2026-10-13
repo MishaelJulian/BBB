@@ -40,6 +40,15 @@ export async function accessToken(): Promise<string | null> {
   return data.session?.access_token ?? null
 }
 
+/** fetch() with the signed-in user's token attached, for the routes that check who is calling. */
+export async function authFetch(path: string, init?: RequestInit): Promise<Response> {
+  const token = await accessToken()
+  return fetch(path, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init?.headers as Record<string, string> | undefined), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  })
+}
+
 export async function signIn(email: string, password: string, captchaToken?: string): Promise<void> {
   const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } })
   if (error) throw new Error(error.message || 'Sign-in failed.')

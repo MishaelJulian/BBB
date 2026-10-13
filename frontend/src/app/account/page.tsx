@@ -4,6 +4,7 @@ import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { changePassword, getSession, signOut, type SessionUser } from '@/lib/auth'
+import { MemberLink } from '@/components/account/MemberLink'
 
 export default function AccountPage() {
   const router = useRouter()
@@ -42,8 +43,9 @@ export default function AccountPage() {
     <main className="mx-auto max-w-sm px-4 py-12 space-y-8">
       <div>
         <h1 className="font-display text-2xl text-ink">Your account</h1>
-        <p className="text-sm text-muted">{user?.email} · {user?.role ?? 'presenter'}</p>
+        <p className="text-sm text-muted">{user?.email} · {user?.role ?? 'member'}</p>
       </div>
+      <MemberLink />
       <form onSubmit={onChange} className="space-y-4">
         <h2 className="font-semibold text-ink">Change password</h2>
         <div className="space-y-1.5">
