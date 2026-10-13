@@ -5,21 +5,25 @@
  * It replaces the previous better-sqlite3 direct database access.
  */
 
+// On the server (SSR) there is no browser origin, so calls go to this site's own /api (route handlers on Vercel).
+const SITE =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'http://127.0.0.1:3000')
+
 export function getApiBase(): string {
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL
   }
-  // Browser: same origin. Next.js (locally) or Vercel (production) rewrites /api/* to the backend,
-  // so login cookies stay first-party and no backend port is exposed (D1, D35).
+  // Browser: same origin, so login cookies stay first-party.
   if (typeof window !== 'undefined') {
     return '/api'
   }
-  return process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:8000'
+  return `${SITE}/api`
 }
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' ? '/api' : 'http://127.0.0.1:8000')
+  (typeof window !== 'undefined' ? '/api' : `${SITE}/api`)
 
 // ============================================
 // Types
