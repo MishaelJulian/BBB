@@ -1,0 +1,4 @@
+
+# Vercel CLI link (project and org ids)
+.vercel
+.env*

@@ -29,8 +29,16 @@ function Eye({ off }: { off: boolean }) {
 function LoginForm() {
   const params = useSearchParams()
   const next = params.get('next')
-  // Only same-site paths, so a crafted ?next= cannot send people elsewhere.
-  const target = next && next.startsWith('/') && !next.startsWith('//') ? next : '/account'
+  // Same-origin targets only. A prefix check is not enough: browsers read "/\\evil.com" as "//evil.com", so parse it and compare origins.
+  const target = React.useMemo(() => {
+    if (!next) return '/account'
+    try {
+      const u = new URL(next, window.location.origin)
+      return u.origin === window.location.origin ? u.pathname + u.search + u.hash : '/account'
+    } catch {
+      return '/account'
+    }
+  }, [next])
   const [mode, setMode] = React.useState<'in' | 'up'>('in')
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
