@@ -107,10 +107,10 @@ const ClosetSpine = React.memo(function ClosetSpine({
     <div
       data-book-id={book.id}
       className={`relative select-none transition-all duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
-        rowIsFull ? 'flex-1 min-w-[18px] max-w-[42px]' : 'shrink-0'
+        rowIsFull ? 'flex-1 min-w-[24px] max-w-[42px]' : 'shrink-0'
       }`}
       style={{
-        width: rowIsFull ? undefined : spineWidth,
+        width: rowIsFull ? undefined : Math.max(24, spineWidth),
         height: 220,
         display: 'flex',
         alignItems: 'flex-end',
@@ -146,7 +146,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
       // Keyboard and screen-reader access, same as a click; focus shows the hover preview.
       role="button"
       tabIndex={0}
-      aria-label={`${book.title}${book.author_name ? `, by ${book.author_name}` : ''}`}
+      aria-label={`${spineNo} ${book.title}${book.author_name ? ` ${book.author_name}` : ''}`}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -1670,7 +1670,7 @@ export function CriterionBookCloset() {
                 <button
                   onClick={() => switchView('closet')}
                   className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    viewMode === 'closet' ? 'bg-amber-600 text-white' : 'opacity-60'
+                    viewMode === 'closet' ? 'bg-amber-700 text-white' : 'opacity-60'
                   }`}
                 >
                   Shelves
@@ -1955,6 +1955,7 @@ export function CriterionBookCloset() {
             {totalSections > 1 && (
               <div className="relative border-l border-white/20 pl-1.5 sm:pl-2">
                 <select
+                  aria-label="Jump to shelf section"
                   value={safeSection}
                   onChange={(e) => setShelfSection(Number(e.target.value))}
                   className="bg-transparent text-amber-300 font-mono text-[10px] sm:text-[11px] appearance-none cursor-pointer focus:outline-none pr-3 sm:pr-4"
@@ -2028,7 +2029,7 @@ export function CriterionBookCloset() {
               <button
                 type="button"
                 onClick={() => loadBooks()}
-                className="px-4 py-2 rounded-lg bg-amber-700 hover:bg-amber-600 text-white text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                className="px-4 py-2 rounded-lg bg-amber-700 hover:bg-amber-700 text-white text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
               >
                 Try again
               </button>
@@ -2351,11 +2352,12 @@ export function CriterionBookCloset() {
               {/* Meetup Dropdown */}
               <div className="relative">
                 <select
+                  aria-label="Filter by meetup"
                   value={selectedMeetup ?? ''}
                   onChange={(e) => setSelectedMeetup(e.target.value ? Number(e.target.value) : null)}
                   className={`pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-none transition-colors shadow-sm ${
                     selectedMeetup !== null
-                      ? 'bg-amber-600 text-white border-amber-600'
+                      ? 'bg-amber-700 text-white border-amber-600'
                       : 'bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400'
                   }`}
                 >
@@ -2374,11 +2376,12 @@ export function CriterionBookCloset() {
               {/* Discussions Filter Dropdown */}
               <div className="relative">
                 <select
+                  aria-label="Filter by number of discussions"
                   value={discussionFilter}
                   onChange={(e) => setDiscussionFilter(e.target.value as any)}
                   className={`pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-none transition-colors shadow-sm ${
                     discussionFilter !== 'all'
-                      ? 'bg-amber-600 text-white border-amber-600'
+                      ? 'bg-amber-700 text-white border-amber-600'
                       : 'bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400'
                   }`}
                 >
@@ -2395,6 +2398,7 @@ export function CriterionBookCloset() {
               {/* Sort Dropdown (Spine #, Latest, Title, Random) */}
               <div className="relative">
                 <select
+                  aria-label="Sort books"
                   value={sortBy}
                   onChange={(e) => {
                     setSortBy(e.target.value as any)
@@ -2450,7 +2454,7 @@ export function CriterionBookCloset() {
                 onClick={() => setDiscussionFilter(discussionFilter === 'popular' ? 'all' : 'popular')}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   discussionFilter === 'popular'
-                    ? 'bg-amber-600 text-white shadow-sm'
+                    ? 'bg-amber-700 text-white shadow-sm'
                     : 'bg-white border border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
                 }`}
               >
@@ -2676,6 +2680,7 @@ export function CriterionBookCloset() {
                   </div>
                   <div className="relative">
                     <select
+                      aria-label="Filter by meetup"
                       value={selectedMeetup ?? ''}
                       onChange={(e) => setSelectedMeetup(e.target.value ? Number(e.target.value) : null)}
                       className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
@@ -2722,7 +2727,7 @@ export function CriterionBookCloset() {
                         onClick={() => setDiscussionFilter(f.id as any)}
                         className={`w-full text-left px-3 py-2 rounded-xl text-xs font-serif transition-colors ${
                           discussionFilter === f.id
-                            ? 'bg-amber-600 text-white font-bold'
+                            ? 'bg-amber-700 text-white font-bold'
                             : 'bg-white/5 hover:bg-white/10 text-white/80'
                         }`}
                       >
@@ -2754,7 +2759,7 @@ export function CriterionBookCloset() {
                         }}
                         className={`w-full text-left px-3 py-2 rounded-xl text-xs font-serif transition-colors ${
                           sortBy === s.id
-                            ? 'bg-amber-600 text-white font-bold'
+                            ? 'bg-amber-700 text-white font-bold'
                             : 'bg-white/5 hover:bg-white/10 text-white/80'
                         }`}
                       >
