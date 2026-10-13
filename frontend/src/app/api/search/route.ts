@@ -4,7 +4,6 @@ import { apiError, ok, publicCache, route } from '@/lib/http'
 import { BookRow, bookSelect, booksToDicts, MeetupRow, meetupSelect, meetupsToDicts } from '@/lib/archive'
 
 export const dynamic = 'force-dynamic'
-export const preferredRegion = 'bom1' // next to the Supabase project (ap-south-1)
 
 export const GET = route(async (req: NextRequest) => {
   const q = req.nextUrl.searchParams.get('q')

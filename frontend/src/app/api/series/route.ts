@@ -2,7 +2,6 @@ import { sql } from '@/lib/db'
 import { ok, publicCache, route } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
-export const preferredRegion = 'bom1' // next to the Supabase project (ap-south-1)
 
 export const GET = route(async () => {
   const rows = await sql()`

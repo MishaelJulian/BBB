@@ -2,7 +2,6 @@ import { sql } from '@/lib/db'
 import { apiError, ok, publicCache, route } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
-export const preferredRegion = 'bom1' // next to the Supabase project (ap-south-1)
 
 interface MeetupRef { meetup_number: number | null; date: string | null; venue: string | null }
 

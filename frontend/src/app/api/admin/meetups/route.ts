@@ -4,7 +4,6 @@ import { checkAdmin } from '@/lib/admin'
 import { apiError, ok, route } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
-export const preferredRegion = 'bom1' // next to the Supabase project (ap-south-1)
 
 const GENERAL = /general/i
 const NO_STORE = { 'Cache-Control': 'private, no-store' }

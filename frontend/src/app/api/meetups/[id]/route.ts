@@ -3,7 +3,6 @@ import { MeetupRow, meetupSelect, meetupsToDicts } from '@/lib/archive'
 import { apiError, ok, publicCache, route } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
-export const preferredRegion = 'bom1' // next to the Supabase project (ap-south-1)
 
 // By meetup number ("68" or "#68") first, then by id.
 export const GET = route<{ id: string }>(async (_req, { params }) => {

@@ -3,7 +3,6 @@ import { sql } from '@/lib/db'
 import { ok, publicCache, route } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
-export const preferredRegion = 'bom1' // next to the Supabase project (ap-south-1)
 
 // Default taken: include_hidden is ignored here. The Python API honoured it for anyone; it returns once an admin role exists.
 export const GET = route(async (req: NextRequest) => {

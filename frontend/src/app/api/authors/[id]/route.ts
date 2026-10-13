@@ -3,7 +3,6 @@ import { BookRow, bookSelect, booksToDicts } from '@/lib/archive'
 import { apiError, ok, publicCache, route } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
-export const preferredRegion = 'bom1' // next to the Supabase project (ap-south-1)
 
 // By id, else by full name (case-insensitive).
 export const GET = route<{ id: string }>(async (_req, { params }) => {

@@ -4,7 +4,6 @@ import { MeetupRow, meetupSelect, meetupsToDicts } from '@/lib/archive'
 import { ok, publicCache, route } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
-export const preferredRegion = 'bom1' // next to the Supabase project (ap-south-1)
 
 export const GET = route(async (req: NextRequest) => {
   const search = req.nextUrl.searchParams.get('search')

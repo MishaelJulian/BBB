@@ -2,7 +2,6 @@ import { sql } from '@/lib/db'
 import { apiError, ok, route } from '@/lib/http'
 
 export const dynamic = 'force-dynamic'
-export const preferredRegion = 'bom1' // next to the Supabase project (ap-south-1)
 
 // A public GET never fetches from the web or writes (S2): missing text falls back to the archive line.
 export const GET = route<{ id: string }>(async (_req, { params }) => {
