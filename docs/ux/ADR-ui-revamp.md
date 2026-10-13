@@ -1,6 +1,6 @@
 # ADR: BBB UI revamp (draft, 2026-10-13)
 
-Status: **draft**. Nothing here is decided until the founder picks the look (Phase 0b) and approves. No repo ADR template exists (`docs/architecture/imperative_decisions.md` §6 holds the decision log); this follows the section list in the founder's `how to really think about UIUX as well.txt`, trimmed to what BBB needs. Companion docs: `inspiration-atlas.md`, `anti-patterns.md`. Labels: **fact** (code/source), **inference**, **rec**.
+Status: **draft**, with one decision recorded: **no cards and no glass, to the maximum (section 5)**, set by the founder on 2026-10-13. The rest is not decided until the founder approves. No repo ADR template exists (`docs/architecture/imperative_decisions.md` §6 holds the decision log); this follows the section list in the founder's `how to really think about UIUX as well.txt`, trimmed to what BBB needs. Companion docs: `inspiration-atlas.md`, `anti-patterns.md`. Labels: **fact** (code/source), **inference**, **rec**.
 
 ## 1. Context
 BBB Library is a public archive of a book club's meetups, books and members; the demo (bbbdemo.vercel.app) lets members claim their record with an admin code and edit their own entries. Fact: the UI works but was grown page by page: tokens exist (one brown accent, paper/ink) but pages bypass them (see `anti-patterns.md` #3, #18, #20), emoji are used as icons, two header buttons are dead, and the Library Room (closet) is the heaviest screen (360 3D spines per section). This ADR sets the design rules for a revamp done in phases (A checklist gaps, B foundation, C closet Flow D).
@@ -17,11 +17,19 @@ Page types: Archetype A editorial (read-heavy: home, meetups, books, authors, me
 ## 4. Information architecture (rec)
 Top level: Library Room, Meetups, Members, (Books list), plus Search (Ctrl/Cmd+K palette, now also reachable from the header buttons). Footer: Privacy, Terms, FAQ, Contact. Admin link shown only to signed-in admins. Hick/Miller: at most about 7 items per group; filters grouped. Breadcrumbs on detail pages (meetup, book, author, member).
 
-## 5. Component philosophy and look (rec; decided only after Phase 0b)
-Two candidate directions are tested side by side; the founder picks:
-- **A, editorial:** no cards; hierarchy by type size, weight and tint; hairline dividers; status as coloured text; hard-offset shadow on buttons only; one accent. Matches the founder's RTIH notes and the colour reasoning (no gradients, no glass, no chip-per-card).
-- **B, current look cleaned:** keep cards and rounding, but one token set, no emoji, no gradients outside the closet.
-**Tension to settle:** RTIH `design.md` uses milk-glass cards, blur and pill status badges (a different product, violet palette), which contradicts RTIH's own no-cards/no-glass notes. BBB takes `design.md` as a format example for tokens only, not as a look.
+## 5. Component philosophy and look (DECIDED by the founder, 2026-10-13)
+Founder instruction, verbatim: "let's follow my strict notes of avoiding cards and glass to a maximum; only mannually aprooved breaking will work."
+**The rule (editorial direction):** no cards (no floating shadowed boxes, never card-in-card); hierarchy by type size, weight and tint; hairline dividers; status as coloured text, never pill backgrounds; hard-offset shadow on buttons only; no glass or backdrop blur; no gradients; one accent. Matches the founder's RTIH notes and colour reasoning. The "current look cleaned" alternative is dropped.
+**RTIH `design.md`** (milk-glass cards, blur, pill status) contradicted these notes. Resolution: BBB uses it only as a format example for tokens (type scale, spacing, motion durations), never as a look.
+**Exceptions:** nothing breaks the rule unless the founder approves that specific item. Anything found in the code that breaks it (see `anti-patterns.md`: gradients, shadows, blur, pills, over-rounding) is treated as a violation to remove, not an exception, until approved. Approved exceptions are listed here with the date; Claude never adds one on its own.
+
+| Item | File | Why it might be needed | Approved? | Date |
+|---|---|---|---|---|
+| Modal scrim (`backdrop-blur`) | `admin/page.tsx:733,1245,1377,1455`, `members/page.tsx:166` | Dims the page behind dialogs | **No, pending question** | |
+| Closet wood/shadow gradients | `Shelf.tsx:66,77,146,166`, `CriterionBookCloset.tsx` | The Library Room's physical shelf look | **No, pending question** | |
+| Drop shadows on book spines/covers | `tailwind.config.ts` (`shadow-book`) | Makes spines read as objects | **No, pending question** | |
+
+Phase 0b is now a single editorial version of `/meetups/99` for the founder to check, not a pick between two looks.
 
 ## 6. Interaction language
 Hover on rows: background tint and a small arrow nudge (from the RTIH task-12 note: "hover richness"), no full-page transitions. Primary action = one per view (open book / download PDF / save). Every write shows a text outcome (Feedback law). Affordances: links underlined or clearly coloured; buttons have a visible hard edge; icon-only buttons carry `aria-label`.
