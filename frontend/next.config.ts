@@ -30,14 +30,16 @@ const nextConfig: NextConfig = {
     const isDev = process.env.NODE_ENV !== 'production'
     const csp = [
       "default-src 'self'",
-      // Next.js inlines its bootstrap scripts; no third-party scripts are allowed (D29).
+      // Next.js inlines its bootstrap scripts; third-party scripts are allowed only where noted (D29).
       // Development mode (Fast Refresh / sourcemaps) requires 'unsafe-eval'.
-      isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self' 'unsafe-inline'",
+      // Cloudflare Turnstile (bot check on sign-in and sign-up) is the only third-party script, plus its challenge frame.
+      isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com" : "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline'",
       // Cover images come from these hosts (see app/services/pdf_generator.py COVER_HOSTS, DOMAINS.txt).
       "img-src 'self' data: blob: https://*.gr-assets.com https://*.mzstatic.com https://m.media-amazon.com https://duckduckgo.com https://static.tvmaze.com https://i.ytimg.com https://i.scdn.co",
       "font-src 'self' data:",
-      "connect-src 'self'",
+      `connect-src 'self' https://challenges.cloudflare.com ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''}`.trim(),
+      'frame-src https://challenges.cloudflare.com',
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
