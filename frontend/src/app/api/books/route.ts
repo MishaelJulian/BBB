@@ -29,9 +29,9 @@ export const GET = route(async (req: NextRequest) => {
   if (search) where = db`${where} and (b.title ilike ${'%' + search + '%'} or a.full_name ilike ${'%' + search + '%'})`
   const dir = desc ? db`desc` : db`asc`
   const order =
-    sortBy === 'discussionCount' ? db`(select count(*) from discussions d2 where d2.canonical_book_id = b.id) ${dir}, b.title collate "C", b.id`
-    : sortBy === 'firstDiscussedYear' ? db`b.created_at ${dir}, b.id`
-    : db`b.title collate "C" ${dir}, b.id`
+    sortBy === 'discussionCount' ? db`(select count(*) from discussions d2 where d2.canonical_book_id = b.id) ${dir}, b.ctid`
+    : sortBy === 'firstDiscussedYear' ? db`b.created_at ${dir}, b.ctid`
+    : db`b.title collate "C" ${dir}, b.ctid`
   const rows = await db<BookRow[]>`${bookSelect()} where ${where} order by ${order} limit ${limit} offset ${offset}`
   return ok(await booksToDicts(rows), !search && !author && !year ? publicCache() : undefined)
 })

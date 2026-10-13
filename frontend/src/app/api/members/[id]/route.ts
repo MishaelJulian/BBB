@@ -4,7 +4,7 @@ import { apiError, ok, publicCache, route } from '@/lib/http'
 export const dynamic = 'force-dynamic'
 export const preferredRegion = 'bom1' // next to the Supabase project (ap-south-1)
 
-interface MeetupRef { number: number | null; date: string | null; venue: string | null }
+interface MeetupRef { meetup_number: number | null; date: string | null; venue: string | null }
 
 // By id, else by display name (case-insensitive). Default taken: a hidden member is a 404 for the public.
 export const GET = route<{ id: string }>(async (_req, { params }) => {
@@ -16,7 +16,7 @@ export const GET = route<{ id: string }>(async (_req, { params }) => {
   if (!member || member.is_hidden) return apiError(404, 'Member not found in archive')
 
   const discs = await db<{ meetup_id: string | null; book_id: string | null }[]>`
-    select meetup_id, canonical_book_id as book_id from discussions where member_id = ${member.id} order by created_at, id`
+    select meetup_id, canonical_book_id as book_id from discussions where member_id = ${member.id} order by ctid`
   const meetupIds = [...new Set(discs.map((d) => d.meetup_id).filter((v): v is string => !!v))]
   const bookIds = [...new Set(discs.map((d) => d.book_id).filter((v): v is string => !!v))]
   const meetupRows = meetupIds.length
@@ -38,21 +38,21 @@ export const GET = route<{ id: string }>(async (_req, { params }) => {
     const b = d.book_id ? bookById.get(d.book_id) : undefined
     if (b) {
       if (!booksMap.has(b.id)) booksMap.set(b.id, { id: b.id, title: b.title, author_id: b.author_id, author_name: b.author_name, cover_url: b.cover_url, thumbnail_url: b.thumbnail_url, meetups: [] })
-      if (mt) booksMap.get(b.id)!.meetups.push({ number: mt.number, date: mt.date, venue: mt.venue })
+      if (mt) booksMap.get(b.id)!.meetups.push({ meetup_number: mt.number, date: mt.date, venue: mt.venue })
     }
   }
   const text = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
-  const byRecent = (a: MeetupRef, b: MeetupRef) => (b.number ?? 0) - (a.number ?? 0) || text(b.date ?? '', a.date ?? '')
+  const byRecent = (a: MeetupRef, b: MeetupRef) => (b.meetup_number ?? 0) - (a.meetup_number ?? 0) || text(b.date ?? '', a.date ?? '')
   const meetupList = [...meetupsMap.values()].sort((a, b) => (b.number || 0) - (a.number || 0))
   const dates = meetupList.map((m) => m.date).filter((d): d is string => !!d).sort()
 
   const books = [...booksMap.values()]
   for (const b of books) {
     const seen = new Set<string>()
-    b.meetups = b.meetups.filter((m) => { const k = `${m.number}|${m.date}`; return seen.has(k) ? false : (seen.add(k), true) }).sort(byRecent)
+    b.meetups = b.meetups.filter((m) => { const k = `${m.meetup_number}|${m.date}`; return seen.has(k) ? false : (seen.add(k), true) }).sort(byRecent)
   }
   const key = (b: { meetups: MeetupRef[] }) => ({
-    n: Math.max(0, ...b.meetups.map((m) => m.number).filter((n): n is number => n !== null)),
+    n: Math.max(0, ...b.meetups.map((m) => m.meetup_number).filter((n): n is number => n !== null)),
     d: b.meetups.map((m) => m.date).filter((d): d is string => !!d).sort().pop() ?? '',
   })
   books.sort((a, b) => { const ka = key(a), kb = key(b); return kb.n - ka.n || text(kb.d, ka.d) })

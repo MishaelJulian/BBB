@@ -13,7 +13,7 @@ export const GET = route<{ id: string }>(async (_req, { params }) => {
   let [author] = await db<A[]>`select id, full_name, country, description from authors where id = ${id}`
   if (!author) [author] = await db<A[]>`select id, full_name, country, description from authors where full_name ilike ${id} limit 1`
   if (!author) return apiError(404, 'Author not found in archive')
-  const books = await booksToDicts(await db<BookRow[]>`${bookSelect()} where b.author_id = ${author.id} order by b.title collate "C", b.id`)
+  const books = await booksToDicts(await db<BookRow[]>`${bookSelect()} where b.author_id = ${author.id} order by b.ctid`)
   const total = books.reduce((n, b) => n + b.discussion_count, 0)
   books.sort((a, b) => b.discussion_count - a.discussion_count)
   return ok({ id: author.id, full_name: author.full_name, country: author.country, description: author.description, book_count: books.length, discussion_count: total, books }, publicCache())

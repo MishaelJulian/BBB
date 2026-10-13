@@ -15,6 +15,8 @@ function buildId(): string {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Load the Postgres driver as a normal Node package; bundling it picks the Cloudflare-Workers build and connections never complete.
+  serverExternalPackages: ['postgres'],
   env: {
     NEXT_PUBLIC_APP_VERSION: pkg.version,
     NEXT_PUBLIC_BUILD_ID: buildId(),

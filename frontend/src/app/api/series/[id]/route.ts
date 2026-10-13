@@ -18,6 +18,6 @@ export const GET = route<{ id: string }>(async (_req, { params }) => {
   const meetups = await db<{ number: number; date: string | null; member: string | null }[]>`
     select mt.meetup_number as number, mt.date::text as date, case when m.is_hidden then null else m.display_name end as member
     from discussions d join meetups mt on mt.id = d.meetup_id left join members m on m.id = d.member_id
-    where d.series_id = ${id} order by mt.meetup_number, d.created_at, d.id`
+    where d.series_id = ${id} order by mt.meetup_number, d.ctid`
   return ok({ ...ser, volumes, meetups }, publicCache())
 })

@@ -13,14 +13,14 @@ export const GET = route(async (req: NextRequest) => {
   const members = await db<{ id: string; display_name: string }[]>`
     select id, display_name from members
     where is_hidden is not true ${search ? db`and display_name ilike ${'%' + search + '%'}` : db``}
-    order by created_at, id`
+    order by ctid`
   if (members.length === 0) return ok([])
 
   const discs = await db<{ member_id: string; book_id: string | null; meetup_id: string | null; date: string | null }[]>`
     select d.member_id, d.canonical_book_id as book_id, d.meetup_id, mt.date::text as date
     from discussions d left join meetups mt on mt.id = d.meetup_id
     where d.member_id in ${db(members.map((m) => m.id))}
-    order by coalesce(mt.meetup_number, 0) desc, coalesce(mt.date::text, '') desc, d.created_at, d.id`
+    order by coalesce(mt.meetup_number, 0) desc, coalesce(mt.date::text, '') desc, d.ctid`
 
   const memberBooks = new Map<string, string[]>(), memberMeetups = new Map<string, Set<string>>()
   const needed = new Set<string>(), meetupDate = new Map<string, string>()

@@ -1,4 +1,5 @@
 // Shared builders ported from app/api/main.py (batch_books_to_dict, meetups_to_dicts, _meetup_dict).
+// ponytail: discussions are ordered by ctid = the original SQLite row order (tables were bulk-loaded in order and are never updated); add an explicit seq column if rows are ever updated.
 // Default taken: members flagged is_hidden never appear in any public payload (the Python API leaked them in /books and /meetups).
 import { sql } from './db'
 
@@ -40,7 +41,7 @@ export async function booksToDicts(books: BookRow[]) {
     left join meetups mt on mt.id = d.meetup_id
     left join venues v on v.id = mt.venue_id
     where d.canonical_book_id in ${db(ids)}
-    order by d.created_at, d.id`
+    order by d.ctid`
 
   const proper = new Map<string, number>(), general = new Map<string, number>()
   const members = new Map<string, { id: string; display_name: string }[]>()
@@ -101,7 +102,7 @@ export async function meetupsToDicts(meetups: MeetupRow[]) {
   const venues = venueIds.length ? await db<{ id: string; name: string }[]>`select id, name from venues where id in ${db(venueIds)}` : []
   const discs = await db<{ meetup_id: string; canonical_book_id: string | null; series_id: string | null; member_id: string | null; topic: string | null; notes: string | null }[]>`
     select meetup_id, canonical_book_id, series_id, member_id, topic, notes from discussions
-    where meetup_id in ${db(meetups.map((m) => m.id))} order by created_at, id`
+    where meetup_id in ${db(meetups.map((m) => m.id))} order by ctid`
   const bookIds = [...new Set(discs.map((d) => d.canonical_book_id).filter((v): v is string => !!v))]
   const seriesIds = [...new Set(discs.map((d) => d.series_id).filter((v): v is string => !!v))]
   const memberIds = [...new Set(discs.map((d) => d.member_id).filter((v): v is string => !!v))]
