@@ -88,7 +88,9 @@ export async function addBookToMeetup(tx: Tx, who: Caller, number: number, b: Bo
   if (!title) throw new HttpError(422, 'title is required.')
 
   const authorName = trimmed(b.author)
-  const aid = authorName ? await authorId(tx, authorName) : null
+  // A member's own entry must not change shared catalog data: an existing book is left exactly as it is, and an author row is only made for a NEW book.
+  const memberOwned = Boolean(opts?.forceMemberId)
+  let aid: string | null = null
   const { code: mType, legacyTangent } = await mediaOf(tx, str(b.media_type))
   const isTangent = Boolean(b.is_tangent) || legacyTangent
   const ext = httpOnly(b.url, 'url') ?? null
@@ -100,6 +102,7 @@ export async function addBookToMeetup(tx: Tx, who: Caller, number: number, b: Bo
   // Match the importer's normalized form or the title as typed, so a title with curly quotes or punctuation does not become a second book.
   let [book] = await tx<BookRow[]>`select id, title from canonical_books where normalized_title = ${title.toLowerCase()} or lower(title) = ${title.toLowerCase()} order by (normalized_title = ${title.toLowerCase()}) desc limit 1`
   if (!book) {
+    aid = authorName ? await authorId(tx, authorName) : null
     ;[book] = await tx<BookRow[]>`
       insert into canonical_books (title, normalized_title, author_id, cover_url, thumbnail_url, publication_year, rating, goodreads_id, description, media_type, external_url)
       values (${title}, ${title.toLowerCase()}, ${aid}, ${cover}, ${thumb ?? cover}, ${year}::int, ${rating}::float8, ${goodreads}, ${description}, ${mType}, ${ext})
@@ -109,8 +112,10 @@ export async function addBookToMeetup(tx: Tx, who: Caller, number: number, b: Bo
     if (already.length && !opts?.joinExisting) {
       throw new HttpError(400, `Item '${book.title}' is already in Meetup #${number}'s list. Edit the existing item to update details or add discussants.`)
     }
-    // Fill in what the archive is missing; never overwrite what it has.
-    await tx`
+    // Admins only: fill in what the archive is missing; never overwrite what it has. Members' entries skip this entirely.
+    if (!memberOwned) {
+      aid = authorName ? await authorId(tx, authorName) : null
+      await tx`
       update canonical_books set
         thumbnail_url = case when coalesce(cover_url, '') = '' and ${cover}::text is not null then coalesce(${thumb}::text, ${cover}::text) else thumbnail_url end,
         cover_url = coalesce(nullif(cover_url, ''), ${cover}::text),
@@ -123,6 +128,7 @@ export async function addBookToMeetup(tx: Tx, who: Caller, number: number, b: Bo
         external_url = coalesce(nullif(external_url, ''), ${ext}::text),
         updated_at = now()
       where id = ${book.id}`
+    }
   }
 
   const isGen = Boolean(b.is_general_discussion) || mType !== 'book'
