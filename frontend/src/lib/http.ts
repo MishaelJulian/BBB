@@ -9,8 +9,8 @@ export function apiError(status: number, message: string, headers?: Record<strin
   return NextResponse.json({ detail: message, error: { type, code: type, message } }, { status, headers })
 }
 
-/** Edge-cache headers for public reads (same values as set_public_cache in the Python API). */
-export function publicCache(maxAge = 60, sMaxAge = 86400, swr = 604800): Record<string, string> {
+/** Edge-cache headers for public reads. 60 s at the CDN: writes are live, so a day-long cache would hide edits (nothing purges it). */
+export function publicCache(maxAge = 60, sMaxAge = 60, swr = 600): Record<string, string> {
   const cdn = `public, s-maxage=${sMaxAge}, stale-while-revalidate=${swr}`
   return {
     'Cache-Control': `public, max-age=${maxAge}, s-maxage=${sMaxAge}, stale-while-revalidate=${swr}`,
@@ -48,12 +48,25 @@ export class HttpError extends Error {
 
 type Ctx<P> = { params: Promise<P> }
 
+/** Postgres statement timeout (57014) or a dropped pooler connection: worth one retry on a read. */
+const transientDb = (e: unknown) => {
+  const x = e as { code?: string; message?: string } | null
+  return x?.code === '57014' || /CONNECT_TIMEOUT|CONNECTION_(CLOSED|ENDED|DESTROYED)|ECONNRESET/.test(`${x?.code ?? ''} ${x?.message ?? ''}`)
+}
+
 /** Wraps a handler: rate limit (reads 300/min, writes 30/min per visitor), then run, with one error envelope for anything unexpected. */
 export function route<P = Record<string, never>>(handler: (req: NextRequest, ctx: Ctx<P>) => Promise<Response>, kind: Kind = 'read') {
   return async (req: NextRequest, ctx: Ctx<P>): Promise<Response> => {
     if (await limited(req, kind)) return apiError(429, 'Too many requests. Please wait a minute and try again.', { 'Retry-After': '60' })
     try {
-      return await handler(req, ctx)
+      try {
+        return await handler(req, ctx)
+      } catch (e) {
+        // One retry for reads only (a write may or may not have committed): the pooler can drop or instantly time out a fresh connection.
+        if (kind !== 'read' || !transientDb(e)) throw e
+        await new Promise((r) => setTimeout(r, 150))
+        return await handler(req, ctx)
+      }
     } catch (e) {
       if (e instanceof HttpError) return apiError(e.status, e.message, { 'Cache-Control': 'private, no-store' })
       console.error(`${req.method} ${req.nextUrl.pathname} failed`, e)
