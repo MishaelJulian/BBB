@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { sql } from '@/lib/db'
 import { checkAdmin } from '@/lib/admin'
 import { apiError, ok, route } from '@/lib/http'
+import { adminRoute } from '@/lib/handlers'
+import { createMeetup } from '@/lib/ops'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,3 +63,6 @@ export const GET = route(async (req: NextRequest) => {
     NO_STORE,
   )
 })
+
+// Create a meetup (the next number unless one is given).
+export const POST = adminRoute((tx, who, _p, body) => createMeetup(tx, who, body))

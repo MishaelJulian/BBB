@@ -4,6 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { Input } from '@/components/ui/Input'
 import { authFetch } from '@/lib/auth'
+import { MyEntries } from './MyEntries'
 
 interface Member { id: string; display_name: string; bio: string | null }
 
@@ -87,6 +88,7 @@ export function MemberLink() {
         </form>
       )}
       {status && <p role={status.ok ? 'status' : 'alert'} className={status.ok ? 'text-sm text-green-800' : 'text-sm text-red-700'}>{status.text}</p>}
+      {member && <MyEntries />}
     </section>
   )
 }

@@ -126,12 +126,6 @@ export default function AdminDatabasePage() {
 
   // Same-origin API calls (Next.js / Vercel rewrite /api/* to the backend) so the login cookie is sent.
   const apiFetch = React.useCallback(async (path: string, init?: RequestInit): Promise<Response> => {
-    // Read-only demo: every write is refused here, before it leaves the browser.
-    if ((init?.method ?? 'GET').toUpperCase() !== 'GET') {
-      // The caller's own catch shows a generic failure toast first; this one lands just after and replaces it.
-      setTimeout(() => showToast('Read-only demo: changes are switched off.'), 80)
-      return new Response(JSON.stringify({ detail: 'This demo is read-only.' }), { status: 403, headers: { 'Content-Type': 'application/json' } })
-    }
     const cleanPath = path.startsWith('/') ? path : `/${path}`
     const token = await accessToken()
     const res = await fetch(cleanPath.startsWith('/api') ? cleanPath : `/api${cleanPath}`, {
@@ -732,7 +726,7 @@ export default function AdminDatabasePage() {
       )}
 
       <p role="status" className="bg-amber-100 text-amber-900 text-xs text-center px-4 py-2 border-b border-amber-200">
-        Read-only demo: you can browse everything here, but saving, uploading and deleting are switched off.
+        Demo admin: your edits are saved to the live demo database and logged. Photo upload, PDF generation and Goodreads lookups are not available here.
       </p>
 
       {/* Top Navbar */}

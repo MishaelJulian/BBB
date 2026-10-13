@@ -39,6 +39,13 @@ async function limited(req: NextRequest, kind: Kind): Promise<boolean> {
   }
 }
 
+/** Throw from inside a handler or operation to answer with a specific status and message. */
+export class HttpError extends Error {
+  constructor(public status: number, message: string) {
+    super(message)
+  }
+}
+
 type Ctx<P> = { params: Promise<P> }
 
 /** Wraps a handler: rate limit (reads 300/min, writes 30/min per visitor), then run, with one error envelope for anything unexpected. */
@@ -48,6 +55,7 @@ export function route<P = Record<string, never>>(handler: (req: NextRequest, ctx
     try {
       return await handler(req, ctx)
     } catch (e) {
+      if (e instanceof HttpError) return apiError(e.status, e.message, { 'Cache-Control': 'private, no-store' })
       console.error(`${req.method} ${req.nextUrl.pathname} failed`, e)
       return apiError(500, 'Something went wrong on the server.')
     }

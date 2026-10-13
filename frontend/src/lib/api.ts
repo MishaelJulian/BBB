@@ -25,6 +25,8 @@ export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   (typeof window !== 'undefined' ? '/api' : `${SITE}/api`)
 
+import { authFetch } from './auth'
+
 // ============================================
 // Types
 // ============================================
@@ -593,10 +595,7 @@ export async function fetchMembers(options?: {
  * Temporarily remove a member from the database (Admin only)
  */
 export async function deleteMember(memberId: string): Promise<{ success: boolean; id: string; display_name: string; message: string }> {
-  const res = await fetch(`${API_BASE}/admin/members/${encodeURIComponent(memberId)}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  })
+  const res = await authFetch(`${API_BASE}/admin/members/${encodeURIComponent(memberId)}`, { method: 'DELETE' })
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -618,10 +617,7 @@ export interface RemovedMember {
  * Fetch list of removed members eligible for restoration (Admin only)
  */
 export async function fetchRemovedMembers(): Promise<RemovedMember[]> {
-  const res = await fetch(`${API_BASE}/admin/removed-members`, {
-    cache: 'no-store',
-    credentials: 'include',
-  })
+  const res = await authFetch(`${API_BASE}/admin/removed-members`, { cache: 'no-store' })
 
   if (!res.ok) {
     throw new Error('Failed to fetch removed members')
@@ -634,10 +630,7 @@ export async function fetchRemovedMembers(): Promise<RemovedMember[]> {
  * Restore a previously removed member back into the database (Admin only)
  */
 export async function restoreMember(memberId: string): Promise<{ success: boolean; id: string; display_name: string; message: string }> {
-  const res = await fetch(`${API_BASE}/admin/members/${encodeURIComponent(memberId)}/restore`, {
-    method: 'POST',
-    credentials: 'include',
-  })
+  const res = await authFetch(`${API_BASE}/admin/members/${encodeURIComponent(memberId)}/restore`, { method: 'POST' })
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
