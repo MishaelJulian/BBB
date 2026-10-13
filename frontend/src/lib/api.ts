@@ -362,6 +362,7 @@ export async function fetchBooks(options?: {
   offset?: number
   onlyDiscussed?: boolean
   excludeGeneral?: boolean
+  fields?: 'shelf'
   forceRefresh?: boolean
 }): Promise<Book[]> {
   const params = new URLSearchParams()
@@ -375,6 +376,7 @@ export async function fetchBooks(options?: {
   if (options?.offset) params.set('offset', options.offset.toString())
   if (options?.onlyDiscussed) params.set('only_discussed', 'true')
   if (options?.excludeGeneral) params.set('exclude_general', 'true')
+  if (options?.fields) params.set('fields', options.fields)
   if (options?.forceRefresh) params.set('_t', Date.now().toString())
 
   const cacheKey = `books_${params.toString()}`

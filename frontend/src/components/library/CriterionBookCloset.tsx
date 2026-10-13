@@ -1,10 +1,10 @@
 'use client'
 
 import * as React from 'react'
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, animate } from 'framer-motion'
+import { LazyMotion, domAnimation, m, AnimatePresence, useMotionValue, useSpring, useTransform, animate } from 'framer-motion'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { fetchBooks, getPersistentData, setPersistentData, type Book } from '@/lib/api'
+import { fetchBook, fetchBooks, getPersistentData, setPersistentData, type Book } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { CriterionDetailModal } from './CriterionDetailModal'
 import { CriterionListDetailModal } from './CriterionListDetailModal'
@@ -387,7 +387,7 @@ function PicksTray({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/80 backdrop-blur-xl" onClick={onClose} />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.94, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 20 }}
@@ -498,7 +498,7 @@ function PicksTray({
             Keep Browsing
           </button>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   )
 }
@@ -733,7 +733,7 @@ function PolaroidModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
       <div className="fixed inset-0 bg-black/85 backdrop-blur-2xl" onClick={onClose} />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.9, y: 25 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 25 }}
@@ -846,7 +846,7 @@ function PolaroidModal({
             Close
           </button>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   )
 }
@@ -854,6 +854,20 @@ function PolaroidModal({
 // ============================================
 // 6. Master Criterion Walk-In Corner Closet Component
 // ============================================
+
+/** "Rich pull": the shelf list is thin (no description, members, rating...), so fetch the full record when a book is opened and merge it over. */
+function useFullBook(book: Book | null): Book | null {
+  const [full, setFull] = React.useState<Book | null>(null)
+  const id = book?.id
+  React.useEffect(() => {
+    setFull(null)
+    if (!id) return
+    let live = true
+    fetchBook(id).then((b) => { if (live) setFull(b) }).catch(() => {})
+    return () => { live = false }
+  }, [id])
+  return book ? { ...book, ...(full ?? {}) } : null
+}
 
 export function CriterionBookCloset() {
   const searchParams = useSearchParams()
@@ -868,6 +882,7 @@ export function CriterionBookCloset() {
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [isSyncing, setIsSyncing] = React.useState(false)
   const [selectedBook, setSelectedBook] = React.useState<Book | null>(null)
+  const fullSelectedBook = useFullBook(selectedBook)
   const [hoveredBook, setHoveredBook] = React.useState<Book | null>(null)
   const currentHoveredIdRef = React.useRef<string | null>(null)
   const lastHitTestTimeRef = React.useRef(0)
@@ -1194,6 +1209,7 @@ export function CriterionBookCloset() {
         limit: 3000,
         onlyDiscussed: true,
         excludeGeneral: true,
+        fields: 'shelf',
         forceRefresh: force,
       })
       const discussedBooks = (data || []).filter((b) => {
@@ -1405,16 +1421,14 @@ export function CriterionBookCloset() {
         return spineB - spineA
       })
     } else if (sortBy === 'spine-asc') {
-      list.sort((a, b) => {
-        const spineA = getBookSpineStyle(a.title, a.id).numericSpine
-        const spineB = getBookSpineStyle(b.title, b.id).numericSpine
-        return spineA - spineB
-      })
+      const spineOf = new Map(list.map((b) => [b.id, getBookSpineStyle(b.title, b.id).numericSpine]))
+      list.sort((a, b) => (spineOf.get(a.id) ?? 0) - (spineOf.get(b.id) ?? 0))
     } else {
       // DEFAULT: 'latest' (latest meetup number descending, then newest date descending)
+      const newestMeetup = new Map(list.map((b) => [b.id, Math.max(0, ...(b.meetups || []).map((mt) => mt.number || 0))]))
       list.sort((a, b) => {
-        const maxMeetupA = Math.max(0, ...(a.meetups || []).map((m) => m.number || 0))
-        const maxMeetupB = Math.max(0, ...(b.meetups || []).map((m) => m.number || 0))
+        const maxMeetupA = newestMeetup.get(a.id) ?? 0
+        const maxMeetupB = newestMeetup.get(b.id) ?? 0
         if (maxMeetupB !== maxMeetupA) return maxMeetupB - maxMeetupA
 
         const dateA = a.last_discussed_date || a.first_discussed_date || ''
@@ -1529,6 +1543,7 @@ export function CriterionBookCloset() {
   const activeFiltersCount = (discussionFilter !== 'all' ? 1 : 0) + (selectedLetter ? 1 : 0) + (selectedMeetup !== null ? 1 : 0)
 
   return (
+    <LazyMotion features={domAnimation}>
     <div
       suppressHydrationWarning
       className={`relative min-h-screen w-screen transition-colors duration-500 overflow-x-hidden ${
@@ -1539,20 +1554,20 @@ export function CriterionBookCloset() {
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             className="fixed top-20 inset-x-0 mx-auto w-fit z-50 px-5 py-2 rounded-full bg-black/90 border border-white/20 text-white text-xs font-mono shadow-2xl backdrop-blur-xl pointer-events-none"
           >
             {toastMessage}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
       {/* GREEN RETICLE CURSOR (Desktop only, driven by MotionValues with zero React re-renders) */}
       {viewMode === 'closet' && !selectedBook && !isMobile && (
-        <motion.div
+        <m.div
           className="fixed pointer-events-none z-50 hidden md:block"
           style={{
             x: cursorX,
@@ -1564,7 +1579,7 @@ export function CriterionBookCloset() {
           <div className="w-5 h-5 rounded-full border-2 border-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)] flex items-center justify-center">
             <div className="w-1 h-1 rounded-full bg-emerald-300" />
           </div>
-        </motion.div>
+        </m.div>
       )}
 
       {/* =======================================================
@@ -1762,7 +1777,7 @@ export function CriterionBookCloset() {
                 {/* Suggestions */}
                 <AnimatePresence>
                   {isSearchFocused && searchSuggestions.length > 0 && (
-                    <motion.div
+                    <m.div
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 5 }}
@@ -1793,7 +1808,7 @@ export function CriterionBookCloset() {
                           </button>
                         )
                       })}
-                    </motion.div>
+                    </m.div>
                   )}
                 </AnimatePresence>
               </div>
@@ -1850,7 +1865,7 @@ export function CriterionBookCloset() {
                 Shelves View
               </button>
 
-              <motion.div
+              <m.div
                 layout
                 transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                 className="absolute top-1 bottom-1 rounded-full shadow-md"
@@ -2027,7 +2042,7 @@ export function CriterionBookCloset() {
             </div>
           ) : (
             /* 3D CAMERA RIG (Swivels with mouse parallax on desktop & zero-lag touch drag on mobile) */
-            <motion.div
+            <m.div
               className="absolute top-1/2 left-1/2 w-0 h-0"
               style={{
                 transformStyle: 'preserve-3d',
@@ -2187,7 +2202,7 @@ export function CriterionBookCloset() {
                   hasDraggedRef={hasDraggedRef}
                 />
               </div>
-            </motion.div>
+            </m.div>
           )}
 
           {/* Floating Left Stack Toolbar */}
@@ -2220,7 +2235,7 @@ export function CriterionBookCloset() {
           {/* Floating Hovered / Selected Case Info Card */}
           <div className="fixed bottom-4 left-3 right-16 sm:inset-x-auto sm:left-6 sm:bottom-6 z-40 pointer-events-none flex justify-center sm:justify-start">
             {hoveredBook && !selectedBook && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, y: 15, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -2268,7 +2283,7 @@ export function CriterionBookCloset() {
                     {hoveredBook.discussion_count} {hoveredBook.discussion_count === 1 ? 'discussion' : 'discussions'}
                   </span>
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </div>
 
@@ -2611,7 +2626,7 @@ export function CriterionBookCloset() {
       <AnimatePresence>
         {isFilterSheetOpen && (
           <div className="fixed inset-0 z-50 flex justify-end">
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -2619,7 +2634,7 @@ export function CriterionBookCloset() {
               onClick={() => setIsFilterSheetOpen(false)}
             />
 
-            <motion.div
+            <m.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
@@ -2803,7 +2818,7 @@ export function CriterionBookCloset() {
                   Show {filteredBooks.length} Volumes
                 </button>
               </div>
-            </motion.div>
+            </m.div>
           </div>
         )}
       </AnimatePresence>
@@ -2817,7 +2832,7 @@ export function CriterionBookCloset() {
         {selectedBook && (
           viewMode === 'list' ? (
             <CriterionListDetailModal
-              book={selectedBook}
+              book={fullSelectedBook ?? selectedBook}
               allBooks={filteredBooks}
               userPicks={userPicks}
               onTogglePick={handleTogglePick}
@@ -2827,7 +2842,7 @@ export function CriterionBookCloset() {
             />
           ) : (
             <CriterionDetailModal
-              book={selectedBook}
+              book={fullSelectedBook ?? selectedBook}
               allBooks={filteredBooks}
               userPicks={userPicks}
               onTogglePick={handleTogglePick}
@@ -2868,5 +2883,6 @@ export function CriterionBookCloset() {
         )}
       </AnimatePresence>
     </div>
+    </LazyMotion>
   )
 }

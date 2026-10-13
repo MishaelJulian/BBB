@@ -32,5 +32,10 @@ export const GET = route(async (req: NextRequest) => {
     : sortBy === 'firstDiscussedYear' ? db`b.created_at ${dir}, b.ctid`
     : db`b.title collate "C" ${dir}, b.ctid`
   const rows = await db<BookRow[]>`${bookSelect()} where ${where} order by ${order} limit ${limit} offset ${offset}`
-  return ok(await booksToDicts(rows), !search && !author && !year ? publicCache() : undefined)
+  const books = await booksToDicts(rows)
+  // fields=shelf: the closet shelf never reads these, and the detail popups fetch what they need on open ("thin shelf, rich pull").
+  const out = q.get('fields') === 'shelf'
+    ? books.map((b) => { const { description, members, goodreads_id, normalized_title, rating, page_count, ...thin } = b; void [description, members, goodreads_id, normalized_title, rating, page_count]; return thin })
+    : books
+  return ok(out, !search && !author && !year ? publicCache() : undefined)
 })
