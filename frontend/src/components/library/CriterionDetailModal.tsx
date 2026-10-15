@@ -219,7 +219,7 @@ function Rotatable3DBook({
             )}
 
             {/* Spine Hinge Groove Shadow (12px from left edge) */}
-            <div className="absolute top-0 bottom-0 left-[11px] w-[2px] bg-black/35 pointer-events-none shadow-[0_0_4px_rgba(0,0,0,0.6)]" />
+            <div className="absolute top-0 bottom-0 left-[11px] w-[2px] bg-black/35 pointer-events-none " />
 
             {/* Specular Light Sheen Overlay */}
             <div
@@ -250,7 +250,7 @@ function Rotatable3DBook({
                 <span className="text-[9px] font-mono tracking-widest uppercase text-white/60">
                   BBB BANGALORE · FOLIO #{spineStyle.numericSpine}
                 </span>
-                <span className="text-[9px] font-mono text-amber-300">
+                <span className="text-[9px] font-mono text-paper/90">
                   {latestMeetup ? `Meetup #${latestMeetup.number}` : 'Archive'}
                 </span>
               </div>
@@ -282,7 +282,7 @@ function Rotatable3DBook({
                   BBB-0{spineStyle.numericSpine}-IN
                 </span>
               </div>
-              <div className="w-7 h-7 rounded-full border border-white/30 flex items-center justify-center text-[10px] font-serif font-black text-amber-300">
+              <div className="w-7 h-7 rounded-[2px] border border-white/30 flex items-center justify-center text-[10px] font-serif font-black text-paper/90">
                 B
               </div>
             </div>
@@ -306,7 +306,7 @@ function Rotatable3DBook({
             }}
           >
             {/* Top Spine Number Pill */}
-            <div className="w-5 h-5 rounded-full bg-black/85 text-white border border-white/30 flex items-center justify-center font-mono font-bold text-[8.5px] shrink-0">
+            <div className="w-5 h-5 rounded-[2px] bg-black/85 text-white border border-white/30 flex items-center justify-center font-mono font-bold text-[8.5px] shrink-0">
               {spineStyle.numericSpine}
             </div>
 
@@ -326,7 +326,7 @@ function Rotatable3DBook({
             </div>
 
             {/* Bottom Emblem */}
-            <div className="w-4 h-4 rounded-full border border-amber-300/60 flex items-center justify-center text-[8px] font-serif font-black text-amber-300 shrink-0">
+            <div className="w-4 h-4 rounded-[2px] border border-white/25 flex items-center justify-center text-[8px] font-serif font-black text-paper/90 shrink-0">
               B
             </div>
           </div>
@@ -408,9 +408,9 @@ function Rotatable3DBook({
       </div>
 
       {/* Floating Pill Bar Directly Under the 3D Book (Exact match with cc.mp4 00:08) */}
-      <div className="mt-3 flex items-center justify-between gap-3 px-4 py-2 rounded-2xl bg-black/85 border border-white/20 shadow-2xl backdrop-blur-xl w-full max-w-[340px]">
+      <div className="mt-3 flex items-center justify-between gap-3 px-4 py-2 rounded-[2px] bg-black/85 border border-white/20 shadow-2xl w-full max-w-[340px]">
         <div className="flex items-center gap-2 truncate">
-          <span className="px-2 py-0.5 rounded-full bg-white text-black font-mono font-bold text-[10px] tracking-wider shrink-0">
+          <span className="px-2 py-0.5 rounded-[2px] bg-white text-black font-mono font-bold text-[10px] tracking-wider shrink-0">
             #{spineStyle.numericSpine}
           </span>
           <div className="truncate">
@@ -427,9 +427,9 @@ function Rotatable3DBook({
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => onTogglePick(book)}
-            className={`w-7 h-7 rounded-full flex items-center justify-center transition ${
+            className={`w-7 h-7 rounded-[2px] flex items-center justify-center transition ${
               isSaved
-                ? 'bg-amber-400 text-black shadow-[0_0_8px_rgba(251,191,36,0.9)]'
+                ? 'bg-paper text-black '
                 : 'bg-white/10 hover:bg-white/20 text-white/80 hover:text-white'
             }`}
             title={isSaved ? 'In your 4 library picks' : 'Add to library picks'}
@@ -442,7 +442,7 @@ function Rotatable3DBook({
               navigator.clipboard.writeText(url)
               onShowToast('Volume deep-link copied to clipboard!')
             }}
-            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition"
+            className="w-7 h-7 rounded-[2px] bg-white/10 hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center transition"
             title="Share volume link"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -451,7 +451,7 @@ function Rotatable3DBook({
           </button>
           <button
             onClick={resetAngle}
-            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white/60 hover:text-white flex items-center justify-center text-[10px] font-mono transition"
+            className="w-7 h-7 rounded-[2px] bg-white/10 hover:bg-white/20 text-white/60 hover:text-white flex items-center justify-center text-[10px] font-mono transition"
             title="Reset rotation angle"
           >
             ↺
@@ -605,7 +605,7 @@ export function CriterionDetailModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.25 }}
-        className="fixed inset-0 bg-black/85 backdrop-blur-md cursor-pointer"
+        className="fixed inset-0 bg-black/85 cursor-pointer"
         onClick={onClose}
       />
 
@@ -619,7 +619,7 @@ export function CriterionDetailModal({
             e.stopPropagation()
             onSelectBook(prevBook)
           }}
-          className="fixed left-3 lg:left-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/20 shadow-2xl flex items-center justify-center transition hover:scale-110 pointer-events-auto"
+          className="fixed left-3 lg:left-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-[2px] bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/20 shadow-2xl flex items-center justify-center transition hover:scale-110 pointer-events-auto"
           title={`Previous: ${prevBook.title}`}
           aria-label="Previous volume"
         >
@@ -636,7 +636,7 @@ export function CriterionDetailModal({
             e.stopPropagation()
             onSelectBook(nextBook)
           }}
-          className="fixed right-3 lg:right-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-full bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/20 shadow-2xl flex items-center justify-center transition hover:scale-110 pointer-events-auto"
+          className="fixed right-3 lg:right-6 top-1/2 -translate-y-1/2 z-50 w-11 h-11 rounded-[2px] bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/20 shadow-2xl flex items-center justify-center transition hover:scale-110 pointer-events-auto"
           title={`Next: ${nextBook.title}`}
           aria-label="Next volume"
         >
@@ -649,7 +649,7 @@ export function CriterionDetailModal({
       {/* Top Right Close Button */}
       <button
         onClick={onClose}
-        className="fixed top-5 right-5 z-50 w-9 h-9 rounded-full bg-black/70 hover:bg-black text-white/70 hover:text-white border border-white/20 flex items-center justify-center transition shadow-xl pointer-events-auto"
+        className="fixed top-5 right-5 z-50 w-9 h-9 rounded-[2px] bg-black/70 hover:bg-black text-white/70 hover:text-white border border-white/20 flex items-center justify-center transition shadow-xl pointer-events-auto"
         aria-label="Close"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -674,7 +674,7 @@ export function CriterionDetailModal({
         {/* =======================================================
             COLUMN 1 (LEFT): SYNOPSIS & METADATA CARD (Exact match)
             ======================================================= */}
-        <div className="w-full lg:w-[320px] max-h-[82vh] overflow-y-auto rounded-3xl bg-[#13110E]/90 border border-white/15 p-5 sm:p-6 text-white text-left shadow-2xl backdrop-blur-xl flex flex-col justify-between scrollbar-thin order-2 lg:order-1">
+        <div className="w-full lg:w-[320px] max-h-[82vh] overflow-y-auto rounded-[2px] bg-[#13110E]/90 border border-white/15 p-5 sm:p-6 text-white text-left shadow-2xl flex flex-col justify-between scrollbar-thin order-2 lg:order-1">
           <div>
             <span className="text-[10px] font-mono tracking-[0.25em] text-white/50 uppercase font-bold block mb-2">
               SYNOPSIS
@@ -682,7 +682,7 @@ export function CriterionDetailModal({
             <div className="text-xs font-serif leading-relaxed text-neutral-300">
               {loadingSynopsis ? (
                 <div className="flex items-center gap-2 py-3 text-white/50 italic text-[11px]">
-                  <div className="w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-white/25 border-t-transparent rounded-full animate-spin" />
                   <span>Loading synopsis…</span>
                 </div>
               ) : synopsis ? (
@@ -693,7 +693,7 @@ export function CriterionDetailModal({
                   {synopsis.length > 260 && (
                     <button
                       onClick={() => setIsReadMore(!isReadMore)}
-                      className="mt-2 text-amber-300 hover:text-amber-200 underline font-sans text-[11px] block cursor-pointer"
+                      className="mt-2 text-paper/90 hover:text-paper underline font-sans text-[11px] block cursor-pointer"
                     >
                       {isReadMore ? 'Read less' : 'Read more'}
                     </button>
@@ -720,7 +720,7 @@ export function CriterionDetailModal({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono tracking-widest uppercase text-white/40">MEETUP</span>
-                <span className="font-mono text-amber-300">
+                <span className="font-mono text-paper/90">
                   {latestMeetup ? `Meetup #${latestMeetup.number}` : 'Archive'}
                 </span>
               </div>
@@ -741,7 +741,7 @@ export function CriterionDetailModal({
               {(rating || book.rating) && (
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-mono tracking-widest uppercase text-white/40">RATING</span>
-                  <span className="font-mono text-amber-400 font-bold">
+                  <span className="font-mono text-paper/90 font-bold">
                     ★ {Number(rating || book.rating).toFixed(1)} / 5.0
                   </span>
                 </div>
@@ -771,7 +771,7 @@ export function CriterionDetailModal({
                         className="group/mem flex flex-col items-center shrink-0"
                         title={mem.display_name}
                       >
-                        <div className="w-8 h-8 rounded-full bg-neutral-800 text-amber-200 border border-white/30 flex items-center justify-center text-[10px] font-bold font-serif group-hover/mem:scale-110 transition-transform">
+                        <div className="w-8 h-8 rounded-[2px] bg-neutral-800 text-paper/90 border border-white/30 flex items-center justify-center text-[10px] font-bold font-serif group-hover/mem:scale-110 transition-transform">
                           {initials}
                         </div>
                         <span className="mt-1 text-[9px] text-white/70 group-hover/mem:text-white truncate max-w-[50px]">
@@ -783,7 +783,7 @@ export function CriterionDetailModal({
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-[11px] text-white/60 font-serif">
-                  <div className="w-6 h-6 rounded-full bg-white/10 text-amber-300 flex items-center justify-center font-bold text-[9px]">
+                  <div className="w-6 h-6 rounded-[2px] bg-white/10 text-paper/90 flex items-center justify-center font-bold text-[9px]">
                     B
                   </div>
                   <span>Bangalore Book Club Community</span>
@@ -816,7 +816,7 @@ export function CriterionDetailModal({
         {/* =======================================================
             COLUMN 3 (RIGHT): ACTIONS, GOODREADS, PICKS & NOTES
             ======================================================= */}
-        <div className="w-full lg:w-[320px] max-h-[82vh] overflow-y-auto rounded-3xl bg-[#13110E]/90 border border-white/15 p-5 sm:p-6 text-white text-left shadow-2xl backdrop-blur-xl flex flex-col justify-between scrollbar-thin order-3">
+        <div className="w-full lg:w-[320px] max-h-[82vh] overflow-y-auto rounded-[2px] bg-[#13110E]/90 border border-white/15 p-5 sm:p-6 text-white text-left shadow-2xl flex flex-col justify-between scrollbar-thin order-3">
           <div>
             <span className="text-[10px] font-mono tracking-[0.25em] text-white/50 uppercase font-bold block mb-3">
               ARCHIVE & ACTIONS
@@ -825,7 +825,7 @@ export function CriterionDetailModal({
             {/* Primary Action Button 1: View Meetup Archive */}
             <Link
               href={latestMeetup ? `/meetups/${latestMeetup.id}` : '/meetups'}
-              className="w-full bg-[#FAF5EA] hover:bg-white text-black font-semibold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg transition mb-2"
+              className="w-full bg-[#FAF5EA] hover:bg-white text-black font-semibold text-xs py-2.5 px-4 rounded-[2px] flex items-center justify-center gap-2 shadow-lg transition mb-2"
             >
               <span>{latestMeetup ? `Meetup #${latestMeetup.number} Notes` : 'Meetups Archive'}</span>
               <span className="opacity-60">→</span>
@@ -834,7 +834,7 @@ export function CriterionDetailModal({
             {/* Action Button 2: Full Archival Record */}
             <Link
               href={`/books/${book.id}`}
-              className="w-full bg-white/10 hover:bg-white/20 border border-white/15 text-white font-medium text-xs py-2 px-4 rounded-xl flex items-center justify-center gap-2 transition mb-4"
+              className="w-full bg-white/10 hover:bg-white/20 border border-white/15 text-white font-medium text-xs py-2 px-4 rounded-[2px] flex items-center justify-center gap-2 transition mb-4"
             >
               <span>Examine Book Dossier</span>
               <span className="opacity-60">↗</span>
@@ -849,16 +849,16 @@ export function CriterionDetailModal({
                 href={amazonSearchUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium text-xs py-2 px-3 rounded-xl flex items-center justify-between transition mb-2"
+                className="w-full bg-white/10 hover:bg-white/15 border border-white/20 text-white font-medium text-xs py-2 px-3 rounded-[2px] flex items-center justify-between transition mb-2"
               >
                 <span>Buy on Amazon India</span>
-                <span className="text-amber-300 text-[10px]">↗</span>
+                <span className="text-paper/90 text-[10px]">↗</span>
               </a>
               <a
                 href={goodreadsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 font-medium text-xs py-2 px-3 rounded-xl flex items-center justify-between transition"
+                className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 font-medium text-xs py-2 px-3 rounded-[2px] flex items-center justify-between transition"
               >
                 <span>View on Goodreads</span>
                 <span className="text-white/40 text-[10px]">↗</span>
@@ -872,9 +872,9 @@ export function CriterionDetailModal({
               </span>
               <button
                 onClick={() => onTogglePick(book)}
-                className={`w-full py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
+                className={`w-full py-2.5 px-3 rounded-[2px] text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
                   isSaved
-                    ? 'bg-amber-500 text-black shadow-lg font-bold'
+                    ? 'bg-paper text-black shadow-lg font-bold'
                     : 'bg-white/10 hover:bg-white/20 border border-white/20 text-white'
                 }`}
               >
@@ -892,9 +892,9 @@ export function CriterionDetailModal({
                   {book.meetups.map((m) => (
                     <div
                       key={m.id || m.number}
-                      className="flex items-center justify-between p-1.5 rounded-lg bg-white/5 text-[11px]"
+                      className="flex items-center justify-between p-1.5 rounded-[2px] bg-white/5 text-[11px]"
                     >
-                      <span className="font-mono text-amber-300 font-bold">Meetup #{m.number}</span>
+                      <span className="font-mono text-paper/90 font-bold">Meetup #{m.number}</span>
                       <span className="text-white/50 text-[10px] truncate max-w-[130px]">
                         {m.venue || m.date || 'Bangalore'}
                       </span>
@@ -907,7 +907,7 @@ export function CriterionDetailModal({
 
           <div className="mt-4 pt-3 border-t border-white/10 text-[9px] font-mono text-white/35 flex items-center justify-between">
             <span>BANGALORE BOOK CLUB</span>
-            <span className="text-amber-400/60">BBB LIBRARY ARCHIVE</span>
+            <span className="text-paper/90">BBB LIBRARY ARCHIVE</span>
           </div>
         </div>
       </motion.div>

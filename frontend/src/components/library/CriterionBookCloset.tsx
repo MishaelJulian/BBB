@@ -8,6 +8,30 @@ import { fetchBook, fetchBooks, getPersistentData, setPersistentData, type Book 
 import { formatDate } from '@/lib/utils'
 import { CriterionDetailModal } from './CriterionDetailModal'
 import { CriterionListDetailModal } from './CriterionListDetailModal'
+import { getSession } from '@/lib/auth'
+
+// Header controls are plain text, not pills (docs/ux/ADR-ui-revamp.md section 5).
+const hdrLink = (dark: boolean) =>
+  `underline-offset-4 hover:underline ${dark ? 'text-paper/85 hover:text-paper' : 'text-ink-light hover:text-ink'}`
+const hdrTab = (dark: boolean, on: boolean) =>
+  `underline-offset-4 ${
+    on ? 'font-semibold underline decoration-2' : dark ? 'text-paper/70 hover:text-paper hover:underline' : 'text-muted hover:text-ink hover:underline'
+  }`
+
+/** The admin link is shown to signed-in admins only. */
+function AdminLink({ className }: { className?: string }) {
+  const [isAdmin, setIsAdmin] = React.useState(false)
+  React.useEffect(() => {
+    getSession()
+      .then((u) => setIsAdmin(u?.role === 'admin'))
+      .catch(() => setIsAdmin(false))
+  }, [])
+  return isAdmin ? (
+    <Link href="/admin" className={className}>
+      Admin
+    </Link>
+  ) : null
+}
 
 // ============================================
 // 1. Archival Folio Palettes & Spine Styles
@@ -106,7 +130,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
   return (
     <div
       data-book-id={book.id}
-      className={`relative select-none transition-all duration-200 cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+      className={`relative select-none transition-all duration-200 cursor-pointer outline-hidden focus-visible:ring-2 focus-visible:ring-paper focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
         rowIsFull ? 'flex-1 min-w-[24px] max-w-[42px]' : 'shrink-0'
       }`}
       style={{
@@ -196,7 +220,7 @@ const ClosetSpine = React.memo(function ClosetSpine({
       >
         {/* Saved Stack Heart Badge */}
         {isSaved && (
-          <div className="absolute top-1 right-1 z-20 w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.95)]" />
+          <div className="absolute top-1 right-1 z-20 w-2.5 h-2.5 rounded-full bg-paper " />
         )}
 
         {/* Top Spine Number Box (Criterion Style) */}
@@ -296,10 +320,10 @@ const ShelfWall = React.memo(function ShelfWall({
       style={{ transformStyle: isMobile ? 'flat' : 'preserve-3d' }}
     >
       {/* Brass Plaque Archival Header at top of each shelf wall */}
-      <div className="flex items-center justify-between px-4 pb-1 border-b border-amber-500/30 bg-linear-to-r from-black/60 via-amber-950/30 to-black/60 rounded-t backdrop-blur-xs">
+      <div className="flex items-center justify-between px-4 pb-1 border-b border-white/25 bg-linear-to-r from-black/60 via-amber-950/30 to-black/60 rounded-t ">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]" />
-          <span className="font-mono text-[10.5px] tracking-[0.25em] text-amber-200 font-bold uppercase">
+          <span className="w-2 h-2 rounded-full bg-paper " />
+          <span className="font-mono text-[10.5px] tracking-[0.25em] text-paper/90 font-bold uppercase">
             SHELF {shelfNumber} · {wallName}
           </span>
         </div>
@@ -385,13 +409,13 @@ function PicksTray({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-xl" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/80 " onClick={onClose} />
 
       <m.div
         initial={{ opacity: 0, scale: 0.94, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 20 }}
-        className="relative z-10 w-full max-w-xl bg-[#14100D]/95 border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-2xl text-center"
+        className="relative z-10 w-full max-w-xl bg-[#14100D]/95 border border-white/15 rounded-[2px] p-6 sm:p-8 shadow-2xl text-center"
       >
         <div className="text-[10px] font-mono tracking-[0.25em] text-white/50 uppercase mb-1">
           THE BBB LIBRARY TOTE BAG
@@ -420,7 +444,7 @@ function PicksTray({
                     onSelectBook(book)
                   }}
                 >
-                  <div className="relative w-full aspect-2/3 rounded-xl overflow-hidden shadow-lg border border-white/20 bg-[#1E1B18]">
+                  <div className="relative w-full aspect-2/3 rounded-[2px] overflow-hidden shadow-lg border border-white/20 bg-[#1E1B18]">
                     {hasCover ? (
                       <img
                         src={coverSrc}
@@ -442,7 +466,7 @@ function PicksTray({
                       </div>
                     )}
                     {/* Spine Badge */}
-                    <div className="absolute top-1.5 left-1.5 bg-black/85 text-white text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full border border-white/20">
+                    <div className="absolute top-1.5 left-1.5 bg-black/85 text-white text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-[2px] border border-white/20">
                       #{styleInfo.numericSpine}
                     </div>
                     {/* Remove button */}
@@ -451,7 +475,7 @@ function PicksTray({
                         e.stopPropagation()
                         onRemovePick(book.id)
                       }}
-                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/80 border border-white/25 text-white/80 hover:text-white hover:bg-red-600 flex items-center justify-center text-xs transition-all shadow-md"
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-[2px] bg-black/80 border border-white/25 text-white/80 hover:text-white hover:bg-red-600 flex items-center justify-center text-xs transition-all shadow-md"
                       title="Remove pick"
                     >
                       ✕
@@ -467,7 +491,7 @@ function PicksTray({
             return (
               <div
                 key={`empty-slot-${idx}`}
-                className="w-full aspect-2/3 rounded-xl border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center p-3 text-center text-white/30"
+                className="w-full aspect-2/3 rounded-[2px] border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center p-3 text-center text-white/30"
               >
                 <span className="text-xl mb-1">♡</span>
                 <span className="text-[9px] font-mono">Empty Slot</span>
@@ -484,16 +508,16 @@ function PicksTray({
                 onClose()
                 onOpenPolaroid()
               }}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-amber-500 hover:bg-amber-400 text-black font-semibold text-xs tracking-wider uppercase transition-all shadow-lg flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-[2px] bg-paper hover:bg-paper-dark text-black font-semibold text-xs tracking-wider uppercase transition-all shadow-lg flex items-center justify-center gap-2"
             >
-              <span>📸 Take a Polaroid</span>
+              <span>Take a Polaroid</span>
               <span className="text-[10px] opacity-75">({userPicks.length}/4)</span>
             </button>
           )}
 
           <button
             onClick={onClose}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white font-medium text-xs tracking-wider uppercase transition-all border border-white/15"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-[2px] bg-white/10 hover:bg-white/15 text-white font-medium text-xs tracking-wider uppercase transition-all border border-white/15"
           >
             Keep Browsing
           </button>
@@ -731,7 +755,7 @@ function PolaroidModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-      <div className="fixed inset-0 bg-black/85 backdrop-blur-2xl" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/85 " onClick={onClose} />
 
       <m.div
         initial={{ opacity: 0, scale: 0.9, y: 25 }}
@@ -753,7 +777,7 @@ function PolaroidModal({
               }}
             />
 
-            <div className="absolute inset-x-0 bottom-0 h-16 bg-[#322013] border-t-2 border-amber-600/70 shadow-2xl" />
+            <div className="absolute inset-x-0 bottom-0 h-16 bg-[#322013] border-t-2 border-white/25 shadow-2xl" />
 
             <div className="relative z-10 flex items-end justify-center gap-2 sm:gap-3 mb-1 w-full px-2">
               {userPicks.map((book) => {
@@ -788,7 +812,7 @@ function PolaroidModal({
                       </div>
                     )}
                     {/* Spine Badge pill */}
-                    <div className="absolute top-1 left-1 bg-black/85 text-white text-[7.5px] font-mono font-bold px-1.5 py-0.2 rounded-full border border-white/20">
+                    <div className="absolute top-1 left-1 bg-black/85 text-white text-[7.5px] font-mono font-bold px-1.5 py-0.2 rounded-[2px] border border-white/20">
                       #{style.numericSpine}
                     </div>
                   </div>
@@ -807,7 +831,7 @@ function PolaroidModal({
                 value={signee}
                 onChange={(e) => setSignee(e.target.value)}
                 placeholder="sign here"
-                className="bg-transparent border-b border-neutral-300 font-serif italic text-lg text-neutral-900 focus:outline-hidden focus:border-amber-600 w-48 mt-0.5"
+                className="bg-transparent border-b border-neutral-300 font-serif italic text-lg text-neutral-900 focus:outline-hidden focus:border-paper w-48 mt-0.5"
               />
             </div>
 
@@ -827,21 +851,21 @@ function PolaroidModal({
           <button
             onClick={handleDownload}
             disabled={isDownloading}
-            className="px-6 py-2.5 rounded-full bg-white text-black font-semibold text-xs tracking-wider uppercase transition-all hover:bg-amber-100 shadow-xl flex items-center gap-2"
+            className="px-6 py-2.5 rounded-[2px] bg-white text-black font-semibold text-xs tracking-wider uppercase transition-all hover:bg-paper-dark shadow-xl flex items-center gap-2"
           >
             <span>{isDownloading ? 'Generating…' : '↓ Download Polaroid'}</span>
           </button>
 
           <button
             onClick={handleCopy}
-            className="px-5 py-2.5 rounded-full bg-black/60 border border-white/20 hover:bg-black/80 text-white font-medium text-xs tracking-wider uppercase transition-all backdrop-blur-xl shadow-lg"
+            className="px-5 py-2.5 rounded-[2px] bg-black/60 border border-white/20 hover:bg-black/80 text-white font-medium text-xs tracking-wider uppercase transition-all shadow-lg"
           >
             <span>{isCopied ? '✓ Copied List!' : 'Share Picks'}</span>
           </button>
 
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-full text-white/60 hover:text-white text-xs font-mono"
+            className="px-4 py-2.5 rounded-[2px] text-white/60 hover:text-white text-xs font-mono"
           >
             Close
           </button>
@@ -1558,7 +1582,7 @@ export function CriterionBookCloset() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 inset-x-0 mx-auto w-fit z-50 px-5 py-2 rounded-full bg-black/90 border border-white/20 text-white text-xs font-mono shadow-2xl backdrop-blur-xl pointer-events-none"
+            className="fixed top-20 inset-x-0 mx-auto w-fit z-50 px-5 py-2 rounded-[2px] bg-black/90 border border-white/20 text-white text-xs font-mono shadow-2xl pointer-events-none"
           >
             {toastMessage}
           </m.div>
@@ -1576,7 +1600,7 @@ export function CriterionBookCloset() {
             translateY: '-50%',
           }}
         >
-          <div className="w-5 h-5 rounded-full border-2 border-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)] flex items-center justify-center">
+          <div className="w-5 h-5 rounded-[2px] border-2 border-emerald-400 flex items-center justify-center">
             <div className="w-1 h-1 rounded-full bg-emerald-300" />
           </div>
         </m.div>
@@ -1586,193 +1610,37 @@ export function CriterionBookCloset() {
           1. THE CRITERION CLOSET CHROME & MARQUEE
           ======================================================= */}
       <header
-        className={`sticky top-0 z-40 w-full transition-colors duration-300 border-b backdrop-blur-xl ${
-          viewMode === 'closet'
-            ? 'bg-[#0E0D0B]/85 border-white/10 text-paper'
-            : 'bg-[#F3EFE6]/90 border-[#DDD6C7] text-[#14130F]'
+        className={`sticky top-0 z-40 w-full border-b ${
+          viewMode === 'closet' ? 'bg-[#0E0D0B] border-white/20 text-paper' : 'bg-paper border-border text-ink'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-col md:flex-row items-center justify-between gap-2.5">
-          
-          {/* Brand & Left Tools */}
-          <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto justify-between md:justify-start flex-wrap">
-            <Link href="/" className="flex items-center gap-2 group">
-              <span
-                className={`font-black text-xl sm:text-2xl tracking-[0.18em] transition-colors ${
-                  viewMode === 'closet' ? 'text-white group-hover:text-amber-300' : 'text-[#14130F] group-hover:text-amber-800'
-                }`}
-              >
-                BBB LIBRARY
-              </span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-x-8 gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+            <Link href="/" className="font-display text-xl font-semibold tracking-tight text-inherit">
+              BBB Library
             </Link>
-            <span
-              className={`hidden sm:inline text-[9px] font-mono tracking-widest px-2 py-0.5 rounded border uppercase ${
-                viewMode === 'closet'
-                  ? 'border-white/20 text-amber-300 bg-black/40'
-                  : 'border-[#DDD6C7] text-neutral-600 bg-white/60'
-              }`}
-            >
-              BBB Bangalore
-            </span>
-
-            {/* Quick Navigation Links: Meetups, Readers, DB */}
-            <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Quick Navigation">
-              <Link
-                href="/meetups"
-                className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all ${
-                  viewMode === 'closet'
-                    ? 'bg-black/50 border-white/15 text-white/80 hover:text-white hover:border-amber-400'
-                    : 'bg-white border-[#DDD6C7] text-neutral-700 hover:text-black hover:border-black'
-                }`}
-                title="Meetups Archive"
-              >
-                Meetups
-              </Link>
-              <Link
-                href="/members"
-                className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all ${
-                  viewMode === 'closet'
-                    ? 'bg-black/50 border-white/15 text-white/80 hover:text-white hover:border-amber-400'
-                    : 'bg-white border-[#DDD6C7] text-neutral-700 hover:text-black hover:border-black'
-                }`}
-                title="Readers Archive"
-              >
-                Readers
-              </Link>
-              <Link
-                href="/admin"
-                className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1 ${
-                  viewMode === 'closet'
-                    ? 'bg-amber-950/40 border-amber-500/40 text-amber-300 hover:text-amber-200 hover:border-amber-400'
-                    : 'bg-amber-50 border-amber-200 text-amber-900 hover:text-amber-950 hover:border-amber-400'
-                }`}
-                title="Manage Meetups, Books and Database"
-              >
-                <svg className="w-3.5 h-3.5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span><span className="hidden sm:inline">Manage </span>DB</span>
-              </Link>
+            <nav aria-label="Quick navigation" className="flex items-center gap-x-5 text-sm">
+              <Link href="/meetups" className={hdrLink(viewMode === 'closet')}>Meetups</Link>
+              <Link href="/members" className={hdrLink(viewMode === 'closet')}>Readers</Link>
+              <AdminLink className={hdrLink(viewMode === 'closet')} />
             </nav>
-
-            {/* Mobile View Switcher & Mobile Picks Button */}
-            <div className="flex md:hidden items-center gap-1.5">
-              <div className="flex items-center p-1 rounded-full border border-current/20">
-                <button
-                  onClick={() => switchView('list')}
-                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    viewMode === 'list' ? 'bg-[#14130F] text-white' : 'opacity-60'
-                  }`}
-                >
-                  List
-                </button>
-                <button
-                  onClick={() => switchView('closet')}
-                  className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    viewMode === 'closet' ? 'bg-amber-700 text-white' : 'opacity-60'
-                  }`}
-                >
-                  Shelves
-                </button>
-              </div>
-
-              {/* Mobile Closet Picks Button */}
-              <button
-                onClick={() => setIsPicksTrayOpen(true)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-mono font-bold transition-all shadow-xs ${
-                  userPicks.length > 0
-                    ? 'bg-amber-400 text-black border-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.6)]'
-                    : viewMode === 'closet'
-                    ? 'bg-white/10 text-white/80 border-white/20'
-                    : 'bg-black/5 text-neutral-800 border-black/15'
-                }`}
-                title="Open Library Picks Tote Bag"
-              >
-                <span>★ Picks</span>
-                <span className={`w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-bold ${
-                  userPicks.length > 0 ? 'bg-black text-amber-300' : 'bg-white/20 text-white'
-                }`}>
-                  {userPicks.length}
-                </span>
-              </button>
-            </div>
           </div>
 
-          {/* Center: HANGING CLOSET PICKS MARQUEE (Exact Match with 00:14 of video) */}
-          <div className="hidden md:flex items-center gap-2 px-5 py-1.5 rounded-full bg-black/70 border border-white/20 shadow-2xl backdrop-blur-xl">
-            <span className="font-mono text-[10px] tracking-[0.25em] text-white/80 font-bold uppercase">
-              LIBRARY PICKS
-            </span>
-            <div className="flex items-center gap-1.5 ml-1">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <button
-                  key={`marquee-slot-${i}`}
-                  onClick={() => setIsPicksTrayOpen(true)}
-                  aria-label={userPicks[i] ? `Pick ${i + 1}: ${userPicks[i].title}. Open your picks` : `Empty pick slot ${i + 1}. Open your picks`}
-                  className={`w-6 h-6 rounded-[3px] border transition-all flex items-center justify-center text-[11px] ${
-                    i < userPicks.length
-                      ? 'bg-amber-400 border-amber-300 text-black shadow-[0_0_8px_rgba(251,191,36,0.95)]'
-                      : 'bg-white/5 border-white/20 text-white/30 hover:border-white/40'
-                  }`}
-                  title={userPicks[i]?.title || 'Empty pick slot'}
-                >
-                  {i < userPicks.length ? '★' : '♡'}
-                </button>
-              ))}
-            </div>
-            {userPicks.length > 0 && (
-              <button
-                onClick={() => setIsPolaroidOpen(true)}
-                className="ml-2 text-[9px] font-mono text-amber-300 hover:underline uppercase tracking-wider"
-              >
-                Polaroid ↗
-              </button>
-            )}
-          </div>
-
-          {/* Right: Quick Tools & View Switcher */}
-          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-            <button
-              onClick={handleSyncDatabase}
-              disabled={isSyncing}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-[11px] sm:text-xs font-semibold transition-all shrink-0 ${
-                viewMode === 'closet'
-                  ? 'bg-black/50 border-white/15 text-white/80 hover:text-white hover:border-amber-400'
-                  : 'bg-white border-[#DDD6C7] text-neutral-700 hover:text-black'
-              }`}
-              title="Sync latest changes directly from database"
-            >
-              <svg
-                className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-amber-400' : 'opacity-70'}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span>{isSyncing ? 'Syncing…' : 'Sync DB'}</span>
-            </button>
-            {/* Search Box (Closet View only - List View has its own dedicated search & filter bar) */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            {/* Search (closet view only; the list view has its own search and filter bar) */}
             {viewMode === 'closet' && (
-              <div className="relative flex-1 md:w-52">
+              <div className="relative">
                 <input
                   id="closet-search-input"
                   type="search"
+                  aria-label="Search by title, author or spine number"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
-                  placeholder="Title, author, spine #…"
-                  className={`w-full px-3.5 py-1.5 rounded-xl text-xs border transition-all focus:outline-hidden ${
-                    viewMode === 'closet'
-                      ? 'bg-black/50 border-white/15 text-white placeholder-white/40 focus:border-amber-400'
-                      : 'bg-white border-[#DDD6C7] text-[#14130F] placeholder-neutral-400 focus:border-black'
-                  }`}
+                  placeholder="Title, author or spine number"
+                  className="w-44 md:w-56 bg-transparent border-0 border-b border-white/40 py-1 text-sm text-paper placeholder:text-paper/60 focus:border-paper focus:outline-hidden"
                 />
-                <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] opacity-40 font-mono hidden sm:inline">
-                  /
-                </kbd>
 
                 {/* Suggestions */}
                 <AnimatePresence>
@@ -1781,7 +1649,7 @@ export function CriterionBookCloset() {
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 5 }}
-                      className="absolute left-0 right-0 top-full mt-2 bg-[#120F0D] border border-white/15 rounded-xl shadow-2xl p-1.5 z-50 space-y-1"
+                      className="absolute left-0 right-0 top-full mt-2 bg-[#0E0D0B] border border-white/25 p-1 z-50"
                     >
                       {searchSuggestions.map((book) => {
                         const style = getBookSpineStyle(book.title, book.id)
@@ -1792,19 +1660,13 @@ export function CriterionBookCloset() {
                               setSelectedBook(book)
                               setSearchQuery('')
                             }}
-                            className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-white/10 text-left transition-colors"
+                            className="w-full flex items-center justify-between gap-3 p-2 hover:bg-white/10 text-left"
                           >
-                            <div className="flex items-center gap-2 truncate">
-                              <span className="text-[10px] font-mono text-amber-300 font-bold">
-                                {style.spineNo}
-                              </span>
-                              <span className="text-xs text-white truncate font-serif">
-                                {book.title}
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-white/50 shrink-0 ml-2">
-                              {book.author_name || 'BBB'}
+                            <span className="truncate text-sm text-paper font-display">
+                              <span className="font-mono text-xs text-paper/70 mr-2">{style.spineNo}</span>
+                              {book.title}
                             </span>
+                            <span className="text-xs text-paper/70 shrink-0">{book.author_name || 'BBB'}</span>
                           </button>
                         )
                       })}
@@ -1814,68 +1676,40 @@ export function CriterionBookCloset() {
               </div>
             )}
 
-            {/* Filters Button */}
+            <button type="button" onClick={() => setIsFilterSheetOpen(true)} className={`min-h-9 ${hdrLink(viewMode === 'closet')}`}>
+              Filters{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
+            </button>
             <button
-              onClick={() => setIsFilterSheetOpen(true)}
-              className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                activeFiltersCount > 0
-                  ? 'bg-amber-600 border-amber-500 text-white'
-                  : viewMode === 'closet'
-                  ? 'bg-black/50 border-white/15 text-white/80 hover:text-white'
-                  : 'bg-white border-[#DDD6C7] text-neutral-700 hover:text-black'
-              }`}
+              type="button"
+              onClick={() => setIsPicksTrayOpen(true)}
+              title="Open your four library picks"
+              className={`min-h-9 ${hdrLink(viewMode === 'closet')}`}
             >
-              <span>Filters</span>
-              {activeFiltersCount > 0 && (
-                <span className="w-4 h-4 rounded-full bg-white text-black text-[10px] flex items-center justify-center font-bold">
-                  {activeFiltersCount}
-                </span>
-              )}
+              Picks{userPicks.length > 0 ? ` (${userPicks.length})` : ''}
+            </button>
+            {userPicks.length > 0 && (
+              <button type="button" onClick={() => setIsPolaroidOpen(true)} className={`min-h-9 ${hdrLink(viewMode === 'closet')}`}>
+                Polaroid
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleSyncDatabase}
+              disabled={isSyncing}
+              title="Load the latest changes from the database"
+              className={`min-h-9 disabled:opacity-60 ${hdrLink(viewMode === 'closet')}`}
+            >
+              {isSyncing ? 'Refreshing…' : 'Refresh'}
             </button>
 
-            {/* Desktop Sliding Pill Switcher */}
-            <nav
-              className="hidden md:flex relative items-center p-1 rounded-full border shadow-xs"
-              style={{
-                backgroundColor: viewMode === 'closet' ? 'rgba(255,255,255,0.06)' : '#FAF8F4',
-                borderColor: viewMode === 'closet' ? 'rgba(255,255,255,0.15)' : '#DDD6C7',
-              }}
-            >
-              <button
-                onClick={() => switchView('list')}
-                className={`relative z-10 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  viewMode === 'list'
-                    ? 'text-white'
-                    : viewMode === 'closet'
-                    ? 'text-white/60 hover:text-white'
-                    : 'text-neutral-600 hover:text-black'
-                }`}
-              >
-                List View
+            <div role="group" aria-label="View" className="flex items-center gap-x-4">
+              <button type="button" aria-pressed={viewMode === 'list'} onClick={() => switchView('list')} className={`min-h-9 ${hdrTab(viewMode === 'closet', viewMode === 'list')}`}>
+                List
               </button>
-
-              <button
-                onClick={() => switchView('closet')}
-                className={`relative z-10 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  viewMode === 'closet'
-                    ? 'text-white'
-                    : 'text-neutral-600 hover:text-black'
-                }`}
-              >
-                Shelves View
+              <button type="button" aria-pressed={viewMode === 'closet'} onClick={() => switchView('closet')} className={`min-h-9 ${hdrTab(viewMode === 'closet', viewMode === 'closet')}`}>
+                Shelves
               </button>
-
-              <m.div
-                layout
-                transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                className="absolute top-1 bottom-1 rounded-full shadow-md"
-                style={{
-                  backgroundColor: viewMode === 'closet' ? '#C69947' : '#14130F',
-                  left: viewMode === 'list' ? 4 : 'calc(50% + 2px)',
-                  width: 'calc(50% - 6px)',
-                }}
-              />
-            </nav>
+            </div>
           </div>
         </div>
       </header>
@@ -1912,132 +1746,102 @@ export function CriterionBookCloset() {
             }}
           />
 
-          {/* SHELF SECTION NAVIGATION CONTROLS (Paging across 3-wall rooms) */}
-          <div className="fixed top-16 z-30 inset-x-0 mx-auto w-fit max-w-[94vw] flex items-center justify-center gap-1.5 sm:gap-3 px-2.5 sm:px-4 py-1.5 rounded-full bg-black/90 border border-white/20 shadow-2xl sm:backdrop-blur-xl text-[10px] sm:text-xs font-mono">
-            {/* Prev Shelves Button */}
-            <button
-              onClick={() => setShelfSection((s) => Math.max(0, s - 1))}
-              disabled={safeSection === 0}
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 text-white font-semibold transition"
-              title="Previous Shelves (Left Arrow or [)"
-            >
-              <span>◀</span>
-              <span className="hidden sm:inline">Prev</span>
-            </button>
-
-            {/* Shelf & Meetup Range Badge */}
-            <div className="flex items-center gap-1.5 sm:gap-2 px-1 text-center">
-              <span className="font-bold text-amber-300">
+          {/* Shelf navigation: one flat text row under the header (no capsules, no yellow pills) */}
+          <div className="absolute top-0 inset-x-0 z-30 flex flex-wrap items-center justify-center gap-x-8 gap-y-1 px-4 py-2 text-sm text-paper bg-[#0E0D0B]/90 border-b border-white/10">
+            <div className="flex flex-wrap items-center justify-center gap-x-4">
+              <button
+                type="button"
+                onClick={() => setShelfSection((s) => Math.max(0, s - 1))}
+                disabled={safeSection === 0}
+                className="min-h-9 underline-offset-4 hover:underline disabled:opacity-40 disabled:no-underline"
+                title="Previous shelves (Left arrow or [)"
+              >
+                Previous
+              </button>
+              <span className="font-semibold">
                 Shelves {currentShelfStartNumber}–{currentShelfStartNumber + 2}
+                <span className="font-normal text-paper/70"> of {totalSections * 3}</span>
+                {sectionInfo.maxMeetup !== null && (
+                  <span className="font-normal text-paper/70">
+                    {sectionInfo.maxMeetup === sectionInfo.minMeetup
+                      ? ` · meetup #${sectionInfo.maxMeetup}`
+                      : ` · meetups #${sectionInfo.maxMeetup}–#${sectionInfo.minMeetup}`}
+                  </span>
+                )}
               </span>
-              <span className="text-white/40 hidden xs:inline">of {totalSections * 3}</span>
-              {sectionInfo.maxMeetup !== null && (
-                <span className="hidden md:inline px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] border border-amber-500/30">
-                  {sectionInfo.maxMeetup === sectionInfo.minMeetup
-                    ? `Meetup #${sectionInfo.maxMeetup}`
-                    : `Meetups #${sectionInfo.maxMeetup}–#${sectionInfo.minMeetup}`}
-                </span>
-              )}
-            </div>
-
-            {/* Next Shelves Button */}
-            <button
-              onClick={() => setShelfSection((s) => Math.min(totalSections - 1, s + 1))}
-              disabled={safeSection >= totalSections - 1}
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 text-white font-semibold transition"
-              title="Next Shelves (Right Arrow or ])"
-            >
-              <span className="hidden sm:inline">Next</span>
-              <span>▶</span>
-            </button>
-
-            {/* Direct Shelf Section Jump Dropdown */}
-            {totalSections > 1 && (
-              <div className="relative border-l border-white/20 pl-1.5 sm:pl-2">
+              <button
+                type="button"
+                onClick={() => setShelfSection((s) => Math.min(totalSections - 1, s + 1))}
+                disabled={safeSection >= totalSections - 1}
+                className="min-h-9 underline-offset-4 hover:underline disabled:opacity-40 disabled:no-underline"
+                title="Next shelves (Right arrow or ])"
+              >
+                Next
+              </button>
+              {totalSections > 1 && (
                 <select
                   aria-label="Jump to shelf section"
                   value={safeSection}
                   onChange={(e) => setShelfSection(Number(e.target.value))}
-                  className="bg-transparent text-amber-300 font-mono text-[10px] sm:text-[11px] appearance-none cursor-pointer focus:outline-hidden pr-3 sm:pr-4"
+                  className="min-h-9 bg-transparent border-0 border-b border-white/40 text-paper text-sm cursor-pointer focus:outline-hidden focus:border-paper"
                 >
                   {Array.from({ length: totalSections }).map((_, idx) => {
                     const startShelf = idx * 3 + 1
-                    const endShelf = startShelf + 2
                     return (
                       <option key={idx} value={idx} className="bg-[#14100D] text-white">
-                        {startShelf}–{endShelf} {idx === 0 ? '(Latest)' : ''}
+                        {startShelf}–{startShelf + 2} {idx === 0 ? '(latest)' : ''}
                       </option>
                     )
                   })}
                 </select>
-                <span className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[7px] text-amber-300">▼</span>
-              </div>
+              )}
+            </div>
+
+            <div role="group" aria-label="Wall" className="flex items-center gap-x-4">
+              {['Left wing', 'Main', 'Right wing'].map((label, i) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-pressed={currentWallIndex === i}
+                  onClick={() => snapToWall(i as 0 | 1 | 2)}
+                  className={`min-h-9 underline-offset-4 ${
+                    currentWallIndex === i ? 'font-semibold underline decoration-2' : 'text-paper/70 hover:text-paper hover:underline'
+                  }`}
+                >
+                  {label} ({currentShelfStartNumber + i})
+                </button>
+              ))}
+            </div>
+
+            <button type="button" onClick={handleRandomPick} className="min-h-9 underline-offset-4 hover:underline" title="Open a random book (R)">
+              Random
+            </button>
+
+            {selectedMeetup !== null && (
+              <span>
+                Shelving meetup #{selectedMeetup} ({filteredBooks.length} volumes){' '}
+                <button type="button" onClick={() => setSelectedMeetup(null)} className="underline underline-offset-4" title="Show all volumes">
+                  Show all
+                </button>
+              </span>
             )}
           </div>
 
-          {/* Wall Perspective Quick Switcher (Touch Friendly & Responsive) */}
-          <div className="fixed top-28 z-30 inset-x-0 mx-auto w-fit max-w-[94vw] flex items-center gap-1 p-1 rounded-full bg-black/90 border border-white/20 shadow-2xl sm:backdrop-blur-xl text-[10px] sm:text-xs font-mono">
-            <button
-              onClick={() => snapToWall(0)}
-              className={`px-2.5 sm:px-3.5 py-1 rounded-full transition-all ${
-                currentWallIndex === 0
-                  ? 'bg-amber-400 text-black font-bold shadow-md'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              ◂ Left Wing ({currentShelfStartNumber})
-            </button>
-            <button
-              onClick={() => snapToWall(1)}
-              className={`px-2.5 sm:px-3.5 py-1 rounded-full transition-all ${
-                currentWallIndex === 1
-                  ? 'bg-amber-400 text-black font-bold shadow-md'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              Main ({currentShelfStartNumber + 1})
-            </button>
-            <button
-              onClick={() => snapToWall(2)}
-              className={`px-2.5 sm:px-3.5 py-1 rounded-full transition-all ${
-                currentWallIndex === 2
-                  ? 'bg-amber-400 text-black font-bold shadow-md'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              Right Wing ({currentShelfStartNumber + 2}) ▸
-            </button>
-          </div>
-
-          {/* Active Meetup Shelving Badge (if single meetup filter selected) */}
-          {selectedMeetup !== null && (
-            <div className="fixed top-40 z-30 inset-x-0 mx-auto w-fit flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-amber-500 text-black font-mono text-xs font-bold shadow-2xl">
-              <span>Shelving Meetup #{selectedMeetup} ({filteredBooks.length} volumes)</span>
-              <button
-                onClick={() => setSelectedMeetup(null)}
-                className="w-4 h-4 rounded-full bg-black/20 hover:bg-black/40 text-black flex items-center justify-center text-[10px]"
-                title="Show all volumes"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
           {loadError && !loading ? (
             <div role="alert" className="text-center space-y-3 z-10 px-6">
-              <p className="font-serif text-sm text-amber-100">{loadError}</p>
+              <p className="font-serif text-sm text-paper/90">{loadError}</p>
               <button
                 type="button"
                 onClick={() => loadBooks()}
-                className="px-4 py-2 rounded-lg bg-amber-700 hover:bg-amber-700 text-white text-sm font-semibold focus:outline-hidden focus-visible:ring-2 focus-visible:ring-amber-300"
+                className="px-4 py-2 rounded-[2px] bg-white/10 hover:bg-paper-dark text-white text-sm font-semibold focus:outline-hidden focus-visible:ring-2 focus-visible:ring-paper"
               >
                 Try again
               </button>
             </div>
           ) : loading ? (
             <div className="text-center space-y-3 z-10" role="status" aria-live="polite">
-              <div className="inline-block w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-              <p className="font-serif text-xs text-amber-200/60 uppercase tracking-widest">
+              <div className="inline-block w-8 h-8 border-2 border-white/25 border-t-transparent rounded-full animate-spin" />
+              <p className="font-serif text-xs text-paper/90 uppercase tracking-widest">
                 Shelving the collection…
               </p>
             </div>
@@ -2206,33 +2010,6 @@ export function CriterionBookCloset() {
             </m.div>
           )}
 
-          {/* Floating Left Stack Toolbar */}
-          <nav className="fixed left-5 top-20 z-40 hidden md:flex flex-col items-start gap-2.5 pointer-events-auto">
-            <button
-              onClick={() => document.getElementById('closet-search-input')?.focus()}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/85 border border-white/15 text-white/80 hover:text-white text-xs font-mono backdrop-blur-xl shadow-lg transition-all"
-            >
-              <span>Search</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">/</kbd>
-            </button>
-
-            <button
-              onClick={() => setIsFilterSheetOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/85 border border-white/15 text-white/80 hover:text-white text-xs font-mono backdrop-blur-xl shadow-lg transition-all"
-            >
-              <span>Filters</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">F</kbd>
-            </button>
-
-            <button
-              onClick={handleRandomPick}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/85 border border-white/15 text-white/80 hover:text-white text-xs font-mono backdrop-blur-xl shadow-lg transition-all"
-            >
-              <span>Random</span>
-              <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">R</kbd>
-            </button>
-          </nav>
-
           {/* Floating Hovered / Selected Case Info Card */}
           <div className="fixed bottom-4 left-3 right-16 sm:inset-x-auto sm:left-6 sm:bottom-6 z-40 pointer-events-none flex justify-center sm:justify-start">
             {hoveredBook && !selectedBook && (
@@ -2242,15 +2019,15 @@ export function CriterionBookCloset() {
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.18 }}
                 onClick={() => setSelectedBook(hoveredBook)}
-                className="bg-[#120F0D]/95 border border-amber-500/35 hover:border-amber-400/70 rounded-2xl p-3.5 sm:p-4 shadow-2xl sm:backdrop-blur-2xl text-left w-full max-w-sm pointer-events-auto cursor-pointer transition-colors group"
+                className="bg-[#120F0D]/95 border border-white/25 hover:border-white/50 rounded-[2px] p-3.5 sm:p-4 shadow-2xl sm:text-left w-full max-w-sm pointer-events-auto cursor-pointer transition-colors group"
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-amber-400 font-bold block">
+                    <span className="text-xs font-mono text-paper/90 font-bold block">
                       {getBookSpineStyle(hoveredBook.title, hoveredBook.id).spineNo}
                     </span>
                     {hoveredBook.meetups && hoveredBook.meetups.length > 0 && (
-                      <span className="text-[10px] font-mono font-medium text-amber-300 bg-amber-400/10 px-2 py-0.5 rounded border border-amber-400/25">
+                      <span className="text-[10px] font-mono font-medium text-paper/90 bg-paper px-2 py-0.5 rounded border border-white/25">
                         Meetup #{hoveredBook.meetups.map((m) => m.number).join(', #')}
                       </span>
                     )}
@@ -2262,14 +2039,14 @@ export function CriterionBookCloset() {
                         setHoveredBook(null)
                         currentHoveredIdRef.current = null
                       }}
-                      className="w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 flex items-center justify-center text-xs"
+                      className="w-5 h-5 rounded-[2px] bg-white/10 hover:bg-white/20 text-white/70 flex items-center justify-center text-xs"
                       title="Dismiss preview"
                     >
                       ✕
                     </button>
                   )}
                 </div>
-                <h4 className="font-display text-sm font-bold text-white line-clamp-1 leading-snug group-hover:text-amber-200 transition-colors">
+                <h4 className="font-display text-sm font-bold text-white line-clamp-1 leading-snug group-hover:text-paper transition-colors">
                   {hoveredBook.title}
                 </h4>
                 <p className="text-[11px] text-white/60 font-serif line-clamp-1 mt-0.5">
@@ -2290,12 +2067,12 @@ export function CriterionBookCloset() {
 
           {/* Mobile Zoom Controls (+ / - buttons and current zoom percentage) */}
           {isMobile && (
-            <div className="fixed bottom-20 right-3 z-40 flex flex-col items-center gap-1 p-1 rounded-2xl bg-black/90 border border-white/20 shadow-2xl text-white font-mono pointer-events-auto">
+            <div className="fixed bottom-20 right-3 z-40 flex flex-col items-center gap-1 p-1 rounded-[2px] bg-black/90 border border-white/20 shadow-2xl text-white font-mono pointer-events-auto">
               <button
                 type="button"
                 onClick={() => setMobileZoom((z) => Math.min(2.5, Number((z + 0.35).toFixed(2))))}
                 disabled={mobileZoom >= 2.5}
-                className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:bg-amber-400 active:text-black disabled:opacity-30 flex items-center justify-center font-bold text-sm transition"
+                className="w-8 h-8 rounded-[2px] bg-white/10 hover:bg-white/20 active:bg-paper active:text-black disabled:opacity-30 flex items-center justify-center font-bold text-sm transition"
                 title="Zoom in on shelf"
                 aria-label="Zoom in on shelf"
               >
@@ -2304,7 +2081,7 @@ export function CriterionBookCloset() {
               <button
                 type="button"
                 onClick={() => setMobileZoom(1)}
-                className="px-1 py-0.5 text-[9px] text-amber-300 font-bold hover:text-white transition"
+                className="px-1 py-0.5 text-[9px] text-paper/90 font-bold hover:text-white transition"
                 title="Reset zoom to 1x"
                 aria-label="Reset zoom"
               >
@@ -2314,7 +2091,7 @@ export function CriterionBookCloset() {
                 type="button"
                 onClick={() => setMobileZoom((z) => Math.max(1, Number((z - 0.35).toFixed(2))))}
                 disabled={mobileZoom <= 1.05}
-                className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:bg-amber-400 active:text-black disabled:opacity-30 flex items-center justify-center font-bold text-sm transition"
+                className="w-8 h-8 rounded-[2px] bg-white/10 hover:bg-white/20 active:bg-paper active:text-black disabled:opacity-30 flex items-center justify-center font-bold text-sm transition"
                 title="Zoom out on shelf"
                 aria-label="Zoom out on shelf"
               >
@@ -2337,14 +2114,12 @@ export function CriterionBookCloset() {
               <input
                 id="list-search-input"
                 type="search"
+                aria-label="Search by title, author or spine number"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Title, author or spine #…"
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl text-xs bg-white border border-[#DDD6C7] text-[#14130F] placeholder-neutral-400 focus:outline-hidden focus:border-black shadow-xs"
+                placeholder="Title, author or spine number"
+                className="w-full bg-transparent border-0 border-b border-border-dark py-2 text-base text-ink placeholder:text-muted focus:outline-hidden focus:border-ink"
               />
-              <svg className="w-4 h-4 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
             </div>
 
             {/* Filter Dropdowns on Right (Meetup, Discussions, Sort) */}
@@ -2355,11 +2130,7 @@ export function CriterionBookCloset() {
                   aria-label="Filter by meetup"
                   value={selectedMeetup ?? ''}
                   onChange={(e) => setSelectedMeetup(e.target.value ? Number(e.target.value) : null)}
-                  className={`pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-hidden transition-colors shadow-xs ${
-                    selectedMeetup !== null
-                      ? 'bg-amber-700 text-white border-amber-600'
-                      : 'bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400'
-                  }`}
+                  className={`min-h-9 bg-transparent border-0 border-b border-border-dark py-1 pr-6 text-sm text-ink appearance-none cursor-pointer focus:outline-hidden focus:border-ink ${selectedMeetup !== null ? 'font-semibold' : ''}`}
                 >
                   <option value="" className="text-neutral-800 bg-white">All Meetups</option>
                   {availableMeetups.map((m) => (
@@ -2369,7 +2140,7 @@ export function CriterionBookCloset() {
                   ))}
                 </select>
                 <span className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] ${
-                  selectedMeetup !== null ? 'text-white' : 'text-neutral-500'
+                  selectedMeetup !== null ? 'text-ink' : 'text-neutral-500'
                 }`}>▼</span>
               </div>
 
@@ -2379,11 +2150,7 @@ export function CriterionBookCloset() {
                   aria-label="Filter by number of discussions"
                   value={discussionFilter}
                   onChange={(e) => setDiscussionFilter(e.target.value as any)}
-                  className={`pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-hidden transition-colors shadow-xs ${
-                    discussionFilter !== 'all'
-                      ? 'bg-amber-700 text-white border-amber-600'
-                      : 'bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400'
-                  }`}
+                  className={`min-h-9 bg-transparent border-0 border-b border-border-dark py-1 pr-6 text-sm text-ink appearance-none cursor-pointer focus:outline-hidden focus:border-ink ${discussionFilter !== 'all' ? 'font-semibold' : ''}`}
                 >
                   <option value="all" className="text-neutral-800 bg-white">All Discussions</option>
                   <option value="popular" className="text-neutral-800 bg-white">★ 3+ Discussions</option>
@@ -2391,7 +2158,7 @@ export function CriterionBookCloset() {
                   <option value="single" className="text-neutral-800 bg-white">1 Discussion</option>
                 </select>
                 <span className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] ${
-                  discussionFilter !== 'all' ? 'text-white' : 'text-neutral-500'
+                  discussionFilter !== 'all' ? 'text-ink' : 'text-neutral-500'
                 }`}>▼</span>
               </div>
 
@@ -2404,7 +2171,7 @@ export function CriterionBookCloset() {
                     setSortBy(e.target.value as any)
                     if (e.target.value === 'random') setShuffleSeed((s) => s + 1)
                   }}
-                  className="pl-3 pr-7 py-2 rounded-xl text-xs font-medium border appearance-none cursor-pointer focus:outline-hidden transition-colors bg-white border-[#DDD6C7] text-neutral-700 hover:border-neutral-400 shadow-xs"
+                  className="min-h-9 bg-transparent border-0 border-b border-border-dark py-1 pr-6 text-sm text-ink appearance-none cursor-pointer focus:outline-hidden focus:border-ink"
                 >
                   <option value="latest">Sort: Latest to Oldest</option>
                   <option value="spine-asc">Sort: Spine # (Ascending)</option>
@@ -2420,9 +2187,7 @@ export function CriterionBookCloset() {
 
           {/* YOUR LISTS Section (Screenshot 2026-10-01 201506.png) */}
           <div className="pt-2 pb-4">
-            <span className="text-[10px] font-mono tracking-widest uppercase text-neutral-400 font-bold block mb-2">
-              YOUR LISTS
-            </span>
+            <span className="text-sm font-semibold text-ink block mb-1">Lists</span>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => {
@@ -2431,34 +2196,23 @@ export function CriterionBookCloset() {
                   setSelectedMeetup(null)
                   setSearchQuery('')
                 }}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  discussionFilter === 'all' && selectedLetter === null && selectedMeetup === null && searchQuery === ''
-                    ? 'bg-[#14130F] text-white shadow-xs'
-                    : 'bg-white border border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
-                }`}
+                className={`min-h-9 text-sm underline-offset-4 ${discussionFilter === 'all' && selectedLetter === null && selectedMeetup === null && searchQuery === '' ? 'font-semibold underline decoration-2' : 'text-ink-light hover:underline'}`}
               >
                 All books
               </button>
 
               <button
                 onClick={() => setIsPicksTrayOpen(true)}
-                className="px-4 py-1.5 rounded-full text-xs font-semibold bg-white border border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100 transition-all flex items-center gap-1.5"
+                className="min-h-9 text-sm text-ink-light underline-offset-4 hover:underline"
               >
-                <span>★ Library Picks</span>
-                <span className="w-4 h-4 rounded-full bg-amber-400 text-black text-[10px] font-bold flex items-center justify-center">
-                  {userPicks.length}
-                </span>
+                <span>Library picks ({userPicks.length})</span>
               </button>
 
               <button
                 onClick={() => setDiscussionFilter(discussionFilter === 'popular' ? 'all' : 'popular')}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                  discussionFilter === 'popular'
-                    ? 'bg-amber-700 text-white shadow-xs'
-                    : 'bg-white border border-[#DDD6C7] text-neutral-700 hover:bg-neutral-100'
-                }`}
+                className={`min-h-9 text-sm underline-offset-4 ${discussionFilter === 'popular' ? 'font-semibold underline decoration-2' : 'text-ink-light hover:underline'}`}
               >
-                ★ Community Favorites
+                Community favorites
               </button>
             </div>
           </div>
@@ -2476,14 +2230,7 @@ export function CriterionBookCloset() {
               <Link href="/members" className="underline text-neutral-600 hover:text-black">
                 Readers Directory →
               </Link>
-              <Link
-                href="/admin"
-                onMouseEnter={() => fetch('/api/auth/ok', { cache: 'no-store' }).catch(() => {})}
-                onTouchStart={() => fetch('/api/auth/ok', { cache: 'no-store' }).catch(() => {})}
-                className="underline text-amber-800 hover:text-black font-semibold"
-              >
-                Manage DB →
-              </Link>
+              <AdminLink className="underline text-neutral-600 hover:text-black" />
             </div>
           </div>
 
@@ -2512,16 +2259,16 @@ export function CriterionBookCloset() {
                     }
                   }}
                   style={{ contentVisibility: 'auto', containIntrinsicSize: '320px' }}
-                  className="group flex flex-col cursor-pointer text-left select-none transition-all duration-200 hover:-translate-y-1.5 outline-hidden focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+                  className="group flex flex-col cursor-pointer text-left select-none outline-hidden focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
                 >
                   {/* Card Front Cover with Criterion Spine Badge */}
-                  <div className="relative w-full aspect-2/3 rounded-2xl overflow-hidden shadow-md group-hover:shadow-2xl transition-all duration-300 border border-[#DDD6C7] bg-[#1E1B18]">
+                  <div className="relative w-full aspect-2/3 overflow-hidden border border-border bg-[#1E1B18]">
                     {hasCover ? (
                       <img
                         src={coverSrc}
                         alt={book.title}
                         loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300"
+                        className="w-full h-full object-cover"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none'
                         }}
@@ -2552,14 +2299,9 @@ export function CriterionBookCloset() {
                       <div className="w-5 h-px mx-auto opacity-50" style={{ backgroundColor: style.palette.foil }} />
                     </div>
 
-                    {/* Top-Left Rounded Black Pill Badge: SPINE X (Screenshot 2026-10-01 201506.png) */}
-                    <div className="absolute top-2.5 left-2.5 z-10 bg-black/85 text-white text-[9px] sm:text-[9.5px] font-mono font-bold tracking-wider px-2 py-0.5 rounded-full backdrop-blur-md shadow-md border border-white/20">
-                      SPINE {style.numericSpine}
-                    </div>
-
-                    {/* Saved In Picks Indicator */}
+                    {/* Saved in picks: a plain label, not a glowing dot */}
                     {isSaved && (
-                      <div className="absolute top-2.5 right-2.5 z-10 w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.95)]" />
+                      <div className="absolute top-2 right-2 z-10 bg-paper text-ink text-xs font-semibold px-1.5 py-0.5">Saved</div>
                     )}
 
                     {/* Hover sheen */}
@@ -2574,6 +2316,7 @@ export function CriterionBookCloset() {
                     <p className="text-[11px] sm:text-xs text-neutral-500 truncate block mt-0.5">
                       {pubYear ? `${pubYear} · ` : ''}{book.author_name || 'Bangalore Book Club'}
                     </p>
+                    <p className="text-xs font-mono text-muted mt-0.5">Spine {style.numericSpine}</p>
                     {book.meetups && book.meetups.length > 0 && (
                       <div className="mt-1 flex items-center gap-1 flex-wrap">
                         {book.meetups.slice(0, 2).map((m) => (
@@ -2583,18 +2326,18 @@ export function CriterionBookCloset() {
                               e.stopPropagation()
                               setSelectedMeetup(m.number)
                             }}
-                            className="inline-block px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-amber-100/90 hover:bg-amber-200 text-amber-900 border border-amber-300/70 transition-colors"
+                            className="text-xs font-mono text-ink-light underline underline-offset-2 hover:text-accent cursor-pointer"
                             title={`Filter archive by Meetup #${m.number}`}
                           >
                             #{m.number}
                           </span>
                         ))}
                         {book.meetups.length > 2 && (
-                          <span className="text-[9px] font-mono text-neutral-400">
+                          <span className="text-xs font-mono text-muted">
                             +{book.meetups.length - 2}
                           </span>
                         )}
-                        <span className="text-[9px] font-mono text-neutral-400 ml-auto">
+                        <span className="text-xs font-mono text-muted ml-auto">
                           {book.discussion_count} {book.discussion_count === 1 ? 'disc' : 'discs'}
                         </span>
                       </div>
@@ -2611,11 +2354,11 @@ export function CriterionBookCloset() {
               ref={loadMoreRef}
               className="py-12 flex flex-col items-center justify-center gap-3 text-neutral-600"
             >
-              <div className="w-5 h-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-white/25 border-t-transparent rounded-full animate-spin" />
               <button
                 type="button"
                 onClick={() => setVisibleListCount((c) => Math.min(filteredBooks.length, c + 60))}
-                className="px-4 py-2 rounded-full bg-black/5 hover:bg-black/10 text-xs font-mono font-medium text-neutral-700 transition"
+                className="min-h-9 underline underline-offset-4 text-sm text-ink hover:text-accent"
               >
                 Load more ({displayedBooks.length} of {filteredBooks.length.toLocaleString()})
               </button>
@@ -2634,7 +2377,7 @@ export function CriterionBookCloset() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+              className="fixed inset-0 bg-black/60"
               onClick={() => setIsFilterSheetOpen(false)}
             />
 
@@ -2657,7 +2400,7 @@ export function CriterionBookCloset() {
                   </div>
                   <button
                     onClick={() => setIsFilterSheetOpen(false)}
-                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-sm"
+                    className="w-8 h-8 rounded-[2px] bg-white/10 hover:bg-white/20 flex items-center justify-center text-sm"
                   >
                     ✕
                   </button>
@@ -2666,13 +2409,13 @@ export function CriterionBookCloset() {
                 {/* Meetup Facet */}
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-2.5">
-                    <span className="text-xs font-mono uppercase tracking-wider text-amber-400">
+                    <span className="text-xs font-mono uppercase tracking-wider text-paper/90">
                       Filter by Meetup
                     </span>
                     {selectedMeetup !== null && (
                       <button
                         onClick={() => setSelectedMeetup(null)}
-                        className="text-[10px] font-mono text-amber-300 hover:underline"
+                        className="text-[10px] font-mono text-paper/90 hover:underline"
                       >
                         Clear (M#{selectedMeetup})
                       </button>
@@ -2683,7 +2426,7 @@ export function CriterionBookCloset() {
                       aria-label="Filter by meetup"
                       value={selectedMeetup ?? ''}
                       onChange={(e) => setSelectedMeetup(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/15 text-xs text-white focus:outline-hidden focus:border-amber-400 cursor-pointer"
+                      className="w-full px-3 py-2 rounded-[2px] bg-white/10 border border-white/15 text-xs text-white focus:outline-hidden focus:border-paper cursor-pointer"
                     >
                       <option value="" className="bg-[#14100D] text-white">All Meetups ({availableMeetups.length})</option>
                       {availableMeetups.map((m) => (
@@ -2698,11 +2441,7 @@ export function CriterionBookCloset() {
                       <button
                         key={`drawer-m-${m.number}`}
                         onClick={() => setSelectedMeetup(selectedMeetup === m.number ? null : m.number)}
-                        className={`px-2 py-1 rounded text-[10px] font-mono font-medium transition-colors ${
-                          selectedMeetup === m.number
-                            ? 'bg-amber-500 text-black font-bold shadow-xs'
-                            : 'bg-white/5 hover:bg-white/15 text-white/80'
-                        }`}
+                        className={`px-1 py-1 text-xs font-mono underline-offset-4 ${selectedMeetup === m.number ? 'text-white font-semibold underline decoration-2' : 'text-white/70 hover:text-white hover:underline'}`}
                       >
                         #{m.number}
                       </button>
@@ -2712,7 +2451,7 @@ export function CriterionBookCloset() {
 
                 {/* Discussions Facet */}
                 <div className="mt-6">
-                  <span className="text-xs font-mono uppercase tracking-wider text-amber-400 block mb-2.5">
+                  <span className="text-xs font-mono uppercase tracking-wider text-paper/90 block mb-2.5">
                     Discussions Volume
                   </span>
                   <div className="space-y-1.5">
@@ -2725,9 +2464,9 @@ export function CriterionBookCloset() {
                       <button
                         key={f.id}
                         onClick={() => setDiscussionFilter(f.id as any)}
-                        className={`w-full text-left px-3 py-2 rounded-xl text-xs font-serif transition-colors ${
+                        className={`w-full text-left px-3 py-2 rounded-[2px] text-xs font-serif transition-colors ${
                           discussionFilter === f.id
-                            ? 'bg-amber-700 text-white font-bold'
+                            ? 'bg-white/10 text-white font-bold'
                             : 'bg-white/5 hover:bg-white/10 text-white/80'
                         }`}
                       >
@@ -2739,12 +2478,12 @@ export function CriterionBookCloset() {
 
                 {/* Sort Sequence Facet */}
                 <div className="mt-6">
-                  <span className="text-xs font-mono uppercase tracking-wider text-amber-400 block mb-2.5">
+                  <span className="text-xs font-mono uppercase tracking-wider text-paper/90 block mb-2.5">
                     Sort Sequence
                   </span>
                   <div className="space-y-1.5">
                     {[
-                      { id: 'random', label: '🔀 Random Order' },
+                      { id: 'random', label: 'Random Order' },
                       { id: 'latest', label: '⚡ Latest Meetups / Most Recent (Default)' },
                       { id: 'title-asc', label: 'Title (A–Z)' },
                       { id: 'discussions-desc', label: 'Most Discussed' },
@@ -2757,9 +2496,9 @@ export function CriterionBookCloset() {
                           setSortBy(s.id as any)
                           if (s.id === 'random') setShuffleSeed((seed) => seed + 1)
                         }}
-                        className={`w-full text-left px-3 py-2 rounded-xl text-xs font-serif transition-colors ${
+                        className={`w-full text-left px-3 py-2 rounded-[2px] text-xs font-serif transition-colors ${
                           sortBy === s.id
-                            ? 'bg-amber-700 text-white font-bold'
+                            ? 'bg-white/10 text-white font-bold'
                             : 'bg-white/5 hover:bg-white/10 text-white/80'
                         }`}
                       >
@@ -2772,13 +2511,13 @@ export function CriterionBookCloset() {
                 {/* Alphabet A-Z Facet */}
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-2.5">
-                    <span className="text-xs font-mono uppercase tracking-wider text-amber-400">
+                    <span className="text-xs font-mono uppercase tracking-wider text-paper/90">
                       Alphabet Index
                     </span>
                     {selectedLetter && (
                       <button
                         onClick={() => setSelectedLetter(null)}
-                        className="text-[10px] font-mono text-amber-300 hover:underline"
+                        className="text-[10px] font-mono text-paper/90 hover:underline"
                       >
                         Clear letter
                       </button>
@@ -2791,7 +2530,7 @@ export function CriterionBookCloset() {
                         onClick={() => setSelectedLetter(selectedLetter === letter ? null : letter)}
                         className={`py-1.5 rounded text-xs font-mono font-bold transition-colors ${
                           selectedLetter === letter
-                            ? 'bg-amber-500 text-black'
+                            ? 'bg-paper text-black'
                             : 'bg-white/5 hover:bg-white/15 text-white/80'
                         }`}
                       >
@@ -2818,7 +2557,7 @@ export function CriterionBookCloset() {
                 </button>
                 <button
                   onClick={() => setIsFilterSheetOpen(false)}
-                  className="px-5 py-2 rounded-full bg-white text-black text-xs font-semibold uppercase tracking-wider hover:bg-amber-100"
+                  className="px-5 py-2 rounded-[2px] bg-white text-black text-xs font-semibold uppercase tracking-wider hover:bg-paper-dark"
                 >
                   Show {filteredBooks.length} Volumes
                 </button>
