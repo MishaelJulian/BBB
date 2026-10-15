@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { Container } from '@/components/layout/Container'
 import { Section } from '@/components/layout/Section'
 import { Divider } from '@/components/ui/Divider'
-import { Badge } from '@/components/ui/Badge'
 import { LoadingState } from '@/components/shared/LoadingState'
 import { ErrorState } from '@/components/shared/ErrorState'
 import { fetchBook } from '@/lib/api'
@@ -152,35 +151,18 @@ export default function BookPage() {
                 </p>
               )}
 
-              {/* Quick stats & Spatial Action */}
-              <div className="flex flex-wrap items-center gap-3 mb-6">
-                <Badge variant="secondary">
-                  {book.discussion_count} discussions
-                </Badge>
-                {book.first_discussed_date && (
-                  <Badge variant="secondary">
-                    First discussed {formatDate(book.first_discussed_date)}
-                  </Badge>
-                )}
-                {book.last_discussed_date && (
-                  <Badge variant="secondary">
-                    Last mentioned {formatDate(book.last_discussed_date)}
-                  </Badge>
-                )}
-              </div>
-
+              <p className="mb-6 text-base text-muted">
+                {book.discussion_count} {book.discussion_count === 1 ? 'discussion' : 'discussions'}
+                {book.first_discussed_date ? ` · first discussed ${formatDate(book.first_discussed_date)}` : ''}
+                {book.last_discussed_date ? ` · last mentioned ${formatDate(book.last_discussed_date)}` : ''}
+              </p>
               {/* Spatial 3D Shelf Action */}
               <div className="mb-6">
                 <Link
                   href={`/library-room?select=${book.id}`}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-800 hover:bg-amber-700 text-paper font-medium text-xs tracking-wider uppercase shadow-md hover:shadow-lg transition-all"
+                  className="inline-block bg-ink text-paper text-base font-semibold px-5 py-3 rounded-[2px] shadow-[3px_3px_0_0_var(--color-accent)] transition-[transform,box-shadow] hover:translate-x-px hover:translate-y-px hover:shadow-[2px_2px_0_0_var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
                 >
-                  <svg className="w-4 h-4 text-amber-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                  </svg>
-                  <span>View on 3D Shelf</span>
-                  <span className="text-amber-200">→</span>
+                  Find this book on the shelf
                 </Link>
               </div>
 
@@ -204,26 +186,10 @@ export default function BookPage() {
             BBB History
           </h2>
 
-          <div className="grid grid-cols-3 gap-8 mb-8">
-            <div className="text-center">
-              <div className="text-3xl font-display font-bold text-ink">
-                {book.discussion_count}
-              </div>
-              <div className="text-sm text-muted">Discussions</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-display font-bold text-ink">
-                {book.meetups.length}
-              </div>
-              <div className="text-sm text-muted">Meetups</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-display font-bold text-ink">
-                {book.members.length}
-              </div>
-              <div className="text-sm text-muted">Readers</div>
-            </div>
-          </div>
+          <p className="text-lg text-ink-light mb-8">
+            {book.discussion_count} {book.discussion_count === 1 ? 'discussion' : 'discussions'} across {book.meetups.length}{' '}
+            {book.meetups.length === 1 ? 'meetup' : 'meetups'}, with {book.members.length} {book.members.length === 1 ? 'reader' : 'readers'}.
+          </p>
         </Container>
       </Section>
 
@@ -283,18 +249,18 @@ export default function BookPage() {
             Readers & Discussants
           </h2>
 
-          <div className="flex flex-wrap gap-3">
+          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-base">
             {book.members.map((member) => (
-              <Link
-                key={member.id}
-                href={`/members/${member.id}`}
-                className="px-4 py-2 rounded-full border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/50 hover:text-amber-900 text-sm text-ink transition-all shadow-xs flex items-center gap-1.5"
-              >
-                <span>{member.display_name}</span>
-                <span className="text-xs text-muted/60">→</span>
-              </Link>
+              <li key={member.id}>
+                <Link
+                  href={`/members/${member.id}`}
+                  className="text-ink underline decoration-border-dark underline-offset-4 hover:decoration-accent hover:text-accent"
+                >
+                  {member.display_name}
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         </Container>
       </Section>
     </>

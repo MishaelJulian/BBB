@@ -170,7 +170,7 @@ export default function MembersPage() {
                   <h3 className="font-display font-bold text-lg text-ink">
                     Removed Readers Archive
                   </h3>
-                  <span className="px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-700 text-[11px] font-mono">
+                  <span className="text-sm text-muted">
                     {removedList.length}
                   </span>
                 </div>

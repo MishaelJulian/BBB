@@ -67,7 +67,7 @@ export function FilterPanel({ filters, onFiltersChange, className }: FilterPanel
           </svg>
           Filters
           {hasActiveFilters && (
-            <span className="ml-2 h-5 w-5 rounded-full bg-accent text-white text-xs flex items-center justify-center">
+            <span className="ml-2 text-sm font-semibold text-accent">
               {(filters.author ? 1 : 0) + (filters.year ? 1 : 0)}
             </span>
           )}

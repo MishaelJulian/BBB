@@ -170,95 +170,34 @@ export default function MemberDossierPage() {
             <span className="text-ink font-medium">{member.display_name}</span>
           </nav>
 
-          <div className="p-8 sm:p-10 rounded-xl border border-border bg-paper-dark/70 shadow-xs relative overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-2">
-                {/* Archival seal stamp */}
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/20 border border-amber-800/30 text-amber-900 text-[11px] font-mono tracking-[0.2em] uppercase">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-700" />
-                  Archival Reader Dossier
-                </div>
-              </div>
-
-              {isAdmin && (
-                <button
-                  type="button"
-                  disabled={isUpdating}
-                  onClick={handleRemove}
-                  className="px-3 py-1.5 text-xs font-mono tracking-wider rounded-lg border border-red-200 bg-red-50 hover:bg-red-600 hover:text-white text-red-700 transition-all font-semibold"
-                >
-                  {isUpdating ? 'Removing…' : '✕ Remove Member from Archive'}
-                </button>
-              )}
-            </div>
-
+          <header>
+            <h1 className="font-display text-4xl sm:text-5xl font-bold text-ink leading-tight">
+              {member.display_name}
+            </h1>
+            <p className="mt-3 text-base text-muted">
+              {member.book_count} {member.book_count === 1 ? 'book' : 'books'} discussed · {member.meetup_count}{' '}
+              {member.meetup_count === 1 ? 'meetup' : 'meetups'} attended
+              {member.first_active_date ? ` · first recorded ${formatDate(member.first_active_date)}` : ''}
+              {member.last_active_date ? ` · latest ${formatDate(member.last_active_date)}` : ''}
+            </p>
+            {member.bio && <p className="mt-4 max-w-prose text-ink-light">{member.bio}</p>}
             {isAdmin && (
-              <div className="mb-4 flex flex-wrap items-center gap-3">
-                <button type="button" onClick={createInvite} disabled={inviteBusy} className="px-3 py-1.5 text-xs font-mono tracking-wider rounded-lg border border-border bg-white hover:bg-paper-dark text-ink disabled:opacity-60">
+              <div className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2 text-sm">
+                <button type="button" onClick={createInvite} disabled={inviteBusy} className="text-ink underline underline-offset-4 hover:text-accent disabled:opacity-60">
                   {inviteBusy ? 'Creating…' : 'Create invite code'}
                 </button>
+                <button type="button" disabled={isUpdating} onClick={handleRemove} className="text-[#a8442a] underline underline-offset-4 hover:text-ink disabled:opacity-60">
+                  {isUpdating ? 'Removing…' : 'Remove member from archive'}
+                </button>
                 {invite && 'code' in invite && (
-                  <p role="status" className="text-sm text-ink">
+                  <p role="status" className="basis-full text-ink">
                     Code: <strong className="font-mono text-base select-all">{invite.code}</strong> <span className="text-muted">(shown once; expires {new Date(invite.expires_at).toLocaleDateString()}). Send it to {member?.display_name}.</span>
                   </p>
                 )}
-                {invite && 'error' in invite && <p role="alert" className="text-sm text-red-700">{invite.error}</p>}
+                {invite && 'error' in invite && <p role="alert" className="basis-full text-[#a8442a]">{invite.error}</p>}
               </div>
             )}
-
-            <h1 className="font-display text-4xl sm:text-5xl font-bold text-ink mb-3">
-              {member.display_name}
-            </h1>
-
-            {member.bio && (
-              <p className="text-muted text-base max-w-xl mb-6 italic">
-                "{member.bio}"
-              </p>
-            )}
-
-            {/* Dossier Quick Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-border/80">
-              <div>
-                <div className="text-2xl sm:text-3xl font-display font-bold text-ink">
-                  {member.book_count}
-                </div>
-                <div className="text-xs text-muted font-mono uppercase tracking-wider">
-                  {member.book_count === 1 ? 'Book Discussed' : 'Books Discussed'}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-2xl sm:text-3xl font-display font-bold text-ink">
-                  {member.meetup_count}
-                </div>
-                <div className="text-xs text-muted font-mono uppercase tracking-wider">
-                  {member.meetup_count === 1 ? 'Meetup Attended' : 'Meetups Attended'}
-                </div>
-              </div>
-
-              {member.first_active_date && (
-                <div>
-                  <div className="text-sm font-semibold text-ink mt-1">
-                    {formatDate(member.first_active_date)}
-                  </div>
-                  <div className="text-xs text-muted font-mono uppercase tracking-wider">
-                    First Recorded
-                  </div>
-                </div>
-              )}
-
-              {member.last_active_date && (
-                <div>
-                  <div className="text-sm font-semibold text-ink mt-1">
-                    {formatDate(member.last_active_date)}
-                  </div>
-                  <div className="text-xs text-muted font-mono uppercase tracking-wider">
-                    Latest Activity
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          </header>
         </Container>
       </Section>
 

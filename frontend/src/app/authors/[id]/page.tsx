@@ -81,49 +81,15 @@ export default function AuthorRecordPage() {
             <span className="text-ink font-medium">{author.full_name}</span>
           </nav>
 
-          <div className="p-8 sm:p-10 rounded-xl border border-border bg-paper-dark/70 shadow-xs relative overflow-hidden">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-900/20 border border-amber-800/30 text-amber-900 text-[11px] font-mono tracking-[0.2em] uppercase mb-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-700" />
-              Author Archive Record
-            </div>
-
-            <h1 className="font-display text-4xl sm:text-5xl font-bold text-ink mb-2">
-              {author.full_name}
-            </h1>
-
-            {author.country && (
-              <p className="text-sm font-mono text-muted mb-4">
-                Origin: {author.country}
-              </p>
-            )}
-
-            {author.description && (
-              <p className="text-muted text-base max-w-xl mb-6 italic">
-                "{author.description}"
-              </p>
-            )}
-
-            {/* Quick stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 pt-6 border-t border-border/80">
-              <div>
-                <div className="text-2xl sm:text-3xl font-display font-bold text-ink">
-                  {author.book_count}
-                </div>
-                <div className="text-xs text-muted font-mono uppercase tracking-wider">
-                  {author.book_count === 1 ? 'Volume in Collection' : 'Volumes in Collection'}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-2xl sm:text-3xl font-display font-bold text-ink">
-                  {author.discussion_count}
-                </div>
-                <div className="text-xs text-muted font-mono uppercase tracking-wider">
-                  {author.discussion_count === 1 ? 'Discussion Recorded' : 'Discussions Recorded'}
-                </div>
-              </div>
-            </div>
-          </div>
+          <header>
+            <h1 className="font-display text-4xl sm:text-5xl font-bold text-ink leading-tight">{author.full_name}</h1>
+            <p className="mt-3 text-base text-muted">
+              {author.country ? `${author.country} · ` : ''}
+              {author.book_count} {author.book_count === 1 ? 'volume' : 'volumes'} in the collection · {author.discussion_count}{' '}
+              {author.discussion_count === 1 ? 'discussion' : 'discussions'} recorded
+            </p>
+            {author.description && <p className="mt-4 max-w-prose text-ink-light">{author.description}</p>}
+          </header>
         </Container>
       </Section>
 

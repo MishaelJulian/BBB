@@ -17,7 +17,7 @@
   --color-border-dark: #d4cfc9;
 
   --color-muted: #6b6b6b;
-  --color-muted-light: #9a9a9a;
+  --color-muted-light: #6b6b6b; /* was #9a9a9a = 2.65:1 on paper (fails WCAG AA text); now 5.0:1 */
 
   --font-display: Georgia, Times New Roman, Palatino Linotype, serif;
   --font-body: Inter, Avenir Next, Segoe UI, system-ui, sans-serif;
