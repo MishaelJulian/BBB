@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
+import { useIsAdmin } from '@/lib/useIsAdmin'
 
 const navItems = [
   { href: '/library-room', label: 'The Library Room' },
@@ -15,6 +16,8 @@ const navItems = [
 
 export function Navigation() {
   const pathname = usePathname()
+  const isAdmin = useIsAdmin()
+  const visibleItems = navItems.filter((item) => item.href !== '/admin' || isAdmin)
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const isLibraryRoom = pathname === '/library-room'
 
@@ -23,8 +26,8 @@ export function Navigation() {
       className={cn(
         'sticky top-0 z-navigation border-b transition-colors duration-300',
         isLibraryRoom
-          ? 'bg-[#14100D]/95 border-amber-950/50 text-[#F4EFE6] backdrop-blur-xl'
-          : 'bg-paper/95 border-border text-ink backdrop-blur-sm supports-backdrop-filter:bg-paper/60'
+          ? 'bg-[#14100D] border-white/20 text-[#F4EFE6]'
+          : 'bg-paper border-border text-ink'
       )}
     >
       <nav className="container-library flex h-16 items-center justify-between">
@@ -42,7 +45,7 @@ export function Navigation() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
-          {navItems.map((item) => (
+          {visibleItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -150,7 +153,7 @@ export function Navigation() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-border bg-paper">
           <div className="container-library py-4 space-y-4">
-            {navItems.map((item) => (
+            {visibleItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

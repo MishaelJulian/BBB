@@ -4,6 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { Divider } from '@/components/ui/Divider'
 import { fetchStats, type ArchiveStats } from '@/lib/api'
+import { useIsAdmin } from '@/lib/useIsAdmin'
 
 const footerLinks = [
   { href: '/library-room', label: 'The Library Room' },
@@ -15,6 +16,8 @@ const footerLinks = [
 ]
 
 export function Footer() {
+  const isAdmin = useIsAdmin()
+  const visibleLinks = footerLinks.filter((link) => link.href !== '/admin' || isAdmin)
   // Counts come from the live DB via GET /stats; nothing is shown if it fails.
   const [stats, setStats] = React.useState<ArchiveStats | null>(null)
   React.useEffect(() => {
@@ -41,7 +44,7 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-medium text-ink mb-4">Navigate</h4>
             <ul className="space-y-2">
-              {footerLinks.map((link) => (
+              {visibleLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

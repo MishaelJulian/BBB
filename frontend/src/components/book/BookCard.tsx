@@ -39,7 +39,7 @@ export function BookCard({
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-display font-semibold text-ink truncate group-hover:text-amber-900 transition-colors">
+            <h3 className="font-display font-semibold text-ink truncate group-hover:text-accent transition-colors">
               {title}
             </h3>
             <p className="text-sm text-muted truncate">{author}</p>
@@ -54,9 +54,9 @@ export function BookCard({
 
         <Link
           href={`/library-room?select=${id}`}
-          className="text-xs font-mono text-amber-900/80 dark:text-amber-300 hover:text-amber-800 hover:underline px-2.5 py-1 rounded bg-paper border border-border shrink-0 ml-2"
+          className="text-sm underline underline-offset-4 text-ink-light hover:text-accent"
         >
-          3D Shelf →
+          Find on the shelf
         </Link>
       </div>
     )
@@ -65,7 +65,7 @@ export function BookCard({
   return (
     <div className="group block">
       <Link href={`/books/${id}`}>
-        <div className="relative aspect-2/3 rounded-xs overflow-hidden shadow-book group-hover:shadow-book-hover transition-shadow">
+        <div className="relative aspect-2/3 rounded-xs overflow-hidden">
           {/* Book cover */}
           <div
             className="absolute inset-0 flex flex-col items-center justify-between p-4 text-center"
@@ -107,7 +107,7 @@ export function BookCard({
       {/* Card info below cover */}
       <div className="mt-3 space-y-1">
         <Link href={`/books/${id}`}>
-          <h3 className="font-display font-semibold text-ink text-sm truncate group-hover:text-amber-900 transition-colors">
+          <h3 className="font-display font-semibold text-ink text-sm truncate group-hover:text-accent transition-colors">
             {title}
           </h3>
         </Link>
@@ -116,9 +116,9 @@ export function BookCard({
           <span>{discussionCount} {discussionCount === 1 ? 'disc.' : 'disc.'}</span>
           <Link
             href={`/library-room?select=${id}`}
-            className="font-mono text-[10px] text-amber-900/80 dark:text-amber-300 hover:underline"
+            className="text-xs underline underline-offset-4 text-ink-light hover:text-accent"
           >
-            3D Shelf →
+            Find on the shelf
           </Link>
         </div>
       </div>

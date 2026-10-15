@@ -156,7 +156,7 @@ export default function MembersPage() {
       <Container>
         {/* Toast Notification */}
         {toast && (
-          <div className="fixed top-5 right-5 z-50 px-5 py-3 rounded-xl bg-[#14130F] text-white text-xs font-mono shadow-2xl animate-fade-in border border-white/20">
+          <div className="fixed top-5 right-5 z-50 px-5 py-3 rounded-[2px] bg-[#14130F] text-white text-xs font-mono animate-fade-in border border-white/20">
             {toast}
           </div>
         )}
@@ -164,7 +164,7 @@ export default function MembersPage() {
         {/* Removed Members Modal */}
         {isRemovedModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-            <div className="bg-paper border border-border rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="bg-paper border border-border-dark max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden">
               <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-paper-dark/40">
                 <div className="flex items-center gap-2">
                   <h3 className="font-display font-bold text-lg text-ink">
@@ -220,7 +220,7 @@ export default function MembersPage() {
                 <button
                   type="button"
                   onClick={() => setIsRemovedModalOpen(false)}
-                  className="px-4 py-1.5 rounded-lg border border-border bg-paper text-xs font-mono text-ink hover:bg-paper-dark transition-colors"
+                  className="px-4 py-1.5 rounded-[2px] border border-border bg-paper text-xs font-mono text-ink hover:bg-paper-dark transition-colors"
                 >
                   Close
                 </button>
@@ -240,7 +240,7 @@ export default function MembersPage() {
               <button
                 type="button"
                 onClick={() => setIsRemovedModalOpen(true)}
-                className="px-3 py-2 text-xs font-mono tracking-wider rounded-lg border border-neutral-300 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 transition-colors flex items-center gap-2"
+                className="px-3 py-2 text-xs font-mono tracking-wider rounded-[2px] border border-neutral-300 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 transition-colors flex items-center gap-2"
                 title="View removed readers eligible for restoration"
               >
                 <span>Restorable Readers</span>
@@ -252,7 +252,7 @@ export default function MembersPage() {
 
             <Link
               href="/library-room"
-              className="px-4 py-2 text-xs font-mono tracking-wider rounded-lg border border-border bg-paper hover:bg-paper-dark text-ink transition-colors"
+              className="px-4 py-2 text-xs font-mono tracking-wider rounded-[2px] border border-border bg-paper hover:bg-paper-dark text-ink transition-colors"
             >
               ← Library Room
             </Link>
@@ -276,7 +276,7 @@ export default function MembersPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'books' | 'meetups' | 'name' | 'recent')}
-              className="h-10 rounded-md border border-border bg-paper px-3 py-2 text-sm text-ink focus:outline-hidden focus:ring-2 focus:ring-amber-700/50"
+              className="h-10 rounded-md border border-border bg-paper px-3 py-2 text-sm text-ink focus:outline-hidden focus:ring-2 focus:ring-accent"
             >
               <option value="books">Most Books Discussed</option>
               <option value="recent">Recently Active</option>
@@ -305,7 +305,7 @@ export default function MembersPage() {
                 No readers found matching "{search}".
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+              <div className="border-t border-border">
                 {members.map((member) => {
                   const isBusy = actionLoadingId === member.id
 
@@ -313,15 +313,11 @@ export default function MembersPage() {
                     <Link
                       key={member.id}
                       href={`/members/${member.id}`}
-                      className="group block p-5 rounded-lg border border-border/80 bg-paper-dark/60 hover:bg-paper-dark hover:border-amber-700/40 hover:shadow-md transition-all relative overflow-hidden"
+                      className="group block py-4 border-b border-border hover:bg-paper-dark/60 -mx-2 px-2 relative overflow-hidden"
                     >
-                      {/* Archival corner marker */}
-                      <div className="absolute top-0 right-0 w-8 h-8 pointer-events-none">
-                        <div className="absolute top-0 right-0 w-0 h-0 border-t-8 border-r-8 border-t-amber-800/40 border-r-amber-800/40" />
-                      </div>
 
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-display font-bold text-lg text-ink group-hover:text-amber-900 transition-colors truncate">
+                        <h3 className="font-display font-bold text-lg text-ink group-hover:text-accent transition-colors truncate">
                           {member.display_name}
                         </h3>
 
@@ -332,7 +328,7 @@ export default function MembersPage() {
                               type="button"
                               disabled={isBusy}
                               onClick={(e) => handleRemoveMember(e, member)}
-                              className="opacity-0 group-hover:opacity-100 px-2 py-0.5 rounded text-[10px] font-mono tracking-wider bg-red-50 hover:bg-red-600 hover:text-white text-red-700 border border-red-200 transition-all disabled:opacity-50"
+                              className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-sm underline underline-offset-4 text-[#a8442a] hover:text-ink"
                               title="Remove member from database"
                             >
                               {isBusy ? '…' : '✕ Remove'}
@@ -353,7 +349,7 @@ export default function MembersPage() {
                           {member.covers.map((cUrl, idx) => (
                             <div
                               key={idx}
-                              className="w-8 aspect-2/3 rounded-[2px] shadow-2xs overflow-hidden border border-border/70 shrink-0 bg-neutral-900 group-hover:scale-105 transition-transform"
+                              className="w-8 aspect-2/3 rounded-[2px] overflow-hidden border border-border/70 shrink-0 bg-neutral-900 transition-transform"
                             >
                               <img
                                 src={cUrl}

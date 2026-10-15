@@ -111,12 +111,12 @@ export default function AuthorRecordPage() {
               return (
                 <div
                   key={book.id}
-                  className="flex items-start gap-4 p-4 rounded-lg border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/40 transition-all group"
+                  className="flex items-start gap-4 py-4 border-b border-border hover:bg-paper-dark/60 -mx-2 px-2 group"
                 >
                   {/* Book Cover Artwork */}
                   <Link
                     href={`/books/${book.id}`}
-                    className="w-14 sm:w-16 aspect-2/3 rounded-md shrink-0 shadow-xs overflow-hidden relative border border-border/80 bg-neutral-900 group-hover:scale-[1.03] transition-transform"
+                    className="w-14 sm:w-16 aspect-2/3 shrink-0 overflow-hidden relative border border-border/80 bg-neutral-900"
                   >
                     {book.cover_url || book.thumbnail_url ? (
                       <img

@@ -149,7 +149,7 @@ export default function MemberDossierPage() {
     <>
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-5 right-5 z-50 px-5 py-3 rounded-xl bg-[#14130F] text-white text-xs font-mono shadow-2xl animate-fade-in border border-white/20">
+        <div className="fixed top-5 right-5 z-50 px-5 py-3 rounded-[2px] bg-[#14130F] text-white text-xs font-mono animate-fade-in border border-white/20">
           {toast}
         </div>
       )}
@@ -210,11 +210,10 @@ export default function MemberDossierPage() {
             <h2 className="font-display text-2xl font-bold text-ink">
               Books Discussed & Brought ({sortedBooks.length})
             </h2>
-            <span className="text-xs text-muted font-mono">Archive Records · Latest First</span>
           </div>
 
           {sortedBooks.length === 0 ? (
-            <div className="p-8 rounded-lg border border-dashed border-border text-center text-muted italic">
+            <div className="p-8 rounded-[2px] border border-dashed border-border text-center text-muted italic">
               No specific book discussion titles recorded in historical meetup notes.
             </div>
           ) : (
@@ -224,12 +223,12 @@ export default function MemberDossierPage() {
                 return (
                   <div
                     key={book.id}
-                    className="flex items-start gap-4 p-4 rounded-lg border border-border bg-paper hover:bg-paper-dark hover:border-amber-700/40 transition-all group"
+                    className="flex items-start gap-4 py-4 border-b border-border hover:bg-paper-dark/60 -mx-2 px-2 group"
                   >
                     {/* Book Cover Artwork */}
                     <Link
                       href={`/books/${book.id}`}
-                      className="w-14 sm:w-16 aspect-2/3 rounded-md shrink-0 shadow-xs overflow-hidden relative border border-border/80 bg-neutral-900 group-hover:scale-[1.03] transition-transform"
+                      className="w-14 sm:w-16 aspect-2/3 shrink-0 overflow-hidden relative border border-border/80 bg-neutral-900"
                     >
                       {book.cover_url || book.thumbnail_url ? (
                         <img
@@ -291,7 +290,7 @@ export default function MemberDossierPage() {
                                 <Link
                                   key={idx}
                                   href={`/meetups/${m.meetup_number}`}
-                                  className="text-[10px] font-mono px-2 py-0.5 rounded bg-paper-dark border border-border/80 text-muted hover:text-amber-900 hover:border-amber-700/40 transition-colors"
+                                  className="text-sm underline underline-offset-4 text-ink-light hover:text-accent"
                                 >
                                   Meetup #{m.meetup_number}
                                 </Link>
@@ -300,9 +299,9 @@ export default function MemberDossierPage() {
                         )}
                         <Link
                           href={`/library-room?select=${book.id}`}
-                          className="text-[11px] font-mono text-amber-900/80 dark:text-amber-300 hover:text-amber-800 hover:underline flex items-center gap-1 shrink-0 ml-auto"
+                          className="text-sm underline underline-offset-4 text-ink-light hover:text-accent shrink-0 ml-auto"
                         >
-                          Locate in Library →
+                          Find on the shelf
                         </Link>
                       </div>
                     </div>
@@ -328,10 +327,10 @@ export default function MemberDossierPage() {
               <Link
                 key={m.id}
                 href={`/meetups/${m.number}`}
-                className="flex items-center justify-between p-4 rounded-lg border border-border hover:border-amber-700/40 hover:bg-paper-dark transition-all group"
+                className="flex items-center justify-between py-4 border-b border-border hover:bg-paper-dark/60 -mx-2 px-2 group"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-amber-950/10 border border-amber-800/20 flex items-center justify-center text-ink font-display font-bold group-hover:text-amber-900 transition-colors">
+                  <div className="w-14 shrink-0 text-ink font-display font-semibold group-hover:text-accent">
                     #{m.number}
                   </div>
                   <div>

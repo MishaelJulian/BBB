@@ -83,7 +83,7 @@ export default function BookPage() {
             {/* Book Cover */}
             <div className="w-full md:w-64 shrink-0">
               <div
-                className="aspect-2/3 rounded-md shadow-book-hover overflow-hidden relative border border-border/80 bg-neutral-900"
+                className="aspect-2/3 overflow-hidden relative border border-border/80 bg-neutral-900"
                 style={{ backgroundColor: coverColor }}
               >
                 {book.cover_url || book.thumbnail_url ? (
@@ -207,7 +207,7 @@ export default function BookPage() {
               <Link
                 key={meetup.id}
                 href={`/meetups/${meetup.number}`}
-                className="flex items-center gap-4 p-4 rounded-lg border border-border hover:border-accent hover:bg-paper-dark transition-all group"
+                className="flex items-center gap-4 py-4 border-b border-border hover:bg-paper-dark/60 -mx-2 px-2 group"
               >
                 <div className="w-16 text-center">
                   <div className="font-display font-bold text-ink group-hover:text-accent">
