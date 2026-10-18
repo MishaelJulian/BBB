@@ -113,9 +113,11 @@ export default function TermsPage() {
           Questions, removal requests, data requests and complaints go to the club. We will reply within 90 days
           at the latest.
         </p>
-        {/* Placeholder chosen by the founders (2026-10-09): fill in before the public link is shared. */}
-        <p className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm">
-          <strong>Contact / grievance officer:</strong> to be added by the founders.
+        <p>
+          <strong>Contact / grievance officer:</strong>{' '}
+          <a href="mailto:brokebibliophilesbangalore@gmail.com" className="underline underline-offset-4 hover:text-accent">
+            brokebibliophilesbangalore@gmail.com
+          </a>
         </p>
       </section>
     </main>

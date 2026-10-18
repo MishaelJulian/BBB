@@ -57,9 +57,11 @@ export default function PrivacyPage() {
           about your data, contact the club. We will reply within 90 days, as India&apos;s Digital Personal Data
           Protection Rules require.
         </p>
-        {/* Placeholder chosen by the founders (2026-10-09): fill in before the public link is shared. */}
-        <p className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm">
-          <strong>Contact:</strong> to be added by the founders.
+        <p>
+          <strong>Contact:</strong>{' '}
+          <a href="mailto:brokebibliophilesbangalore@gmail.com" className="underline underline-offset-4 hover:text-accent">
+            brokebibliophilesbangalore@gmail.com
+          </a>
         </p>
       </section>
     </main>
