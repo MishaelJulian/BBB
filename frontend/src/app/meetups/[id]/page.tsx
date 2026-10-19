@@ -1,240 +1,106 @@
-'use client'
-
-import * as React from 'react'
-import { notFound, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Container } from '@/components/layout/Container'
-import { Section } from '@/components/layout/Section'
-import { LoadingState } from '@/components/shared/LoadingState'
-import { ErrorState } from '@/components/shared/ErrorState'
-import { fetchMeetup, getCachedData } from '@/lib/api'
-import { getSession } from '@/lib/auth'
-import { formatDate, getBookColor } from '@/lib/utils'
-import type { BookReference, Meetup } from '@/lib/api'
+import { notFound } from 'next/navigation'
+import { ClubPage } from '@/components/club/ClubPage'
+import { BookRows, type RowBook } from '@/components/club/BookRows'
+import { AdminOpen } from '@/components/club/ProfileExtras'
+import { Meetup100 } from '@/components/club/Meetup100'
+import { sql } from '@/lib/db'
+import { MeetupRow, meetupSelect, meetupsToDicts } from '@/lib/archive'
+import { getReaderIndex } from '@/lib/club/indexes'
 
-const FORMATS: Record<string, string> = { IN_PERSON: 'In person', ONLINE: 'Online', HYBRID: 'Hybrid' }
+export const revalidate = 60
 
-// Editorial layout (docs/ux/ADR-ui-revamp.md section 5): no cards, no pills, no icon emoji, no KPI numerals;
-// hierarchy comes from type size, weight and hairlines; the one hard-offset shadow belongs to the primary button.
-function BookRow({ book, small = false }: { book: BookReference; small?: boolean }) {
-  const coverSrc = book.cover_url || book.thumbnail_url
-  return (
-    <li className="flex items-start gap-4 py-4">
-      <Link
-        href={`/books/${book.id}`}
-        aria-hidden="true"
-        tabIndex={-1}
-        className={`${small ? 'w-10' : 'w-12'} aspect-2/3 shrink-0 overflow-hidden relative bg-paper-dark`}
-      >
-        {coverSrc ? (
-          <img
-            src={coverSrc}
-            alt=""
-            className="w-full h-full object-cover"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-            }}
-          />
-        ) : null}
-        <div
-          className={`absolute inset-0 p-1 flex items-center justify-center text-center ${coverSrc ? '-z-10' : 'z-0'}`}
-          style={{ backgroundColor: getBookColor(book.title) }}
-        >
-          <span className="text-[7px] font-display font-bold text-white line-clamp-3 leading-tight">{book.title}</span>
-        </div>
-      </Link>
-      <div className="min-w-0 flex-1">
-        <Link
-          href={`/books/${book.id}`}
-          className="font-display text-lg leading-snug text-ink underline decoration-border-dark underline-offset-4 hover:decoration-accent hover:text-accent"
-        >
-          {book.title}
-        </Link>
-        {book.author && <p className="text-sm text-ink-light mt-0.5">{book.author}</p>}
-        <p className="text-sm text-muted mt-0.5">
-          {book.member ? `Read by ${book.member} · ` : ''}
-          <Link href={`/library-room?select=${book.id}`} className="underline underline-offset-4 hover:text-accent">
-            Find on the shelf
-          </Link>
-        </p>
-      </div>
-    </li>
-  )
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const fd = (d: string) => {
+  const t = new Date(d.slice(0, 10) + 'T00:00:00')
+  return `${t.getDate()} ${MON[t.getMonth()]} ${t.getFullYear()}`
+}
+const FORMAT: Record<string, string> = { IN_PERSON: 'In person', ONLINE: 'Online', HYBRID: 'Hybrid' }
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  return { title: `Meetup #${id.replace('#', '')} - BBB` }
 }
 
-export default function MeetupPage() {
-  const params = useParams()
-  const meetupId = params?.id as string
+export default async function MeetupPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const n = Number(id.replaceAll('#', '').trim())
+  if (!Number.isInteger(n) || n < 1) notFound()
+  if (n === 100) return <Meetup100 />
+  const db = sql()
+  const [row] = await db<MeetupRow[]>`${meetupSelect()} where m.meetup_number = ${n}`
+  if (!row) notFound()
+  const [m] = await meetupsToDicts([row])
+  const nums = (await db<{ n: number }[]>`select meetup_number n from meetups order by 1`).map((r) => r.n).concat([100]).sort((a, b) => a - b)
+  const i = nums.indexOf(n)
+  const prev = i > 0 ? nums[i - 1] : null
+  const next = i >= 0 && i < nums.length - 1 ? nums[i + 1] : null
+  const byName = new Map((await getReaderIndex()).map((r) => [r.n, r.id]))
 
-  // Zero-flicker synchronous hydration: load from cache on frame 1
-  const [meetup, setMeetup] = React.useState<Meetup | null>(() => {
-    if (typeof window === 'undefined' || !meetupId) return null
-    return getCachedData<Meetup>(`meetup_${meetupId}`)
-  })
-  const [loading, setLoading] = React.useState<boolean>(() => meetup === null)
-  const [error, setError] = React.useState<string | null>(null)
-  const [isAdmin, setIsAdmin] = React.useState(false)
-
-  React.useEffect(() => {
-    getSession()
-      .then((u) => setIsAdmin(u?.role === 'admin'))
-      .catch(() => setIsAdmin(false))
-  }, [])
-
-  React.useEffect(() => {
-    async function fetchMeetupData() {
-      try {
-        if (!meetup) setLoading(true)
-        setError(null)
-
-        const data = await fetchMeetup(meetupId)
-        setMeetup(data)
-      } catch (err) {
-        if (!meetup) {
-          setError(err instanceof Error ? err.message : 'An error occurred')
-        }
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (meetupId) fetchMeetupData()
-  }, [meetupId])
-
-  if (loading) {
-    return (
-      <Section>
-        <Container size="narrow">
-          <LoadingState count={3} />
-        </Container>
-      </Section>
-    )
-  }
-
-  if (error) {
-    return (
-      <Section>
-        <Container size="narrow">
-          <ErrorState message={error} onRetry={() => window.location.reload()} />
-        </Container>
-      </Section>
-    )
-  }
-
-  if (!meetup) {
-    notFound()
-  }
-
-  // Separate regular books from discussion mentions
-  const regularBooks = meetup.books.filter((b) => !b.is_discussion_mention)
-  const discussionMentions = meetup.books.filter((b) => b.is_discussion_mention)
-  const facts = [formatDate(meetup.date), meetup.venue || 'Venue unknown', FORMATS[meetup.format] ?? null].filter(Boolean)
-  const h2 = 'font-display text-xl font-semibold text-ink border-b border-border pb-2 mb-2'
+  const all = m.books
+  const regular = all.filter((b) => !b.is_discussion_mention && !b.is_general_discussion)
+  const gen = [
+    ...all.filter((b) => b.is_discussion_mention || b.is_general_discussion).map((b) => ({ title: b.title, author: b.author })),
+    ...m.series.map((s) => ({ title: s.title, author: s.author })),
+  ]
+  const readers = m.members
+  const rows: RowBook[] = regular.map((b) => ({ id: b.id, title: b.title, author: b.author, cover: b.thumbnail_url || b.cover_url, by: b.member ? { name: b.member, id: byName.get(b.member) } : null }))
+  const href = (x: number) => `/meetups/${x}`
+  const jumps = [['books', 'Books', regular.length], ['readers', 'Readers', readers.length], ['general', 'General discussion', gen.length]].filter((x) => x[2]) as [string, string, number][]
 
   return (
-    <>
-      <Section size="lg">
-        <Container size="narrow">
-          <nav aria-label="Breadcrumb" className="mb-6 text-sm text-muted">
-            <Link href="/meetups" className="underline underline-offset-4 hover:text-accent">
-              Meetups
-            </Link>
-            <span className="mx-2" aria-hidden="true">/</span>
-            <span className="text-ink" aria-current="page">#{meetup.number}</span>
-          </nav>
-
-          <h1 className="font-display text-4xl md:text-5xl font-bold text-ink leading-tight">
-            {meetup.title || `BBB Meetup #${meetup.number}`}
-          </h1>
-          <p className="mt-3 text-lg text-ink-light">{facts.join(' · ')}</p>
-          <p className="mt-1 text-base text-muted">
-            {meetup.member_count} members · {meetup.book_count} books ({regularBooks.length} discussed
-            {discussionMentions.length > 0 ? `, ${discussionMentions.length} mentioned in the general discussion` : ''})
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
-            {meetup.pdf_url && (
-              <a
-                href={meetup.pdf_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block bg-ink text-paper text-base font-semibold px-5 py-3 rounded-[2px] shadow-[3px_3px_0_0_var(--color-accent)] transition-[transform,box-shadow] hover:translate-x-px hover:translate-y-px hover:shadow-[2px_2px_0_0_var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-              >
-                Download the publication (PDF)
-              </a>
-            )}
-            {isAdmin && (
-              <Link href="/admin" className="text-sm text-muted underline underline-offset-4 hover:text-accent">
-                Edit this meetup in admin
-              </Link>
-            )}
-          </div>
-        </Container>
-      </Section>
-
-      {meetup.photo_url && (
-        <Section>
-          <Container size="narrow">
-            <figure>
-              <img
-                src={meetup.photo_url}
-                alt={`Group photo from BBB Meetup #${meetup.number}`}
-                className="w-full max-h-[480px] object-cover bg-paper-dark"
-              />
-              <figcaption className="mt-2 text-sm text-muted">
-                The group at meetup #{meetup.number}, {meetup.venue || 'Bookworm'}.
-              </figcaption>
-            </figure>
-          </Container>
-        </Section>
+    <ClubPage kind="crumb" crumbs={[{ href: '/directory', label: 'Directory' }, { href: '/meetups', label: 'Meetups' }, { label: `#${n}` }]} tab="dir">
+      <div className="sp24" />
+      <h1 className="h1">Meetup #{n}</h1>
+      <p className="facts">{[m.date ? fd(m.date) : 'Date not recorded', m.venue || 'Venue not recorded', FORMAT[m.format] ?? ''].filter(Boolean).join(' · ')}</p>
+      <p className="facts" style={{ marginTop: 2 }}>{regular.length} books{readers.length ? ` · ${readers.length} readers` : ''}</p>
+      {jumps.length > 0 && (
+        <nav className="jump" aria-label="On this page">
+          {jumps.map(([k, l]) => <a key={k} href={`#${k}`}>{l}</a>)}
+        </nav>
       )}
-
-      <Section>
-        <Container size="narrow">
-          <h2 className={h2}>Attendees and discussants</h2>
-          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-base">
-            {meetup.members.map((member) => (
-              <li key={member.id}>
-                <Link
-                  href={`/members/${member.id}`}
-                  className="text-ink underline decoration-border-dark underline-offset-4 hover:decoration-accent hover:text-accent"
-                >
-                  {member.display_name}
-                </Link>
-              </li>
+      {m.photo_url && (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="ph" src={m.photo_url} alt={`Group photo from BBB meetup #${n}`} />
+          <p className="pcap">The group at meetup #{n}, {m.venue || 'Bookworm'}.</p>
+        </>
+      )}
+      {m.pdf_url && (
+        <>
+          <div className="sp16" />
+          <a className="btn" href={m.pdf_url} target="_blank" rel="noopener"><span>Download the books PDF</span><span aria-hidden="true">&darr;</span></a>
+        </>
+      )}
+      <AdminOpen href="/admin" />
+      {regular.length > 0 && (
+        <>
+          <h2 className="sech" id="books">Books discussed <small>({regular.length})</small></h2>
+          <BookRows books={rows} />
+        </>
+      )}
+      <h2 className="sech" id="readers">Who was there{readers.length ? <> <small>({readers.length})</small></> : null}</h2>
+      {readers.length ? (
+        <div className="names">
+          {readers.map((r) => <Link key={r.id} href={`/members/${r.id}`}>{r.display_name}</Link>)}
+        </div>
+      ) : (
+        <p className="body" style={{ marginTop: 8, color: 'var(--muted)' }}>Readers not recorded for this meetup.</p>
+      )}
+      {gen.length > 0 && (
+        <>
+          <h2 className="sech" id="general">General discussion <small>({gen.length})</small></h2>
+          <ul className="gen">
+            {gen.map((g, k) => (
+              <li key={k}>{g.title}{g.author ? <span style={{ color: 'var(--muted)' }}> &middot; {g.author}</span> : null}</li>
             ))}
           </ul>
-        </Container>
-      </Section>
-
-      {regularBooks.length > 0 && (
-        <Section>
-          <Container size="narrow">
-            <h2 className={h2}>Books discussed ({regularBooks.length})</h2>
-            <ul className="divide-y divide-border">
-              {regularBooks.map((book) => (
-                <BookRow key={book.id} book={book} />
-              ))}
-            </ul>
-          </Container>
-        </Section>
+        </>
       )}
-
-      {discussionMentions.length > 0 && (
-        <Section>
-          <Container size="narrow">
-            <h2 className={h2}>General discussion ({discussionMentions.length})</h2>
-            <p className="text-ink-light mb-2">Books mentioned during the general discussion session.</p>
-            <ul className="divide-y divide-border">
-              {discussionMentions.map((book) => (
-                <BookRow key={book.id} book={book} small />
-              ))}
-            </ul>
-          </Container>
-        </Section>
-      )}
-    </>
+      <nav className="pn" aria-label="Other meetups">
+        {prev != null ? <Link href={href(prev)}>&lsaquo; Meetup #{prev}</Link> : <span />}
+        {next != null ? <Link href={href(next)}>Meetup #{next} &rsaquo;</Link> : <span />}
+      </nav>
+    </ClubPage>
   )
 }

@@ -38,3 +38,11 @@
 .club .orow{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1.5px solid rgba(26,26,26,.28);margin:14px -4px 0;min-height:54px}
 .club .open{flex:1;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:44px;font:400 17px/24px var(--ef);color:var(--ink);text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px;text-decoration-color:var(--accent)}
 .club .open span{font:600 26px/1 var(--sans);text-decoration:none;color:var(--accent)}
+/* Meetup #100 timeline */
+.club ol.tl{list-style:none;margin:0;padding:0}
+.club ol.tl>li{position:relative;padding-bottom:48px}
+.club ol.tl>li::before{content:"";position:absolute;left:-8px;top:14px;bottom:0;border-left:1px solid var(--line2)}
+.club ol.tl>li:last-child::before{display:none}
+.club ol.tl h2{position:relative;margin:0}
+.club ol.tl h2::before{content:"";position:absolute;left:-12.5px;top:11px;width:9px;height:9px;border-radius:50%;background:var(--ink)}
+.club ol.tl li.cur h2::before{background:var(--accent)}
