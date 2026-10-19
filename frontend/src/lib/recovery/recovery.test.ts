@@ -5,7 +5,7 @@ import postgres, { type TransactionSql } from 'postgres'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { hashResetCode, issueResetCode, revokeResetCode } from './codes'
 import { generatePhrase, hashSecret, normalizePhrase, verifySecret } from './phrase'
-import { GENERIC_FAIL, issuePhrase, mayIssueFirst, phraseStatus, resetPassword, TOO_MANY, type SetPassword } from './reset'
+import { GENERIC_FAIL, LIMITS, issuePhrase, mayIssueFirst, phraseStatus, resetPassword, TOO_MANY, type SetPassword } from './reset'
 import { WORDS } from './wordlist'
 import { evaluateSession, startSession } from '../sessionDb'
 import { ADMIN_ALLOWANCE, DAY, jwtFacts, KEEP_ALLOWANCE, MEMBER_ALLOWANCE } from '../sessionPolicy'
@@ -314,17 +314,21 @@ describe.skipIf(!local)('forgot password (local database)', () => {
       await linked(tx)
       const words = await issuePhrase(tx, UID, NOW)
       const bad = generatePhrase().join(' ')
-      for (let i = 0; i < 5; i++) expect(await resetPassword(tx, { email: 'reader@bbb.test', phrase: bad, password: 'brand-new-pass' }, ctx(okSet(), { ip: `10.0.0.${i}` }))).toMatchObject({ status: 400 })
-      // the right words are now refused too: that is the lockout
-      expect(await resetPassword(tx, { email: 'reader@bbb.test', phrase: words.join(' '), password: 'brand-new-pass' }, ctx(okSet(), { ip: '10.0.1.1' }))).toEqual({ ok: false, status: 429, message: TOO_MANY })
-      // an email that does not exist locks the same way
-      for (let i = 0; i < 5; i++) expect(await resetPassword(tx, { email: 'ghost@bbb.test', phrase: bad, password: 'brand-new-pass' }, ctx(okSet(), { ip: `10.0.2.${i}` }))).toMatchObject({ status: 400 })
-      expect(await resetPassword(tx, { email: 'ghost@bbb.test', phrase: bad, password: 'brand-new-pass' }, ctx(okSet(), { ip: '10.0.3.1' }))).toEqual({ ok: false, status: 429, message: TOO_MANY })
+      // 5 wrong tries from ONE address lock that address for this email, existing or not
+      for (let i = 0; i < 5; i++) expect(await resetPassword(tx, { email: 'reader@bbb.test', phrase: bad, password: 'brand-new-pass' }, ctx(okSet(), { ip: '10.0.0.9' }))).toMatchObject({ status: 400 })
+      expect(await resetPassword(tx, { email: 'reader@bbb.test', phrase: words.join(' '), password: 'brand-new-pass' }, ctx(okSet(), { ip: '10.0.0.9' }))).toEqual({ ok: false, status: 429, message: TOO_MANY })
+      for (let i = 0; i < 5; i++) expect(await resetPassword(tx, { email: 'ghost@bbb.test', phrase: bad, password: 'brand-new-pass' }, ctx(okSet(), { ip: '10.0.2.9' }))).toMatchObject({ status: 400 })
+      expect(await resetPassword(tx, { email: 'ghost@bbb.test', phrase: bad, password: 'brand-new-pass' }, ctx(okSet(), { ip: '10.0.2.9' }))).toEqual({ ok: false, status: 429, message: TOO_MANY })
+      // a stranger's junk cannot lock the real owner out: the owner, from another address, still gets in
+      expect(await resetPassword(tx, { email: 'reader@bbb.test', phrase: words.join(' '), password: 'brand-new-pass' }, ctx(okSet(), { ip: '10.0.1.1' }))).toMatchObject({ ok: true })
+      // but one email across many addresses is still capped (60 a day)
+      for (let i = 0; i < LIMITS.emailCapPerDay; i++) await resetPassword(tx, { email: 'capped@bbb.test', phrase: bad, password: 'brand-new-pass' }, ctx(okSet(), { ip: `10.1.${Math.floor(i / 200)}.${i % 200}` }))
+      expect(await resetPassword(tx, { email: 'capped@bbb.test', phrase: bad, password: 'brand-new-pass' }, ctx(okSet(), { ip: '10.9.9.9' }))).toEqual({ ok: false, status: 429, message: TOO_MANY })
       // one IP guessing across many emails
       for (let i = 0; i < 15; i++) await resetPassword(tx, { email: `x${i}@bbb.test`, phrase: bad, password: 'brand-new-pass' }, ctx(okSet(), { ip: '198.51.100.7' }))
       expect(await resetPassword(tx, { email: 'x99@bbb.test', phrase: bad, password: 'brand-new-pass' }, ctx(okSet(), { ip: '198.51.100.7' }))).toMatchObject({ status: 429 })
       const blocked = await tx`select count(*)::int as n from audit_log where action = 'auth.reset.blocked'`
-      expect(blocked[0].n - before).toBeLessThanOrEqual(3) // one log row per email per hour, not one per blocked request
+      expect(blocked[0].n - before).toBeLessThanOrEqual(5) // one log row per email per hour, not one per blocked request
     })
   }, 60000)
 

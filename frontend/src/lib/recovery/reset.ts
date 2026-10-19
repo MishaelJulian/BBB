@@ -8,7 +8,9 @@ import { generatePhrase, hashSecret, normalizePhrase, verifySecret } from './phr
 export const GENERIC_FAIL = 'These details do not match. Check your email and the words or code, then try again.'
 export const TOO_MANY = 'Too many tries. Wait a while and try again.'
 export const MIN_MS = 700 // every answer after the limits takes at least this long, found or not
-export const LIMITS = { ipPerHour: 15, emailPer15Min: 5, emailPerDay: 10 }
+// emailPer15Min/emailPerDay are counted per (email, ip), so a stranger's junk attempts only lock out that stranger's IP.
+// emailCapPerDay is the ceiling for one email across all IPs: guessing stays capped at 60 a day against 132-bit words / 50-bit codes.
+export const LIMITS = { ipPerHour: 15, emailPer15Min: 5, emailPerDay: 10, emailCapPerDay: 60 }
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex')
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -72,12 +74,14 @@ export async function resetPassword(
   if (method === 'code' && !code) return { ok: false, status: 422, message: 'That reset code does not look right. It has 10 letters and numbers.' }
 
   const eh = sha(email).slice(0, 16)
-  const [a, b, c] = [
+  const ih = sha(ctx.ip).slice(0, 12)
+  const [a, b, c, d] = [
     await hit(db, `reset-ip:${ctx.ip}`, 3600, LIMITS.ipPerHour),
-    await hit(db, `reset-mail:${eh}`, 900, LIMITS.emailPer15Min),
-    await hit(db, `reset-day:${eh}`, 86400, LIMITS.emailPerDay),
+    await hit(db, `reset-mail:${eh}:${ih}`, 900, LIMITS.emailPer15Min),
+    await hit(db, `reset-day:${eh}:${ih}`, 86400, LIMITS.emailPerDay),
+    await hit(db, `reset-cap:${eh}`, 86400, LIMITS.emailCapPerDay),
   ]
-  if (!(a && b && c)) {
+  if (!(a && b && c && d)) {
     if (await hit(db, `reset-log:${eh}`, 3600, 1)) await auditAuth(db, 'auth.reset.blocked', null, null, null, { email_sha256: eh, method })
     return finish({ ok: false, status: 429, message: TOO_MANY })
   }
@@ -113,21 +117,38 @@ export async function resetPassword(
     undo = async () => { await db`update reset_codes set used_at = null where id = ${codeId}` }
   }
 
-  // Step 2: set the new password at Supabase. If that fails, give the secret back.
+  // Step 2: write the new phrase (code path) and refuse every older session BEFORE the password changes,
+  // so the last write cannot fail after the secret is spent. Anything that fails below gives it all back.
+  const [prevSec] = await db<{ valid_after: string }[]>`select valid_after from auth_security where user_id = ${u.id}`
+  const [prevPhrase] = method === 'code' ? await db<{ phrase_hash: string; created_at: string }[]>`select phrase_hash, created_at from recovery_phrases where user_id = ${u.id}` : []
+  const giveBack = async () => {
+    await undo().catch(() => {})
+    if (method === 'code') {
+      if (prevPhrase) await db`update recovery_phrases set phrase_hash = ${prevPhrase.phrase_hash}, created_at = ${prevPhrase.created_at} where user_id = ${u.id}`.catch(() => {})
+      else await db`delete from recovery_phrases where user_id = ${u.id}`.catch(() => {})
+    }
+    if (prevSec) await db`update auth_security set valid_after = ${prevSec.valid_after} where user_id = ${u.id}`.catch(() => {})
+    else await db`delete from auth_security where user_id = ${u.id}`.catch(() => {})
+  }
+  try {
+    if (method === 'code') {
+      await db`insert into recovery_phrases (user_id, phrase_hash, created_at) values (${u.id}, ${newHash}, ${ctx.now})
+               on conflict (user_id) do update set phrase_hash = excluded.phrase_hash, created_at = excluded.created_at`
+    }
+    await db`insert into auth_security (user_id, valid_after) values (${u.id}, ${ctx.now})
+             on conflict (user_id) do update set valid_after = excluded.valid_after`
+  } catch {
+    await giveBack()
+    return finish({ ok: false, status: 503, message: 'Something went wrong. Try again.' })
+  }
+
+  // Step 3: set the new password at Supabase. If that fails, give everything back.
   const set = await ctx.setPassword(u.id, password).catch(() => ({ ok: false as const, message: 'The login service is not reachable.' }))
   if (!set.ok) {
-    await undo()
+    await giveBack()
     await auditAuth(db, 'auth.reset.error', u.id, null, u.id, { method, message: set.message })
     return finish({ ok: false, status: 503, message: set.message })
   }
-
-  // Step 3: new phrase (the old one is dead), every older session refused, record it.
-  if (method === 'code') {
-    await db`insert into recovery_phrases (user_id, phrase_hash, created_at) values (${u.id}, ${newHash}, ${ctx.now})
-             on conflict (user_id) do update set phrase_hash = excluded.phrase_hash, created_at = excluded.created_at`
-  }
-  await db`insert into auth_security (user_id, valid_after) values (${u.id}, ${ctx.now})
-           on conflict (user_id) do update set valid_after = excluded.valid_after`
   if (ctx.sessionsGone) await ctx.sessionsGone(db, u.id).catch(() => {})
   await auditAuth(db, 'auth.reset.ok', u.id, null, u.id, { method })
   await auditAuth(db, 'auth.phrase.created', u.id, null, u.id, { via: 'reset' })

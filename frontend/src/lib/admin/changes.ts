@@ -16,7 +16,7 @@ export const LABELS: Record<string, string> = {
   'meetup.restore': 'Restored a meetup', 'meetup.add_book': 'Added a book to a meetup', 'meetup.photo': 'Changed a group photo', 'meetup.pdf': 'Made a books PDF',
   'meetup.record': 'Recorded a meetup', 'meetup.enrich': 'Enriched a meetup\'s books',
   'member.visibility': 'Hid or showed a member', 'member.promote': 'Made a member', 'member.delete': 'Removed a member', 'member.restore': 'Restored a member',
-  'member.invite': 'Issued a claim code', 'member.reset_code': 'Issued a reset code', 'member.reset_code_revoked': 'Revoked a reset code', 'member.revoke_invite': 'Revoked a code', 'member.rename': 'Renamed a member', 'member.claim': 'Claimed a record', 'member.bio': 'Changed a bio',
+  'member.invite': 'Issued a claim code', 'member.reset_code': 'Issued a reset code', 'auth.reset.ok': 'Password reset with the forgot-password flow', 'auth.phrase.regenerated': 'Made a new recovery phrase', 'member.reset_code_revoked': 'Revoked a reset code', 'member.revoke_invite': 'Revoked a code', 'member.rename': 'Renamed a member', 'member.claim': 'Claimed a record', 'member.bio': 'Changed a bio',
   'book.update': 'Edited a book', 'book.edit': 'Edited a book', 'book.trash': 'Deleted a book', 'book.restore': 'Restored a book', 'book.merge': 'Merged two books', 'book.enrich': 'Filled in a book',
   'discussion.delete': 'Removed a book from a meetup', 'discussion.general': 'Changed general discussion', 'entry.add': 'A member added an entry', 'entry.remove': 'A member removed an entry',
   'change.undo': 'Undid a change',
@@ -148,7 +148,7 @@ export async function listChanges(tx: Tx, opts: { email?: string | null; limit?:
   const limit = Math.min(Math.max(opts.limit ?? 50, 1), 200)
   const raw = await tx<AuditRow[]>`
     ${SELECT_AUDIT(tx)}
-    where action not like 'auth.%' and ${opts.email ? tx`actor_email = ${opts.email}` : tx`true`}
+    where (action not like 'auth.%' or action in ('auth.reset.ok', 'auth.phrase.regenerated')) and ${opts.email ? tx`actor_email = ${opts.email}` : tx`true`}
     order by at desc, id desc limit ${limit * 3} offset ${opts.offset ?? 0}`
   const undone = new Set((await tx<{ u: string }[]>`select after->>'undid' as u from audit_log where action = 'change.undo' and at > now() - interval '8 days'`).map((r) => r.u))
   const q = opts.q?.trim().toLowerCase()
