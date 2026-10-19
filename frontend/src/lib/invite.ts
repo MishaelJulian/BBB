@@ -17,3 +17,13 @@ export function normalizeCode(input: string): string | null {
 }
 
 export const hashCode = (normalized: string) => createHash('sha256').update(normalized).digest('hex')
+
+/** An optional PIN (4 to 8 digits) the admin hands over by another channel. It is folded into the stored hash, so a link without its PIN cannot claim. */
+export function normalizePin(input: unknown): string | null {
+  if (typeof input !== 'string') return null
+  const d = input.replace(/\s/g, '')
+  return /^\d{4,8}$/.test(d) ? d : null
+}
+
+/** What is stored for an invite: the code, and the PIN when there is one. */
+export const hashInvite = (normalizedCode: string, pin?: string | null) => hashCode(pin ? `${normalizedCode}:${pin}` : normalizedCode)

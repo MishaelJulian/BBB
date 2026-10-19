@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ClubPage } from '@/components/club/ClubPage'
 
 export const metadata: Metadata = {
   title: 'Privacy · BBB Library',
@@ -8,7 +9,8 @@ export const metadata: Metadata = {
 // Content follows PRD §17.2 and decision D8 (docs/architecture/imperative_decisions.md §6).
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto max-w-2xl px-4 py-12 space-y-8 text-ink">
+    <ClubPage kind="crumb" crumbs={[{ href: '/club', label: 'Club' }, { label: 'Privacy' }]} tab="club">
+      <div className="doc">
       <header className="space-y-2">
         <h1 className="font-display text-3xl">Privacy</h1>
         <p className="text-sm text-muted">
@@ -64,6 +66,8 @@ export default function PrivacyPage() {
           </a>
         </p>
       </section>
-    </main>
+    </div>
+      <div className="sp32" />
+    </ClubPage>
   )
 }

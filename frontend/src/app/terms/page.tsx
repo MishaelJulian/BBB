@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ClubPage } from '@/components/club/ClubPage'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
@@ -11,7 +12,8 @@ export const metadata: Metadata = {
 // obligations apply from 13 May 2027, so this page states the practice we follow voluntarily.
 export default function TermsPage() {
   return (
-    <main className="mx-auto max-w-2xl px-4 py-12 space-y-8 text-ink">
+    <ClubPage kind="crumb" crumbs={[{ href: '/club', label: 'Club' }, { label: 'Terms' }]} tab="club">
+      <div className="doc">
       <header className="space-y-2">
         <h1 className="font-display text-3xl">Terms of use</h1>
         <p className="text-sm text-muted">Last updated 13 October 2026</p>
@@ -120,6 +122,8 @@ export default function TermsPage() {
           </a>
         </p>
       </section>
-    </main>
+    </div>
+      <div className="sp32" />
+    </ClubPage>
   )
 }

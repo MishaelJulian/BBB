@@ -101,3 +101,35 @@
 .club .listicle .en dt{font:600 13px/24px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.club .listicle .en dd{margin:0;font:400 16px/24px var(--sans)}
 .club .listicle .en .ok{color:#12295a;font-weight:600}.club .listicle .en dd a{display:inline-flex;align-items:center;min-height:44px;color:var(--ink);text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:4px}
 .club .listicle .foot{margin-top:40px;border-top:1px solid var(--line2);padding-top:8px}
+/* Sign in, join, account forms */
+.club .auth form{display:flex;flex-direction:column}
+.club .auth label.l{display:block;font:500 14px/21px var(--sans);margin-top:14px}
+.club .auth .field{position:relative}
+.club .auth .field input,.club .auth .field textarea,.club .auth .field select{width:100%;font:400 16px/24px var(--sans);color:var(--ink);background:none;border:0;border-bottom:2px solid var(--ink);border-radius:0;padding:16px 64px 0 0;-webkit-appearance:none;appearance:none}
+.club .auth .field input,.club .auth .field select{height:44px}
+.club .auth .field select{padding-right:0}
+.club .auth .field textarea{min-height:120px;resize:vertical;padding:10px 0 0}
+.club .auth .field input:focus,.club .auth .field textarea:focus,.club .auth .field select:focus{outline:none;border-bottom-color:var(--accent)}
+.club .auth .field input[readonly]{color:var(--muted)}
+.club .auth .show{position:absolute;right:0;top:0;min-width:44px;height:44px;padding:18px 0 0;background:none;border:0;font:500 14px/20px var(--sans);color:var(--ink);text-decoration:underline;cursor:pointer}
+.club .auth .consent{display:flex;gap:12px;align-items:flex-start;margin-top:16px;font:400 14px/21px var(--sans)}
+.club .auth .consent input{width:24px;height:24px;margin:0;flex:none;accent-color:var(--accent)}
+.club .auth .dpnote{margin-top:16px;border-left:3px solid var(--accent);padding:8px 12px;font:400 14px/21px var(--sans)}
+.club .auth .dpnote b{display:block;font:600 14px/21px var(--sans);margin-top:6px}.club .auth .dpnote b:first-child{margin-top:0}
+.club .auth .notice{border-left:3px solid var(--accent);padding:8px 12px;margin:16px 0 0;font:400 14px/21px var(--sans)}
+.club .auth .notice.err{border-color:#a8442a}
+.club .auth .btn[disabled]{opacity:.55;box-shadow:none;cursor:default}
+.club .toggle{background:none;border:0;padding:0;font:inherit;color:var(--ink);text-decoration:underline;text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:5px;cursor:pointer;min-height:44px}
+.club .grp{font:600 14px/21px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.club .auth .grp{margin:26px 0 0}
+.club .auth .msg2{border-left:3px solid var(--accent);padding:8px 12px;margin:14px 0 0;font:400 15px/22px var(--sans)}.club .auth .msg2.bad{border-color:#a8442a}
+.club .auth .foot2{margin-top:20px}
+/* Terms and Privacy (policy text keeps its words; the page takes the club's type) */
+.club .doc{padding-top:24px}
+.club .doc h1{font:600 32px/40px var(--serif);margin:0}
+.club .doc header p{font:400 14px/21px var(--sans);color:var(--muted);margin:6px 0 0}
+.club .doc h2{font:600 22px/30px var(--serif);margin:28px 0 0}
+.club .doc p,.club .doc li{font:400 16px/25.6px var(--sans);margin:10px 0 0}
+.club .doc ul,.club .doc ol{margin:8px 0 0;padding-left:22px}
+.club .doc a{color:#8a1c1c;font-weight:600;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+.club .doc section{margin:0}

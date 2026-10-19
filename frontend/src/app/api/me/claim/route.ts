@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { sql } from '@/lib/db'
 import { audit } from '@/lib/audit'
 import { apiError, ok, route } from '@/lib/http'
-import { hashCode, normalizeCode } from '@/lib/invite'
+import { hashCode, hashInvite, normalizeCode, normalizePin } from '@/lib/invite'
 import { caller, readJson } from '@/lib/session'
 
 export const dynamic = 'force-dynamic'
@@ -15,16 +15,20 @@ export const POST = route(async (req: NextRequest) => {
   if (!user) return apiError(401, 'Sign in to continue.', NO_STORE)
   const body = await readJson(req)
   const code = typeof body?.code === 'string' ? normalizeCode(body.code) : null
+  const pin = normalizePin(body?.pin)
 
   // At most 5 tries a minute per login, whatever the code looks like.
   const [lim] = await sql()<{ ok: boolean }[]>`select hit_rate_limit(${'claim:' + user.id}, 60, 5) as ok`
   if (lim && !lim.ok) return apiError(429, 'Too many tries. Wait a minute and try again.', { 'Retry-After': '60', ...NO_STORE })
   if (!code) return apiError(400, INVALID, NO_STORE)
+  // And at most 10 tries an hour for any one code, from any number of logins: a wrong PIN burns the invite, it cannot be guessed.
+  const [lim2] = await sql()<{ ok: boolean }[]>`select hit_rate_limit(${'claimcode:' + hashCode(code).slice(0, 16)}, 3600, 10) as ok`
+  if (lim2 && !lim2.ok) return apiError(429, 'Too many tries for this code. Ask an admin for a new one.', { 'Retry-After': '3600', ...NO_STORE })
 
   try {
     const member = await sql().begin(async (tx) => {
       const [inv] = await tx<{ id: string; member_id: string }[]>`
-        select id, member_id from member_invites where code_hash = ${hashCode(code)} and used_at is null and expires_at > now() for update`
+        select id, member_id from member_invites where code_hash = ${hashInvite(code, pin)} and used_at is null and expires_at > now() for update`
       if (!inv) return null
       const [m] = await tx<{ id: string; display_name: string; bio: string | null }[]>`
         update members set auth_user_id = ${user.id}, updated_at = now()
