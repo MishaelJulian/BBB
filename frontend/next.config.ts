@@ -24,9 +24,9 @@ const nextConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     // Meetup photos live in the Supabase public bucket (NEXT_PUBLIC_PHOTO_BASE), shown through next/image.
-    remotePatterns: process.env.NEXT_PUBLIC_SUPABASE_URL
-      ? [{ protocol: 'https', hostname: new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname }]
-      : [],
+    remotePatterns: [process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_PHOTO_BASE]
+      .filter((u): u is string => !!u && /^https:/.test(u))
+      .map((u) => ({ protocol: 'https' as const, hostname: new URL(u).hostname })),
   },
   allowedDevOrigins: ['192.168.1.*', '192.168.1.5', '192.168.1.5:3000', 'localhost:3000'],
   // /api/* and /assets/* are proxied by src/middleware.ts (adds the origin secret server-side).
@@ -40,7 +40,7 @@ const nextConfig: NextConfig = {
       isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com" : "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline'",
       // Cover images come from these hosts (see app/services/pdf_generator.py COVER_HOSTS, DOMAINS.txt).
-      `img-src 'self' data: blob: ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''} https://*.gr-assets.com https://*.mzstatic.com https://covers.openlibrary.org https://m.media-amazon.com https://duckduckgo.com https://static.tvmaze.com https://i.ytimg.com https://i.scdn.co`.replace(/\s+/g, ' '),
+      `img-src 'self' data: blob: ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''} ${process.env.NEXT_PUBLIC_PHOTO_BASE?.startsWith('https:') ? new URL(process.env.NEXT_PUBLIC_PHOTO_BASE).origin : ''} https://*.gr-assets.com https://*.mzstatic.com https://covers.openlibrary.org https://m.media-amazon.com https://duckduckgo.com https://static.tvmaze.com https://i.ytimg.com https://i.scdn.co`.replace(/\s+/g, ' '),
       "font-src 'self' data:",
       `connect-src 'self' https://challenges.cloudflare.com ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''}`.trim(),
       'frame-src https://challenges.cloudflare.com',

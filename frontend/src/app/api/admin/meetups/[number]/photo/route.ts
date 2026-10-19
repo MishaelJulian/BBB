@@ -11,6 +11,7 @@ export const POST = adminRawWrite<{ number: string }>(async (tx, who, p, req) =>
   const len = Number(req.headers.get('content-length') ?? 0)
   if (len > PHOTO_MAX + 1024) throw new HttpError(413, 'That file is larger than 4.5 MB.')
   const bytes = new Uint8Array(await req.arrayBuffer())
+  if (bytes.length > PHOTO_MAX) throw new HttpError(413, 'That file is larger than 4.5 MB.')
   return uploadMeetupPhoto(tx, who, num(p.number), bytes)
 })
 

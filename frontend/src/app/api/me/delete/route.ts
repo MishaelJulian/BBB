@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { sql } from '@/lib/db'
 import { audit } from '@/lib/audit'
 import { apiError, ok, route } from '@/lib/http'
@@ -61,5 +62,6 @@ export const POST = route(async (req: NextRequest) => {
     await tx`update audit_log set actor_email = null where actor = ${who.id} and actor_email is not null`
     await tx`delete from auth.users where id = ${who.id}`
   })
+  revalidatePath('/members/[id]', 'page') // the reader page may have shown this wishlist; do not wait out the 60 s cache
   return ok({ deleted: true }, NO_STORE)
 }, 'write')
