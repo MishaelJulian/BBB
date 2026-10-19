@@ -3,6 +3,7 @@
  * (getSession, signIn, signOut, changePassword) so members/account/admin pages are unchanged.
  */
 import { supabase } from './supabase'
+import { isExpired, jwtFacts, sessionStart } from './sessionPolicy'
 
 export interface SessionUser {
   id: string
@@ -40,24 +41,69 @@ export async function accessToken(): Promise<string | null> {
   return data.session?.access_token ?? null
 }
 
-/** fetch() with the signed-in user's token attached, for the routes that check who is calling. */
+// What this browser remembers about its session: Supabase session id, when it began, and the "Keep me signed in" choice.
+// The server decides (session.ts); this copy only lets the browser sign out by itself without a round trip.
+const SESS_KEY = 'bbb_sess'
+interface Sess { s: string | null; t: number; k: boolean }
+const readSess = (): Sess | null => { try { const v = JSON.parse(localStorage.getItem(SESS_KEY) ?? 'null'); return v && typeof v.t === 'number' ? (v as Sess) : null } catch { return null } }
+const writeSess = (v: Sess | null) => { try { if (v) localStorage.setItem(SESS_KEY, JSON.stringify(v)); else localStorage.removeItem(SESS_KEY) } catch { /* private mode: the server still enforces */ } }
+export const storedKeep = () => readSess()?.k === true
+
+/** Tell the server a session began, with the "Keep me signed in" choice (members only; admins are always 24 hours). */
+export async function startSession(keep: boolean): Promise<void> {
+  const token = await accessToken()
+  if (!token) return
+  const facts = jwtFacts(token)
+  const r = await fetch('/api/session/start', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ keep }) }).catch(() => null)
+  const j = r && r.ok ? await r.json().catch(() => null) : null
+  writeSess({ s: facts.sessionId, t: sessionStart(facts.amrStart, Math.floor(Date.now() / 1000)) as number, k: j?.keep === true })
+}
+
+/** Has this browser's session outlived its allowance (24 h admin, 30 d member, 90 d with Keep me signed in), counted from sign-in? */
+export async function clientSessionExpired(): Promise<boolean> {
+  const token = await accessToken()
+  if (!token) return false
+  const f = jwtFacts(token)
+  const mine = readSess()
+  const same = !!mine && !!f.sessionId && mine.s === f.sessionId
+  const start = sessionStart(f.amrStart, same ? mine!.t : null)
+  if (start === null) return false
+  return isExpired(start, f.role, same && mine!.k, Math.floor(Date.now() / 1000))
+}
+
+/** The session is over: sign out here and, on a page that needs an account, go to the sign-in page with the expiry notice. */
+export async function handleExpired(): Promise<void> {
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => {}) // this device only: the person's other sessions are not ours to end
+  writeSess(null)
+  const p = window.location.pathname
+  if (/^\/(me|account|admin)(\/|$)/.test(p)) window.location.assign(`/login?expired=1&next=${encodeURIComponent(p + window.location.search)}`)
+}
+
+/** fetch() with the signed-in user's token attached, for the routes that check who is calling. A "session expired" answer signs the browser out. */
 export async function authFetch(path: string, init?: RequestInit): Promise<Response> {
   const token = await accessToken()
-  return fetch(path, {
+  const r = await fetch(path, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers as Record<string, string> | undefined), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   })
+  if (r.status === 401 && token) {
+    const j = await r.clone().json().catch(() => null)
+    if (j?.error?.code === 'session_expired') await handleExpired()
+  }
+  return r
 }
 
-export async function signIn(email: string, password: string, captchaToken?: string): Promise<void> {
+export async function signIn(email: string, password: string, captchaToken?: string, keep = false): Promise<void> {
   const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } })
   if (error) throw new Error(error.message || 'Sign-in failed.')
+  await startSession(keep)
 }
 
 /** Resolves true when the account is signed in at once, false when an email confirmation is still required. */
 export async function signUp(email: string, password: string, captchaToken?: string): Promise<boolean> {
   const { data, error } = await supabase.auth.signUp({ email, password, options: { captchaToken } })
   if (error) throw new Error(error.message || 'Sign-up failed.')
+  if (data.session) await startSession(false)
   return Boolean(data.session)
 }
 
@@ -74,6 +120,7 @@ export const oauthProviders = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS ?? '')
 
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut()
+  writeSess(null)
 }
 
 /** Supabase does not check the old password on update, so re-authenticate with it first. */
@@ -81,8 +128,43 @@ export async function changePassword(currentPassword: string, newPassword: strin
   const { data } = await supabase.auth.getUser()
   const email = data.user?.email
   if (!email) throw new Error('You are signed out. Sign in again.')
+  const keep = storedKeep()
   const re = await supabase.auth.signInWithPassword({ email, password: currentPassword })
   if (re.error) throw new Error('The current password is wrong.')
+  await startSession(keep) // the re-check opened a new Supabase session: carry the choice over
   const { error } = await supabase.auth.updateUser({ password: newPassword })
   if (error) throw new Error(error.message || 'Could not change the password.')
+}
+
+/** Do I have a recovery phrase? (status only; the words are never kept.) */
+export async function recoveryStatus(): Promise<{ has: boolean; created_at: number | null } | null> {
+  const r = await authFetch('/api/me/recovery').catch(() => null)
+  return r && r.ok ? r.json() : null
+}
+
+/** Make a recovery phrase. Resolves the 12 words, to show once. Pass the password for a replacement. */
+export async function makeRecoveryPhrase(password?: string): Promise<string[]> {
+  const r = await authFetch('/api/me/recovery', { method: 'POST', body: JSON.stringify(password ? { password } : {}) })
+  const j = await r.json().catch(() => null)
+  if (!r.ok) throw new Error(j?.detail || j?.error?.message || 'Could not make a recovery phrase.')
+  return j.phrase as string[]
+}
+
+/** Forgot password: email + 12 words or an admin code + a new password. Resolves the NEW phrase, to show once. */
+export async function forgotPassword(input: { email: string; phrase?: string; code?: string; password: string }): Promise<string[]> {
+  const r = await fetch('/api/auth/forgot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) })
+  const j = await r.json().catch(() => null)
+  if (!r.ok) throw Object.assign(new Error(j?.detail || j?.error?.message || 'Something went wrong. Try again.'), { status: r.status })
+  return j.phrase as string[]
+}
+
+/** Same-origin targets only: parse it and compare origins (a prefix check is not enough). */
+export function safeNext(raw: string | null, fallback = '/me'): string {
+  if (!raw) return fallback
+  try {
+    const u = new URL(raw, window.location.origin)
+    return u.origin === window.location.origin ? u.pathname + u.search + u.hash : fallback
+  } catch {
+    return fallback
+  }
 }

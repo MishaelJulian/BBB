@@ -66,3 +66,52 @@ export function InviteSheet({ member, onClose, onDone }: { member: { id: string;
     </Sheet>
   )
 }
+
+/** Issue a one-time reset code (24 hours) for a member with a linked account: POST /api/admin/members/[id]/reset-code. Shown once, with Copy. */
+export function ResetCodeSheet({ member, onClose, onDone }: { member: { id: string; name: string } | null; onClose: () => void; onDone: () => void }) {
+  const [busy, setBusy] = React.useState(false)
+  const [msg, setMsg] = React.useState<{ ok: boolean; t: string } | null>(null)
+  const [made, setMade] = React.useState<{ code: string; expires: string } | null>(null)
+  const [copied, setCopied] = React.useState('')
+  React.useEffect(() => { if (!member) { setMsg(null); setMade(null); setCopied(''); setBusy(false) } }, [member])
+  const make = async () => {
+    if (!member) return
+    setBusy(true)
+    setMsg(null)
+    try {
+      const r = await api<{ code: string; expires_at: string }>(`/api/admin/members/${encodeURIComponent(member.id)}/reset-code`, { method: 'POST' })
+      setMade({ code: r.code, expires: r.expires_at })
+    } catch (e) {
+      setMsg({ ok: false, t: (e as Error).message })
+    } finally {
+      setBusy(false)
+    }
+  }
+  const finish = () => { onClose(); onDone() }
+  return (
+    <Sheet open={!!member} onClose={made ? finish : onClose}>
+      {!made ? (
+        <>
+          <p className="h2">Reset code for {member?.name}</p>
+          <p className="body">A one-time code so {member?.name.split(' ')[0]} can set a new password if they lost it. It works once and expires in 24 hours. An earlier unused reset code for this person stops working.</p>
+          <Msg m={msg} />
+          <div className="foot">
+            <button className="x" type="button" onClick={onClose}>Cancel</button>
+            <button className="btn" type="button" disabled={busy} onClick={make}><span>Make the code</span><span aria-hidden="true">&rsaquo;</span></button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="h2">Reset code for {member?.name}</p>
+          <p className="acode" data-testid="reset-code">{made.code}</p>
+          <p className="cap" style={{ marginTop: 8 }}>Works once. Expires {fmt(made.expires)}. Shown only now. Give it to them yourself, never in a public chat.</p>
+          <div className="foot">
+            <button className="x" type="button" onClick={async () => setCopied((await copy(made.code)) ? 'ok' : 'failed')}>{copied === 'ok' ? 'Copied' : 'Copy'}</button>
+            <button className="btn" type="button" onClick={finish}><span>Done</span><span aria-hidden="true">&rsaquo;</span></button>
+          </div>
+          {copied === 'failed' && <p className="amsg bad" role="alert">Could not copy. Select the code and copy it by hand.</p>}
+        </>
+      )}
+    </Sheet>
+  )
+}

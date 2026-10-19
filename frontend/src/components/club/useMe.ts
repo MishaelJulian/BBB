@@ -19,9 +19,14 @@ const listeners = new Set<(m: Me) => void>()
 
 async function load(): Promise<Me> {
   // the auth library is about 50 kB: it is fetched here, after the page has painted, not with the first script
-  const [{ supabase }, { authFetch }] = await Promise.all([import('@/lib/supabase'), import('@/lib/auth')])
+  const [{ supabase }, { authFetch, clientSessionExpired, handleExpired }] = await Promise.all([import('@/lib/supabase'), import('@/lib/auth')])
   const { data } = await supabase.auth.getSession()
   if (!data.session) return OUT
+  // Session lengths, counted from sign-in (the server checks the same thing on every call): over the allowance means signed out.
+  if (await clientSessionExpired()) {
+    await handleExpired()
+    return OUT
+  }
   const r = await authFetch('/api/me').catch(() => null)
   if (!r || !r.ok) return OUT
   const j = (await r.json()) as { user: { email: string; role: string | null }; member: { id: string; display_name: string } | null }

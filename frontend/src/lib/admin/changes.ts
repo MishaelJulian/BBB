@@ -13,10 +13,10 @@ export const UNDO_DAYS = 7
 
 export const LABELS: Record<string, string> = {
   'meetup.create': 'Recorded a meetup', 'meetup.update': 'Edited a meetup', 'meetup.delete': 'Deleted a meetup', 'meetup.trash': 'Deleted a meetup',
-  'meetup.restore': 'Restored a meetup', 'meetup.add_book': 'Added a book to a meetup', 'meetup.photo': 'Changed a group photo',
+  'meetup.restore': 'Restored a meetup', 'meetup.add_book': 'Added a book to a meetup', 'meetup.photo': 'Changed a group photo', 'meetup.pdf': 'Made a books PDF',
   'meetup.record': 'Recorded a meetup', 'meetup.enrich': 'Enriched a meetup\'s books',
   'member.visibility': 'Hid or showed a member', 'member.promote': 'Made a member', 'member.delete': 'Removed a member', 'member.restore': 'Restored a member',
-  'member.invite': 'Issued a claim code', 'member.revoke_invite': 'Revoked a code', 'member.rename': 'Renamed a member', 'member.claim': 'Claimed a record', 'member.bio': 'Changed a bio',
+  'member.invite': 'Issued a claim code', 'member.reset_code': 'Issued a reset code', 'member.reset_code_revoked': 'Revoked a reset code', 'member.revoke_invite': 'Revoked a code', 'member.rename': 'Renamed a member', 'member.claim': 'Claimed a record', 'member.bio': 'Changed a bio',
   'book.update': 'Edited a book', 'book.edit': 'Edited a book', 'book.trash': 'Deleted a book', 'book.restore': 'Restored a book', 'book.merge': 'Merged two books', 'book.enrich': 'Filled in a book',
   'discussion.delete': 'Removed a book from a meetup', 'discussion.general': 'Changed general discussion', 'entry.add': 'A member added an entry', 'entry.remove': 'A member removed an entry',
   'change.undo': 'Undid a change',
@@ -68,6 +68,12 @@ async function plan(tx: Tx, a: AuditRow): Promise<Plan> {
       if (!r.length) return no('The code was used, has expired or was replaced')
       return { ok: true, run: async (t, w) => { await t`update member_invites set revoked_at = now() where member_id = ${a.row_id} and used_at is null and revoked_at is null and expires_at > now()`; await audit(t, w, 'member.revoke_invite', 'members', a.row_id!, null, { by_undo: a.id }) } }
     }
+    case 'member.reset_code': {
+      const [r] = await tx<{ ok: boolean }[]>`select (used_at is null and revoked_at is null and expires_at > extract(epoch from now())) as ok from reset_codes where id = ${str(f.code_id)}`
+      if (!r?.ok) return no('The code was used, has expired or was replaced')
+      return { ok: true, run: async (t, w) => { await t`update reset_codes set revoked_at = extract(epoch from now())::bigint where id = ${str(f.code_id)} and used_at is null and revoked_at is null`; await audit(t, w, 'member.reset_code_revoked', 'members', a.row_id!, null, { code_id: str(f.code_id), by_undo: a.id }) } }
+    }
+    case 'member.reset_code_revoked': return no('Issue a new code instead')
     case 'meetup.update': {
       const [m] = await tx<{ date: string | null; title: string | null; venue_id: string | null }[]>`select date::text as date, title, venue_id from meetups where id = ${a.row_id}`
       if (!m) return no('The meetup was removed later')
@@ -89,6 +95,12 @@ async function plan(tx: Tx, a: AuditRow): Promise<Plan> {
       if (!m) return no('The meetup was removed later')
       if (m.photo_url !== (f.photo_url ?? null)) return no('The photo was changed again since')
       return { ok: true, run: async (t, w) => { await t`update meetups set photo_url = ${str(b.photo_url)}, updated_at = now() where id = ${a.row_id}`; await audit(t, w, 'meetup.photo', 'meetups', a.row_id!, f, b) } }
+    }
+    case 'meetup.pdf': {
+      const [m] = await tx<{ pdf_url: string | null }[]>`select pdf_url from meetups where id = ${a.row_id}`
+      if (!m) return no('The meetup was removed later')
+      if (m.pdf_url !== (f.pdf_url ?? null)) return no('The PDF was changed again since')
+      return { ok: true, run: async (t, w) => { await t`update meetups set pdf_url = ${str(b.pdf_url)}, updated_at = now() where id = ${a.row_id}`; await audit(t, w, 'meetup.pdf', 'meetups', a.row_id!, f, { pdf_url: b.pdf_url ?? null }) } }
     }
     case 'book.edit': {
       const [bk] = await tx<Record<string, unknown>[]>`select title, author_id, publisher_id, publication_year, isbn10, isbn13, cover_url, thumbnail_url, description from canonical_books where id = ${a.row_id}`
@@ -136,7 +148,7 @@ export async function listChanges(tx: Tx, opts: { email?: string | null; limit?:
   const limit = Math.min(Math.max(opts.limit ?? 50, 1), 200)
   const raw = await tx<AuditRow[]>`
     ${SELECT_AUDIT(tx)}
-    where ${opts.email ? tx`actor_email = ${opts.email}` : tx`true`}
+    where action not like 'auth.%' and ${opts.email ? tx`actor_email = ${opts.email}` : tx`true`}
     order by at desc, id desc limit ${limit * 3} offset ${opts.offset ?? 0}`
   const undone = new Set((await tx<{ u: string }[]>`select after->>'undid' as u from audit_log where action = 'change.undo' and at > now() - interval '8 days'`).map((r) => r.u))
   const q = opts.q?.trim().toLowerCase()

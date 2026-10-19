@@ -3,12 +3,13 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { authFetch, changePassword, signOut } from '@/lib/auth'
+import { authFetch, changePassword, makeRecoveryPhrase, recoveryStatus, signOut } from '@/lib/auth'
 import { PasswordField } from './AuthForm'
+import { PhraseCard } from './PhraseCard'
 import { refreshMe, useMe } from './useMe'
 
-type Screen = 'list' | 'email' | 'profile' | 'password' | 'record' | 'privacy' | 'download' | 'delete' | 'deleted'
-const SCREENS = ['list', 'email', 'profile', 'password', 'record', 'privacy', 'download', 'delete', 'deleted']
+type Screen = 'list' | 'email' | 'profile' | 'password' | 'recovery' | 'record' | 'privacy' | 'download' | 'delete' | 'deleted'
+const SCREENS = ['list', 'email', 'profile', 'password', 'recovery', 'record', 'privacy', 'download', 'delete', 'deleted']
 const REASONS = ['I do not use it', 'I have another account', 'I am worried about my privacy', 'I am leaving the club', 'Something else']
 const MAIL = 'brokebibliophilesbangalore@gmail.com'
 
@@ -35,6 +36,9 @@ export function AccountScreens() {
   const [reason, setReason] = React.useState('')
   const [sure, setSure] = React.useState(false)
   const [dpw, setDpw] = React.useState('')
+  const [phrase, setPhrase] = React.useState<{ has: boolean; created_at: number | null } | null>(null)
+  const [rpw, setRpw] = React.useState('')
+  const [words, setWords] = React.useState<string[] | null>(null)
 
   // The screen follows the address (?s=...), so links between screens work without a reload.
   const sp = useSearchParams()
@@ -46,6 +50,7 @@ export function AccountScreens() {
   React.useEffect(() => {
     if (me.state !== 'member' && me.state !== 'admin') return
     void authFetch('/api/me').then(async (r) => { if (r.ok) { const j = await r.json(); setBio(j.member?.bio ?? ''); setBioLoaded(true) } })
+    void recoveryStatus().then(setPhrase)
     void authFetch('/api/me/card').then(async (r) => { if (r.ok) { const j = await r.json(); if (j.linked !== false) setRec({ name: j.name, code: j.code }) } })
   }, [me.state])
 
@@ -72,7 +77,7 @@ export function AccountScreens() {
         {back}
         <h1 className="h1">Profile and account</h1>
         <p className="grp">Sign-in and security</p>
-        <div><Row s="email" t1="Email" t2={`${me.email ?? ''} (read only)`} /><Row s="password" t1="Password" t2="Change it" /></div>
+        <div><Row s="email" t1="Email" t2={`${me.email ?? ''} (read only)`} /><Row s="password" t1="Password" t2="Change it" /><Row s="recovery" t1="Recovery phrase" t2={phrase ? (phrase.has ? `Created ${new Date((phrase.created_at ?? 0) * 1000).toISOString().slice(0, 10)}` : 'Not created yet') : ' '} /></div>
         <p className="grp">Your record</p>
         <div><Row s="profile" t1="Profile" t2={linked && rec ? rec.name : 'No record linked'} /><Row s="record" t1="Linked record" t2={linked && rec?.code ? rec.code : 'Link a record'} /></div>
         <p className="grp">Your data</p>
@@ -168,6 +173,49 @@ export function AccountScreens() {
             <span>{busy ? 'Changing...' : 'Change password'}</span><span aria-hidden="true">&rsaquo;</span>
           </button>
         </div>
+      </>
+    )
+  if (s === 'recovery')
+    return (
+      <>
+        {back}
+        <h1 className="h1">Recovery phrase</h1>
+        {words ? (
+          <>
+            <p className="body" style={{ marginTop: 8 }}>This is your new recovery phrase. The old one no longer works.</p>
+            <PhraseCard words={words} label="Done" onContinue={() => { setWords(null); void recoveryStatus().then(setPhrase); router.push('/account') }} />
+          </>
+        ) : (
+          <>
+            <p className="body" style={{ marginTop: 8 }}>{phrase?.has ? `You created your 12-word phrase on ${new Date((phrase.created_at ?? 0) * 1000).toISOString().slice(0, 10)}. It is the only way to reset your password by yourself.` : 'You have no recovery phrase yet.'}</p>
+            <p className="cap" style={{ marginTop: 8 }}>{phrase?.has ? 'Making a new phrase stops the old one working. We ask for your password first. We cannot show the current phrase again.' : 'We ask for your password first.'}</p>
+            <PasswordField id="rp" label="Your password" value={rpw} onChange={setRpw} auto="current-password" />
+            {note}
+            <div className="foot2">
+              <button
+                className="btn"
+                type="button"
+                disabled={busy}
+                style={{ width: '100%' }}
+                onClick={async () => {
+                  setMsg(null)
+                  if (!rpw) return setMsg({ ok: false, t: 'Enter your password.' })
+                  setBusy(true)
+                  try {
+                    setWords(await makeRecoveryPhrase(rpw))
+                    setRpw('')
+                  } catch (e) {
+                    setMsg({ ok: false, t: e instanceof Error ? e.message : 'Could not make a recovery phrase.' })
+                  } finally {
+                    setBusy(false)
+                  }
+                }}
+              >
+                <span>{busy ? 'Making...' : 'Make a new phrase'}</span><span aria-hidden="true">&rsaquo;</span>
+              </button>
+            </div>
+          </>
+        )}
       </>
     )
   if (s === 'record')

@@ -4,7 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Act, AdminPage, api, Back, fmt, Msg, Sheet, useApi, useToast } from './AdminKit'
-import { InviteSheet } from './AdminInvite'
+import { InviteSheet, ResetCodeSheet } from './AdminInvite'
 import { useMe } from './useMe'
 
 interface Member { id: string; name: string; status: string; code: string | null; hidden: boolean; linked: boolean; books: number; meetups: number }
@@ -76,7 +76,7 @@ export function AdminMember({ id }: { id: string }) {
   const router = useRouter()
   const { data, error, reload } = useData()
   const toast = useToast()
-  const [sheet, setSheet] = React.useState<null | 'name' | 'make' | 'code' | 'remove'>(null)
+  const [sheet, setSheet] = React.useState<null | 'name' | 'make' | 'code' | 'reset' | 'remove'>(null)
   const [msg, setMsg] = React.useState<{ ok: boolean; t: string } | null>(null)
   const [busy, setBusy] = React.useState(false)
   const [name, setName] = React.useState('')
@@ -128,6 +128,7 @@ export function AdminMember({ id }: { id: string }) {
             {!m.linked
               ? <Act t="Make a claim code" sub="A personal invite link, so they can link their account to this record" onClick={() => setSheet('code')} />
               : <Act t="Account is linked" sub="They already claimed this record" off />}
+            <Act t="Issue a reset code" sub={m.linked ? 'For a forgotten password' : 'Available once an account is linked'} off={!m.linked} onClick={() => setSheet('reset')} />
             <Act t={m.hidden ? 'Show on the public site again' : 'Hide from the public site'} onClick={() => run(async () => { await api(`/api/admin/members/${encodeURIComponent(id)}/toggle-hide`, { json: { is_hidden: !m.hidden } }); return m.hidden ? `${m.name} is shown again.` : `${m.name} is hidden.` })} />
             <Act t="Remove member" sub="A copy is kept. Undo for 7 days" danger onClick={() => setSheet('remove')} />
           </div>
@@ -156,6 +157,7 @@ export function AdminMember({ id }: { id: string }) {
         </div>
       </Sheet>
 
+      <ResetCodeSheet member={sheet === 'reset' && m && m.linked ? { id: m.id, name: m.name } : null} onClose={close} onDone={reload} />
       <InviteSheet member={sheet === 'code' && m ? { id: m.id, name: m.name } : null} onClose={close} onDone={reload} />
 
       <Sheet open={sheet === 'remove'} onClose={close}>

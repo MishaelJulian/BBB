@@ -5,7 +5,7 @@ import { AdminPage, api, Back, fmt, Msg, Sheet, useApi } from './AdminKit'
 import { InviteSheet } from './AdminInvite'
 import { useMe } from './useMe'
 
-interface Code { id: string; member_id: string; member: string; by: string | null; issued_at: string; expires_at: string; status: 'Active' | 'Used' | 'Expired' | 'Revoked' }
+interface Code { id: string; member_id: string; member: string; by: string | null; issued_at: string; expires_at: string; status: 'Active' | 'Used' | 'Expired' | 'Revoked'; kind?: 'claim' | 'reset' }
 interface Member { id: string; name: string; code: string | null; linked: boolean }
 
 export function AdminCodes() {
@@ -43,7 +43,7 @@ export function AdminCodes() {
     <AdminPage crumbs={[{ href: '/admin', label: 'Admin' }, { label: 'Codes' }]}>
       <Back href="/admin" label="Admin" />
       <h1 className="h1">Codes</h1>
-      <p className="cap" style={{ marginTop: 6 }}>Each personal invite link lets one person make their own account and link it to one member record. It works once and expires in 14 days. The code itself is shown only when it is made.</p>
+      <p className="cap" style={{ marginTop: 6 }}>Each personal invite link lets one person make their own account and link it to one member record. It works once and expires in 14 days. A reset code lets a member set a new password. It works once and expires in 24 hours. A code is shown only when it is made.</p>
       <div className="tabs" role="group" aria-label="Show">
         {([['active', 'Active'], ['used', 'Used'], ['expired', 'Expired']] as const).map(([k, l]) => (
           <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)}>{l} {codes.data ? L.filter((c) => inTab(c, k)).length : ''}</button>
@@ -53,7 +53,7 @@ export function AdminCodes() {
       <div>
         {rows.map((c) => (
           <button key={c.id} className="mr" type="button" onClick={() => { setMsg(null); setPick(c) }}>
-            <span className="t1">{c.member} &middot; Claim link</span>
+            <span className="t1">{c.member} &middot; {c.kind === 'reset' ? 'Reset code' : 'Claim link'}</span>
             <span className="t2">Issued {fmt(c.issued_at)} by {c.by ?? 'an admin'} &middot; {c.status === 'Active' ? `expires ${fmt(c.expires_at)}` : c.status}</span>
           </button>
         ))}
@@ -63,7 +63,7 @@ export function AdminCodes() {
       <div className="fpair right"><button className="btn" type="button" onClick={() => { setQ(''); setTarget(null); setNewOpen(true) }}><span>+ New code</span><span aria-hidden="true">&rsaquo;</span></button></div>
 
       <Sheet open={!!pick} onClose={() => setPick(null)}>
-        <p className="h2">{pick?.member} &middot; Claim link</p>
+        <p className="h2">{pick?.member} &middot; {pick?.kind === 'reset' ? 'Reset code' : 'Claim link'}</p>
         <p className="cap">Status: {pick?.status}. Issued {fmt(pick?.issued_at)} by {pick?.by ?? 'an admin'}.{pick?.status === 'Active' ? ` Expires ${fmt(pick.expires_at)}.` : ''}</p>
         <p className="cap" style={{ marginTop: 6 }}>The code itself is not shown again.</p>
         <Msg m={msg} />

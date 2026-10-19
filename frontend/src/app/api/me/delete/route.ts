@@ -60,6 +60,13 @@ export const POST = route(async (req: NextRequest) => {
       await audit(tx, { ...who, email: '' }, 'account.deleted', 'auth.users', who.id, null, { reason })
     }
     await tx`update audit_log set actor_email = null where actor = ${who.id} and actor_email is not null`
+    // Slice D tables hold no foreign key to auth.users: clear this login's rows here (skipped where the migration is not applied yet)
+    await tx.savepoint(async (sp) => {
+      await sp`delete from recovery_phrases where user_id = ${who.id}`
+      await sp`delete from reset_codes where user_id = ${who.id}`
+      await sp`delete from auth_security where user_id = ${who.id}`
+      await sp`delete from session_prefs where user_id = ${who.id}`
+    }).catch((e) => { if ((e as { code?: string }).code !== '42P01') throw e })
     await tx`delete from auth.users where id = ${who.id}`
   })
   revalidatePath('/members/[id]', 'page') // the reader page may have shown this wishlist; do not wait out the 60 s cache

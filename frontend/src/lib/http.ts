@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from './db'
+import { SESSION_EXPIRED_MESSAGE } from './sessionPolicy'
 
 const ERROR_TYPES: Record<number, string> = { 400: 'validation_error', 401: 'auth_error', 403: 'permission_error', 404: 'not_found', 422: 'validation_error', 429: 'rate_limited' }
 
 /** The same envelope the FastAPI service used: `detail` for old clients, `error` as the standard (PRD 11.2). */
 export function apiError(status: number, message: string, headers?: Record<string, string>) {
   const type = ERROR_TYPES[status] ?? (status >= 500 ? 'server_error' : 'validation_error')
-  return NextResponse.json({ detail: message, error: { type, code: type, message } }, { status, headers })
+  const code = status === 401 && message === SESSION_EXPIRED_MESSAGE ? 'session_expired' : type // the browser signs out on this one
+  return NextResponse.json({ detail: message, error: { type, code, message } }, { status, headers: status === 401 ? { 'Cache-Control': 'private, no-store', ...headers } : headers })
 }
 
 /** Edge-cache headers for public reads. 60 s at the CDN: writes are live, so a day-long cache would hide edits (nothing purges it). */

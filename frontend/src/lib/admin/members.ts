@@ -37,22 +37,37 @@ export async function renameMember(tx: Tx, who: Caller, id: string, raw: unknown
 
 // ---------------------------------------------------------------- codes
 
+import { revokeResetCode } from '../recovery/codes'
+
 export type CodeStatus = 'Active' | 'Used' | 'Expired' | 'Revoked'
-export interface CodeRow { id: string; member_id: string; member: string; by: string | null; issued_at: string; expires_at: string; status: CodeStatus }
+export interface CodeRow { id: string; member_id: string; member: string; by: string | null; issued_at: string; expires_at: string; status: CodeStatus; kind: 'claim' | 'reset' }
 
 export async function listCodes(tx: Tx): Promise<CodeRow[]> {
-  return tx<CodeRow[]>`
+  const claims = await tx<CodeRow[]>`
     select i.id::text, i.member_id, m.display_name as member,
       (select a.actor_email from audit_log a where a.actor = i.created_by and a.actor_email is not null order by a.at desc limit 1) as by,
       i.created_at::text as issued_at, i.expires_at::text as expires_at,
-      case when i.used_at is not null then 'Used' when i.revoked_at is not null then 'Revoked' when i.expires_at <= now() then 'Expired' else 'Active' end as status
+      case when i.used_at is not null then 'Used' when i.revoked_at is not null then 'Revoked' when i.expires_at <= now() then 'Expired' else 'Active' end as status,
+      'claim' as kind
     from member_invites i join members m on m.id = i.member_id order by i.created_at desc limit 500`
+  // Reset codes (Slice D) live in their own table; the list is one combined list. Tolerates the table not existing yet.
+  const resets = await tx.savepoint((sp) => sp<CodeRow[]>`
+    select r.id, r.member_id, m.display_name as member,
+      (select a.actor_email from audit_log a where a.actor::text = r.created_by and a.actor_email is not null order by a.at desc limit 1) as by,
+      to_timestamp(r.created_at)::text as issued_at, to_timestamp(r.expires_at)::text as expires_at,
+      case when r.used_at is not null then 'Used' when r.revoked_at is not null then 'Revoked' when r.expires_at <= extract(epoch from now()) then 'Expired' else 'Active' end as status,
+      'reset' as kind
+    from reset_codes r join members m on m.id = r.member_id order by r.created_at desc limit 500`).catch((e) => {
+    if ((e as { code?: string }).code === '42P01') return [] as CodeRow[]
+    throw e
+  })
+  return [...claims, ...resets].sort((a, b) => (a.issued_at < b.issued_at ? 1 : -1))
 }
 
 export async function revokeCode(tx: Tx, who: Caller, id: string) {
   const [i] = await tx<{ member_id: string; used_at: string | null; revoked_at: string | null; expired: boolean }[]>`
     select member_id, used_at::text, revoked_at::text, (expires_at <= now()) as expired from member_invites where id = ${id} for update`
-  if (!i) throw new HttpError(404, 'Code not found')
+  if (!i) return revokeResetCode(tx, who, id) // not a claim link: a reset code (404 if it is neither)
   if (i.used_at) throw new HttpError(409, 'That code was already used.')
   if (i.revoked_at) throw new HttpError(409, 'That code is already revoked.')
   await tx`update member_invites set revoked_at = now() where id = ${id}`

@@ -74,6 +74,8 @@ export function AdminMeetups() {
 }
 
 const PHOTO_MAX = 4_718_592
+type PdfStyle = 'magazine' | 'classic'
+interface PdfDone { pdf_url: string; style: PdfStyle; pages: number; message: string }
 interface Summary { total: number; enriched: number; complete: number; none: number; failed: number; failures: { id: string; title: string }[] }
 
 export function AdminMeetup({ number }: { number: number }) {
@@ -87,6 +89,10 @@ export function AdminMeetup({ number }: { number: number }) {
   const [file, setFile] = React.useState<File | null>(null)
   const [preview, setPreview] = React.useState<string | null>(null)
   const [sum, setSum] = React.useState<Summary | null>(null)
+  const [pdfStyle, setPdfStyle] = React.useState<PdfStyle>('magazine')
+  const [pdfBusy, setPdfBusy] = React.useState(false)
+  const [pdfRes, setPdfRes] = React.useState<PdfDone | null>(null)
+  const [pdfErr, setPdfErr] = React.useState<string | null>(null)
   const close = () => { setSheet(null); setMsg(null); setFile(null); setPreview(null); setSum(null) }
 
   const choose = (f: File | undefined) => {
@@ -128,6 +134,19 @@ export function AdminMeetup({ number }: { number: number }) {
       setSum(await api<Summary>(`/api/admin/meetups/${number}/enrich`, { json: ids ? { ids } : {} }))
     } catch (e) { setMsg({ ok: false, t: (e as Error).message }) } finally { setBusy(false) }
   }
+  const makePdf = async () => {
+    setPdfBusy(true)
+    setPdfErr(null)
+    setPdfRes(null)
+    try {
+      const r = await api<PdfDone>(`/api/admin/meetups/${number}/pdf?style=${pdfStyle}`, { method: 'POST', signal: AbortSignal.timeout(90_000) })
+      setPdfRes(r)
+      reload()
+    } catch (e) {
+      const x = e as Error
+      setPdfErr(x.name === 'TimeoutError' || x.name === 'AbortError' ? 'This is taking too long. Check Books PDF on this meetup in a minute: it may have finished.' : x.message)
+    } finally { setPdfBusy(false) }
+  }
   const del = async () => {
     setBusy(true)
     try {
@@ -148,7 +167,7 @@ export function AdminMeetup({ number }: { number: number }) {
           {m.photo_url && /^https?:/.test(m.photo_url) && /* eslint-disable-next-line @next/next/no-img-element */ <img className="aph" src={m.photo_url} alt={`Group photo of meetup ${m.number}`} referrerPolicy="no-referrer" />}
           <div style={{ marginTop: 16 }}>
             <Act t="Group photo" sub={m.photo_url ? 'On the site' : 'No photo yet'} onClick={() => { setMsg(null); setSheet('photo') }} />
-            <Act t="Books PDF" sub={m.pdf_url ? 'On the site. Making a new one is not available yet' : 'Not made yet. Making one is not available yet'} onClick={() => setSheet('pdf')} />
+            <Act t="Books PDF" sub={m.pdf_url ? 'On the site. Make a new one to replace it' : 'Not made yet'} onClick={() => { if (!pdfBusy) { setPdfRes(null); setPdfErr(null) } setSheet('pdf') }} />
             <Act t="Enrich its books" sub="From Apple Books and Open Library" onClick={() => { setSum(null); setSheet('enrich') }} />
             <Act t="Delete meetup" sub="A copy is kept. Undo for 7 days" danger onClick={() => setSheet('delete')} />
           </div>
@@ -171,11 +190,27 @@ export function AdminMeetup({ number }: { number: number }) {
         </div>
       </Sheet>
 
-      <Sheet open={sheet === 'pdf'} onClose={close}>
+      <Sheet open={sheet === 'pdf'} onClose={() => { if (!pdfBusy) setSheet(null) }}>
         <p className="h2">Books PDF</p>
-        <p className="body">Making the Magazine and Classic PDFs on the site is not built yet: it needs a PDF library, and none is installed. {m?.pdf_url ? 'The current PDF stays on the site.' : ''}</p>
-        {m?.pdf_url && <p style={{ marginTop: 8 }}><a className="link" href={m.pdf_url} target="_blank" rel="noopener">Open the current PDF</a></p>}
-        <div className="foot"><button className="btn" type="button" onClick={close}><span>OK</span><span aria-hidden="true">&rsaquo;</span></button></div>
+        <p className="cap">The books discussed at meetup #{number}. {m?.pdf_url ? 'Making it again replaces the one on the site. The old file is kept, so Undo in All changes brings it back for 7 days.' : 'It goes on the site when it is ready.'}</p>
+        <fieldset className="tagset" disabled={pdfBusy}>
+          <legend className="cap">Style</legend>
+          <label className="opt2"><input type="radio" name="pdfstyle" value="magazine" checked={pdfStyle === 'magazine'} onChange={() => setPdfStyle('magazine')} /><span>Magazine<small>A designed zine, with covers</small></span></label>
+          <label className="opt2"><input type="radio" name="pdfstyle" value="classic" checked={pdfStyle === 'classic'} onChange={() => setPdfStyle('classic')} /><span>Classic<small>A plain document with a table</small></span></label>
+        </fieldset>
+        {pdfBusy && <p className="amsg" role="status">Making the {pdfStyle === 'magazine' ? 'Magazine' : 'Classic'} PDF... this can take up to a minute. Keep this open.</p>}
+        {pdfRes && !pdfBusy && (
+          <>
+            <p className="amsg" role="status">{pdfRes.message}</p>
+            {/^https?:/.test(pdfRes.pdf_url) && <p style={{ marginTop: 8 }}><a className="link" href={pdfRes.pdf_url} target="_blank" rel="noopener">Open the new PDF</a></p>}
+          </>
+        )}
+        {pdfErr && !pdfBusy && <p className="amsg bad" role="alert">{pdfErr}</p>}
+        {!pdfRes && m?.pdf_url && /^https?:/.test(m.pdf_url) && <p style={{ marginTop: 8 }}><a className="link" href={m.pdf_url} target="_blank" rel="noopener">Open the current PDF</a></p>}
+        <div className="foot">
+          <button className="x" type="button" disabled={pdfBusy} onClick={() => { setSheet(null); setPdfRes(null); setPdfErr(null) }}>Close</button>
+          <button className="btn" type="button" disabled={pdfBusy} onClick={makePdf}><span>{pdfErr ? 'Try again' : m?.pdf_url || pdfRes ? 'Make a new PDF' : 'Make PDF'}</span><span aria-hidden="true">&rsaquo;</span></button>
+        </div>
       </Sheet>
 
       <Sheet open={sheet === 'enrich'} onClose={close}>

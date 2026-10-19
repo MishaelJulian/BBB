@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Load the Postgres driver as a normal Node package; bundling it picks the Cloudflare-Workers build and connections never complete.
   serverExternalPackages: ['postgres'],
+  // The PDF route reads its fonts and template images at run time; pdfkit also reads its standard-font data and fontkit its tables from node_modules.
+  outputFileTracingIncludes: {
+    '/api/admin/meetups/[number]/pdf': ['./src/lib/pdf/assets/**/*', './node_modules/pdfkit/js/**/*'],
+  },
   env: {
     NEXT_PUBLIC_APP_VERSION: pkg.version,
     NEXT_PUBLIC_BUILD_ID: buildId(),

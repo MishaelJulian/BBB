@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { authFetch, signIn, signUp } from '@/lib/auth'
+import { authFetch, recoveryStatus, safeNext, signIn, signUp } from '@/lib/auth'
 import { Turnstile, type TurnstileHandle } from '@/components/auth/Turnstile'
 import { refreshMe } from './useMe'
 
@@ -51,20 +51,17 @@ export function AuthForm({ initialMode = 'in', invite }: { initialMode?: 'in' | 
   const [after, setAfter] = React.useState<string | null>(null)
   const [busy, setBusy] = React.useState(false)
   const [token, setToken] = React.useState<string | null>(null)
+  const [keep, setKeep] = React.useState(false)
+  const [top, setTop] = React.useState<string | null>(null)
   const captcha = React.useRef<TurnstileHandle>(null)
   const up = mode === 'up'
+  React.useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    if (q.get('expired') === '1') setTop('Your previous session has expired. Sign in again.')
+    else if (q.get('reset') === '1') setTop('Your password was changed. Sign in with the new one.')
+  }, [])
 
-  // Same-origin targets only: parse it and compare origins (a prefix check is not enough).
-  const target = () => {
-    const next = new URLSearchParams(window.location.search).get('next')
-    if (!next) return '/me'
-    try {
-      const u = new URL(next, window.location.origin)
-      return u.origin === window.location.origin ? u.pathname + u.search + u.hash : '/me'
-    } catch {
-      return '/me'
-    }
-  }
+  const target = () => safeNext(new URLSearchParams(window.location.search).get('next'))
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,7 +80,7 @@ export function AuthForm({ initialMode = 'in', invite }: { initialMode?: 'in' | 
           return
         }
       } else {
-        await signIn(email.trim(), pw, token ?? undefined)
+        await signIn(email.trim(), pw, token ?? undefined, keep)
       }
       if (invite) {
         const problem = await claim(invite)
@@ -95,7 +92,9 @@ export function AuthForm({ initialMode = 'in', invite }: { initialMode?: 'in' | 
         }
       }
       await refreshMe()
-      router.push(target())
+      // No recovery phrase yet (a new account, or the first sign-in since phrases began): make one now, shown once.
+      const rec = await recoveryStatus()
+      router.push(rec && !rec.has ? `/recovery?first=1&next=${encodeURIComponent(target())}` : target())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
@@ -106,6 +105,7 @@ export function AuthForm({ initialMode = 'in', invite }: { initialMode?: 'in' | 
 
   return (
     <div className="auth">
+      {top && <p className="notice" role="status">{top}</p>}
       <h1 className="h1">{up ? 'Create an account' : 'Sign in'}</h1>
       <p className="body" style={{ marginTop: 8 }}>
         {invite ? `You're invited as ${invite.name}. ${up ? 'Create your account to link your record.' : 'Sign in to link your record.'}` : up ? 'Join BBB with your email.' : 'Welcome back to BBB.'}
@@ -116,6 +116,12 @@ export function AuthForm({ initialMode = 'in', invite }: { initialMode?: 'in' | 
           <input id="email" type="email" autoComplete="username" inputMode="email" autoCapitalize="none" spellCheck={false} value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <PasswordField id="pw" label="Password" value={pw} onChange={setPw} auto={up ? 'new-password' : 'current-password'} hint={up ? '8 or more characters.' : undefined} />
+        {!up && (
+          <label className="keep">
+            <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />
+            <span>Keep me signed in<small>Members: 90 days instead of 30. Admins: always 24 hours. Only on a device that only you use.</small></span>
+          </label>
+        )}
         {up && (
           <>
             <div className="dpnote" role="note">
@@ -141,7 +147,7 @@ export function AuthForm({ initialMode = 'in', invite }: { initialMode?: 'in' | 
       </form>
       {!up && (
         <p className="cap" style={{ marginTop: 16 }}>
-          Forgot your password? <a href="mailto:brokebibliophilesbangalore@gmail.com" style={{ color: 'var(--ink)' }}>Email the club.</a>
+          <Link className="link" href="/forgot">Forgot your password?</Link>
         </p>
       )}
       <p className="body" style={{ marginTop: 8 }}>
