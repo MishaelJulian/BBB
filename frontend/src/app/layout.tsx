@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import '@/styles/club.css'
+import '@/styles/club-extra.css'
 import { SiteShell } from '@/components/layout/SiteShell'
 
 const inter = Inter({
@@ -44,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html lang="en" className={inter.variable} data-accent="orange" suppressHydrationWarning>
       <body className="antialiased" suppressHydrationWarning>
         <SiteShell>{children}</SiteShell>
       </body>

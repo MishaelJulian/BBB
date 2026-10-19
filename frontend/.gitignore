@@ -2,3 +2,6 @@
 # Vercel CLI link (project and org ids)
 .vercel
 .env*
+
+# Member photos for local development only; production serves them from storage
+/public/ui/photos/

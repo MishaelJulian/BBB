@@ -1,143 +1,16 @@
-'use client'
+import { ClubPage } from '@/components/club/ClubPage'
+import { MeetupsList } from '@/components/club/MeetupsList'
+import { getMeetupIndex } from '@/lib/club/indexes'
 
-import * as React from 'react'
-import { Container } from '@/components/layout/Container'
-import { Section } from '@/components/layout/Section'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { MeetupCard } from '@/components/meetup/MeetupCard'
-import { Input } from '@/components/ui/Input'
-import { LoadingState } from '@/components/shared/LoadingState'
-import { ErrorState } from '@/components/shared/ErrorState'
-import { fetchMeetups, getCachedData } from '@/lib/api'
-import type { Meetup } from '@/lib/api'
+export const revalidate = 3600
+export const metadata = { title: 'Meetups - BBB', description: 'Every Broke Bibliophiles meetup on record: date, venue, readers and books.' }
 
-export default function MeetupsPage() {
-  const [search, setSearch] = React.useState('')
-  const [year, setYear] = React.useState<string>('')
-  
-  // Zero-flicker synchronous hydration: if meetups are already in memory/storage, load them on frame 1
-  const [meetups, setMeetups] = React.useState<Meetup[]>(() => {
-    if (typeof window === 'undefined') return []
-    try {
-      const cached = getCachedData<Meetup[]>('meetups_') || 
-        (sessionStorage.getItem('bbb_archive_meetups') ? JSON.parse(sessionStorage.getItem('bbb_archive_meetups')!) : null)
-      if (Array.isArray(cached) && cached.length > 0) return cached
-    } catch {}
-    return []
-  })
-  const [loading, setLoading] = React.useState<boolean>(() => meetups.length === 0)
-  const [error, setError] = React.useState<string | null>(null)
-
-  // Fetch meetups
-  React.useEffect(() => {
-    async function fetchMeetupsData() {
-      try {
-        if (meetups.length === 0) {
-          setLoading(true)
-        }
-        setError(null)
-
-        const data = await fetchMeetups({
-          search: search || undefined,
-          year: year ? parseInt(year, 10) : undefined,
-        })
-
-        setMeetups(data)
-        if (!search && !year) {
-          try {
-            sessionStorage.setItem('bbb_archive_meetups', JSON.stringify(data))
-          } catch {}
-        }
-      } catch (err) {
-        if (meetups.length === 0) {
-          setError(err instanceof Error ? err.message : 'An error occurred')
-        }
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchMeetupsData()
-  }, [search, year])
-
-  // Get unique years for filter
-  const years = React.useMemo(() => {
-    const yearSet = new Set(
-      meetups.map(m => new Date(m.date).getFullYear())
-    )
-    return Array.from(yearSet).sort((a, b) => b - a)
-  }, [meetups])
-
+export default async function MeetupsPage() {
+  const data = await getMeetupIndex()
+  const latest = Math.max(0, ...data.map((m) => m.n))
   return (
-    <Section>
-      <Container>
-        {/* Header */}
-        <PageHeader
-          title="Meetups"
-          description="Chronological record of all BBB meetups"
-        />
-
-        {/* Filters */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-4">
-          <Input
-            placeholder="Search by meetup number (e.g., #97)..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1"
-          />
-          <select
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            className="flex h-10 rounded-md border border-border bg-paper px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-accent"
-          >
-            <option value="">All years</option>
-            {years.map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Content */}
-        {loading && <LoadingState count={6} />}
-
-        {error && (
-          <ErrorState
-            message={error}
-            onRetry={() => window.location.reload()}
-          />
-        )}
-
-        {!loading && !error && (
-          <>
-            {/* Results count */}
-            <div className="mt-6 mb-6 text-sm text-muted">
-              Showing {meetups.length} meetups
-            </div>
-
-            {/* Meetup grid */}
-            <div className="border-t border-border">
-              {meetups.map((meetup) => (
-                <MeetupCard
-                  key={meetup.id}
-                  id={meetup.id}
-                  number={meetup.number}
-                  date={meetup.date}
-                  venue={meetup.venue || 'Unknown'}
-                  bookCount={meetup.book_count}
-                  memberCount={meetup.member_count}
-                  books={meetup.books}
-                />
-              ))}
-            </div>
-
-            {meetups.length === 0 && (
-              <div className="text-center py-12 text-muted">
-                No meetups found matching your search.
-              </div>
-            )}
-          </>
-        )}
-      </Container>
-    </Section>
+    <ClubPage kind="crumb" crumbs={[{ href: '/directory', label: 'Directory' }, { label: 'Meetups' }]} tab="dir">
+      <MeetupsList data={data} latest={latest} />
+    </ClubPage>
   )
 }

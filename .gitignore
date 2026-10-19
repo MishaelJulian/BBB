@@ -86,3 +86,6 @@ auth-data/
 *.auth.db
 auth.db
 deploy/.env.prod
+
+# Static UI mockup (contains member photos, never commit)
+mockup/
