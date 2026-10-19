@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { ClubPage } from '@/components/club/ClubPage'
 import { ElasticHeadline } from '@/components/club/ElasticHeadline'
@@ -54,8 +55,9 @@ export default async function HomePage() {
           <p className="cap">{fd(m.date)}{m.venue ? ` · ${m.venue}` : ''}</p>
           <div className="sp16" />
           {m.photo_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={m.photo_url} width={1600} height={1067} alt={`Attendees of meetup ${m.meetup_number}`} style={{ width: '100%', height: 'auto', aspectRatio: '3/2', objectFit: 'cover', background: 'var(--paper2)' }} />
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '3/2', background: 'var(--paper2)' }}>
+              <Image src={m.photo_url} alt={`Attendees of meetup ${m.meetup_number}`} fill sizes="(max-width: 430px) 100vw, 430px" style={{ objectFit: 'cover' }} />
+            </div>
           )}
           <div className="sp16" />
           {m.description && <p className="body clamp3">{m.description}</p>}

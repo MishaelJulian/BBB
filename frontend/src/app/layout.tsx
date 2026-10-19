@@ -47,6 +47,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable} data-accent="orange" suppressHydrationWarning>
+      <head>
+        <link rel="preload" href="/ui/fonts/inter-wght.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/ui/fonts/archivo-wdth.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
       <body className="antialiased" suppressHydrationWarning>
         <SiteShell>{children}</SiteShell>
       </body>

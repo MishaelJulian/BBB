@@ -1,8 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { authFetch } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
 
 export type MeState = 'loading' | 'out' | 'new' | 'member' | 'admin'
 export interface Me {
@@ -20,6 +18,8 @@ let inflight: Promise<Me> | null = null
 const listeners = new Set<(m: Me) => void>()
 
 async function load(): Promise<Me> {
+  // the auth library is about 50 kB: it is fetched here, after the page has painted, not with the first script
+  const [{ supabase }, { authFetch }] = await Promise.all([import('@/lib/supabase'), import('@/lib/auth')])
   const { data } = await supabase.auth.getSession()
   if (!data.session) return OUT
   const r = await authFetch('/api/me').catch(() => null)
@@ -45,9 +45,10 @@ export function refreshMe(): Promise<Me> {
 }
 
 let wired = false
-function wire() {
+async function wire() {
   if (wired) return
   wired = true
+  const { supabase } = await import('@/lib/supabase')
   supabase.auth.onAuthStateChange(() => {
     void refreshMe()
   })
@@ -57,7 +58,7 @@ function wire() {
 export function useMe(): Me {
   const [me, setMe] = React.useState<Me>(cache ?? { state: 'loading', name: null, memberId: null, email: null, role: null })
   React.useEffect(() => {
-    wire()
+    void wire()
     listeners.add(setMe)
     if (cache) setMe(cache)
     else void (inflight ?? refreshMe())

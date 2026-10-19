@@ -34,50 +34,35 @@ const STOP: Record<string, string> = { arrival: 'Arrival and introduction', disc
 const stopOf = (id: string) => STOP[BY_ID[id].stop] ?? ''
 
 export function PhotoRows({ ids, order, caps, flush = false }: { ids: string[]; order?: string[]; caps?: Record<string, string>; flush?: boolean }) {
-  const host = React.useRef<HTMLDivElement>(null)
-  const [W, setW] = React.useState(0)
   const [open, setOpen] = React.useState<number | null>(null)
   const seq = order ?? ids
-  React.useEffect(() => {
-    const el = host.current
-    if (!el) return
-    const measure = () => setW(el.clientWidth)
-    measure()
-    let w0 = window.innerWidth
-    const onResize = () => {
-      if (window.innerWidth !== w0) {
-        w0 = window.innerWidth
-        measure()
-      }
-    }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
   const gap = flush ? 0 : 8
   const rows = React.useMemo(() => layout(ids), [ids])
   const idx = Object.fromEntries(seq.map((id, i) => [id, i]))
+  // Each photo's width follows its ratio (flex-grow = ratio), so every photo in a row ends up the same height without measuring anything:
+  // no layout shift. A lone portrait photo is at most half the row and 262 px tall, as in the approved mockup.
   return (
-    <div ref={host}>
-      {W > 0 &&
-        rows.map((r, ri) => {
-          const h = r.length === 1 && ratio(r[0]) <= 1.2 ? (flush ? W / ratio(r[0]) : Math.min((W - gap) / 2 / ratio(r[0]), 262)) : (W - gap * (r.length - 1)) / r.reduce((s, x) => s + ratio(x), 0)
-          return (
-            <div className="row" key={ri}>
-              {r.map((p) => {
-                const w = ratio(p) * h
-                return (
-                  <figure key={p.id} style={{ width: +w.toFixed(1) }}>
-                    <button type="button" onClick={() => setOpen(idx[p.id])} aria-label={`Open photo ${idx[p.id] + 1} of ${seq.length}: ${p.alt.replace(/"/g, '')}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={photoSrc(p.id, '800')} width={p.w} height={p.h} alt={p.alt} loading="lazy" decoding="async" style={{ height: +h.toFixed(1), width: +w.toFixed(1) }} />
-                    </button>
-                    {caps?.[p.id] && <p className="cap tilecap">{caps[p.id]}</p>}
-                  </figure>
-                )
-              })}
-            </div>
-          )
-        })}
+    <div>
+      {rows.map((r, ri) => {
+        const single = r.length === 1
+        const lonePortrait = single && ratio(r[0]) <= 1.2 && !flush
+        return (
+          <div className="row" key={ri} style={{ display: 'flex', gap, alignItems: 'flex-start', justifyContent: lonePortrait ? 'flex-start' : undefined }}>
+            {r.map((p) => (
+              <figure
+                key={p.id}
+                style={{ margin: 0, minWidth: 0, flex: lonePortrait ? '0 0 auto' : `${ratio(p)} 1 0`, width: lonePortrait ? `min(calc((100% - ${gap}px) / 2), ${(262 * ratio(p)).toFixed(1)}px)` : undefined }}
+              >
+                <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 0, background: 'none', cursor: 'pointer' }} onClick={() => setOpen(idx[p.id])} aria-label={`Open photo ${idx[p.id] + 1} of ${seq.length}: ${p.alt.replace(/"/g, '')}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photoSrc(p.id, '800')} width={p.w} height={p.h} alt={p.alt} loading="lazy" decoding="async" style={{ display: 'block', width: '100%', height: 'auto', aspectRatio: `${p.w} / ${p.h}` }} />
+                </button>
+                {caps?.[p.id] && <p className="cap tilecap">{caps[p.id]}</p>}
+              </figure>
+            ))}
+          </div>
+        )
+      })}
       <Lightbox order={seq} open={open} onClose={() => setOpen(null)} />
     </div>
   )

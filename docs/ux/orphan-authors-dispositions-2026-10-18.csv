@@ -1,0 +1,397 @@
+group,orphan_author,proposed_action,evidence
+G plain name,William C. Lewis,"REVIEW (no import trace, no PDF mention)",
+S used by a series,James S.A. Corey,KEEP,used by a series
+G plain name,Buildings Uketsu,DELETE (book lives under a corrected author),book now under: Uketsu
+G plain name,RM Lala,DELETE (exact twin author exists),"[['RM Lala', 1]]"
+C glued name,ShannonChakraborty,DELETE (book lives under a corrected author),book now under: S.A. Chakraborty
+G plain name,K.J. Emrick & Ellie Emcee,"REVIEW (no import trace, no PDF mention)",
+G plain name,"Thakazhi Sivasankara Pillai, translated from",DELETE (book lives under a corrected author),book now under: തകഴി |Thakazhi Sivasankara Pillai
+G plain name,Irawati Karwe,DELETE (book lives under a corrected author),book now under: Irawati Karve
+C glued name,PicoIyer,DELETE (exact twin author exists),"[['Pico Iyer', 2]]"
+G plain name,Ravi Belagere,"REVIEW (no import trace, no PDF mention)",
+G plain name,Harsh Mandar,DELETE (book lives under a corrected author),book now under: Harsh Mander
+G plain name,Junichiro Tanizaki,DELETE (exact twin author exists),"[[""Jun'ichirō Tanizaki"", 1]]"
+B glued title+author,Embroideries MarjaneSatrapi,DELETE (real book exists),"[['Embroideries', 'Marjane Satrapi', '129726310']]"
+G plain name,J. Miriam Naor,"REVIEW (no import trace, no PDF mention)",
+S used by a series,Manreet Sodhi Someshwar,KEEP,used by a series
+G plain name,Cathy O'Neil,DELETE (exact twin author exists),"[['Cathy O’Neil', 1]]"
+G plain name,Tom and David Kelley,DELETE (book lives under a corrected author),book now under: Tom Kelley
+G plain name,James Arthur Baldwin,DELETE (book lives under a corrected author),book now under: James Baldwin
+C glued name,OmaeAo,DELETE (exact twin author exists),"[['Omae Ao', 1]]"
+G plain name,Deepak Chopra,"REVIEW (no import trace, no PDF mention)",
+G plain name,KR Meera,DELETE (exact twin author exists),"[['കെ.ആർ.മീര | K.R.Meera', 2]]"
+G plain name,Light,DELETE (fragment of a title or author line; the book exists under its correct author),"import 'These_ Our Bodies_ Possessed' -> DB 'These, Our Bodies, Possessed by Light' by Dharini Bhaskar"
+G plain name,Conan Doyle,DELETE (book lives under a corrected author),book now under: Sir Arthur Conan Doyle
+C glued name,VivekHMurthy,DELETE (exact twin author exists),"[['Vivek H. Murthy', 1]]"
+G plain name,Srinath Reddy,"REVIEW (no import trace, no PDF mention)",
+G plain name,Lone Warrior,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Bhima' -> DB 'Bhima: Lone Warrior (tr. Gita Krishnankutty)' by M.T. Vasudevan Nair
+G plain name,Marion Chesney,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Agatha Raisin and the Potted Gardener' -> DB 'Agatha Raisin and the Potted Gardener' by M.C. Beaton
+B glued title+author,TheGroovyGreeks TerryDeary,DELETE (real book exists),"[['The Groovy Greeks', 'Terry Deary', '423941']]"
+C glued name,MartinKleppmann,DELETE (exact twin author exists),"[['Martin Kleppmann', 1]]"
+B glued title+author,MalgudiDays RKNarayan,DELETE (real book exists),"[['Malgudi Days', 'R K Narayan', '45292394']]"
+G plain name,Viktor Frankl,DELETE (book lives under a corrected author),book now under: Viktor E. Frankl
+S used by a series,Brian McClellan,KEEP,used by a series
+C glued name,ShobhaBondre,DELETE (exact twin author exists),"[['Shobha Bondre', 1]]"
+C glued name,DorothySayers,DELETE (book lives under a corrected author),book now under: Dorothy L. Sayers
+C glued name,SomnathBatabyal,DELETE (exact twin author exists),"[['Somnath Batabyal', 1]]"
+G plain name,Sosuke Natsukawa,DELETE (exact twin author exists),"[['Sōsuke Natsukawa', 1]]"
+C glued name,HannahFry,DELETE (exact twin author exists),"[['Hannah Fry', 1]]"
+G plain name,Sunil Gangopadhyay,DELETE (exact twin author exists),"[['SunilGangopadhyay', 1]]"
+G plain name,John Gwynne (Series),DELETE (book lives under a corrected author),book now under: John Gwynne
+G plain name,E Yong,DELETE (book lives under a corrected author),book now under: Ed Yong
+G plain name,Robert Iger,"REVIEW (no import trace, no PDF mention)",
+C glued name,GaryWorthington,DELETE (exact twin author exists),"[['Gary Worthington', 1]]"
+G plain name,Author,REVIEW (import trace but canonical book gone),Format used: NAME: Book Name
+C glued name,HiroArikawa,DELETE (exact twin author exists),"[['Hiro Arikawa', 2]]"
+G plain name,RF Kuang,DELETE (exact twin author exists),"[['R.F. Kuang', 3]]"
+G plain name,Bird,DELETE (book lives under a corrected author),"book now under: Bird, by Anne Lemott"
+G plain name,Prasanth G,"REVIEW (no import trace, no PDF mention)",
+B glued title+author,ABookofLight JerryPinto,"REVIEW (no import trace, no PDF mention)",
+G plain name,Raymond E Fiest,DELETE (book lives under a corrected author),book now under: Raymond E. Feist
+G plain name,Appupen,DELETE (book lives under a corrected author),book now under: Appupen & Laurent Daudet
+G plain name,Sudipta Bhowmik,DELETE (book lives under a corrected author),book now under: S Bhawmik
+G plain name,Be Blood),DELETE (fragment of a title or author line; the book exists under its correct author),import 'Paul Thomas Anderson (director of There Will' -> DB 'Paul Thomas Anderson' by George Toles
+G plain name,Alex Michealides,DELETE (book lives under a corrected author),book now under: Alex Michaelides
+G plain name,"CS Chellappa, Perumal Murugan, Appupen",DELETE (book lives under a corrected author),book now under: C.S. Chellappa
+G plain name,K Sridhar,DELETE (exact twin author exists),"[['K. Sridhar', 1]]"
+C glued name,JamesNestor,DELETE (exact twin author exists),"[['James Nestor', 1]]"
+B glued title+author,Persepolis MarjaneSatrapi,DELETE (real book exists),"[['Persepolis', 'Marjane Satrapi', '9516']]"
+G plain name,Won-pyung Sohn & Sean Lin Halbert,"REVIEW (no import trace, no PDF mention)",
+G plain name,"Marjane Satrapi, translated from French by",DELETE (book lives under a corrected author),book now under: Marjane Satrapi
+C glued name,WuCheng’en,DELETE (exact twin author exists),"[[""Wu Cheng'en"", 1]]"
+G plain name,Jaydeep,DELETE (book lives under a corrected author),book now under: Jaideep Hardikar
+C glued name,NikiLauda,DELETE (exact twin author exists),"[['Niki Lauda', 2]]"
+G plain name,Gita Aravamudan,DELETE (book lives under a corrected author),"book now under: Gita Aravamudan, R Aravamudan"
+G plain name,Robert Sopolsky,DELETE (book lives under a corrected author),book now under: Robert Sapolsky
+C glued name,AshwithaJayakumar,DELETE (exact twin author exists),"[['Ashwitha Jayakumar', 1]]"
+G plain name,J Robert,DELETE (fragment of a title or author line; the book exists under its correct author),import '∙ American Prometheus: The Triumph and Tragedy of' -> DB 'American Prometheus: The Triumph and Tragedy of J. Robert Oppenheimer' by Kai Bird and Martin Sherwin
+G plain name,Shari Lapana,DELETE (book lives under a corrected author),book now under: Shari Lapena
+G plain name,Bomb Theory,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Alfred Hitchcock’s' -> DB 'Alfred Hitchcock's Frenzy' by Raymond Foery
+G plain name,Henning Koch,REVIEW (no import trace; PDF mentions it),"BBB #93 Feb 2026, Books Discus l146: (translator: Henning Koch)"
+G plain name,Eliot Cohen and John Gooch,DELETE (book lives under a corrected author),book now under: Eliot A. Cohen
+G plain name,Robert M. Sapolsky,DELETE (book lives under a corrected author),book now under: Robert Sapolsky
+C glued name,ChristopherMcDougall,DELETE (exact twin author exists),"[['Christopher McDougall', 2]]"
+G plain name,Richard Eaton,DELETE (book lives under a corrected author),book now under: Richard M. Eaton
+G plain name,Simone Stolzoff,DELETE (book lives under a corrected author),book now under: Simon Stolzoff
+G plain name,Caravan - SL Bhyrappa,DELETE (book lives under a corrected author),book now under: S.L. Bhyrappa
+C glued name,TrishO’Kane,DELETE (exact twin author exists),"[[""Trish O'Kane"", 1]]"
+G plain name,Nick Drnazo,HOLD (title clash: DB book has a different author),import 'Sabrina' -> DB 'Sabrina' by Kali Fajardo-Anstine
+G plain name,Takashi Hiraide,DELETE (fragment of a title or author line; the book exists under its correct author),import 'We'll Prescribe You a Cat' -> DB 'We'll Prescribe You a Cat' by Syou Ishida
+G plain name,Members,REVIEW (import trace but canonical book gone),Book & Media Mentions
+G plain name,Al Azami,DELETE (book lives under a corrected author),book now under: Lubaaba Al-Azami
+B glued title+author,AnxiousPeople FrederikBackman,DELETE (real book exists),"[['Anxious People', 'Fredrik Backman', '49127718']]"
+G plain name,Sandhya Mary,DELETE (book lives under a corrected author),"book now under: Sandhya Mary, translated from"
+G plain name,Constantina Delimitrou,"REVIEW (no import trace, no PDF mention)",
+G plain name,Kaye Ng,"REVIEW (no import trace, no PDF mention)",
+G plain name,Arvind Narayanan & Sayash Kapoor,DELETE (book lives under a corrected author),"book now under: Aravind Narayanan, Sayash Kapoor"
+G plain name,Lynda Chance,"REVIEW (no import trace, no PDF mention)",
+G plain name,Ambedkar,DELETE (book lives under a corrected author),book now under: B.R. Ambedkar
+C glued name,FondaLee,DELETE (exact twin author exists),"[['Fonda Lee', 1]]"
+G plain name,Robert M Pirsig,DELETE (book lives under a corrected author),book now under: Pirsig
+S used by a series,Richard Kadrey,KEEP,used by a series
+G plain name,Bhyrappa,DELETE (book lives under a corrected author),book now under: S.L. Bhyrappa
+G plain name,RR MM,REVIEW (import trace but canonical book gone),@@ TT HH EE BB OO OO KK WW OO
+G plain name,Komireddi,DELETE (book lives under a corrected author),book now under: K.S. Komireddi
+G plain name,"Hans Rosling, Ola Rosling, Anna Rosling",REVIEW (import trace but canonical book gone),Are Better Than You Think
+G plain name,Asako Yuzuki,REVIEW (no import trace; PDF mentions it),"BBB #96 May 2026, Books Discus l69: 35   Butter                                   Asako Yuzuki"
+G plain name,Dumas,DELETE (book lives under a corrected author),book now under: Alexandre Dumas
+G plain name,Ernesto Sobato,DELETE (book lives under a corrected author),book now under: Ernesto Sabato
+G plain name,Hector Murillo,"REVIEW (no import trace, no PDF mention)",
+C glued name,RobertoBolano,DELETE (exact twin author exists),"[['Roberto Bolaño', 2]]"
+G plain name,The complete collection (Mountains of Madness),DELETE (fragment of a title or author line; the book exists under its correct author),import 'HP Lovecraft' -> DB 'The Complete Collection (Mountains of Madness)' by H.P. Lovecraft
+G plain name,Art Tblisi,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Street' -> DB 'Street Art Tbilisi' by Zurab Tsertsvadze
+B glued title+author,TheMarriageBureauforRich FarahadZama,"REVIEW (no import trace, no PDF mention)",
+G plain name,Walter Issacson,DELETE (book lives under a corrected author),book now under: Walter Isaacson
+C glued name,RuchirSharma,DELETE (exact twin author exists),"[['Ruchir Sharma', 2]]"
+G plain name,Anand Teltumbde,DELETE (exact twin author exists),"[['Anand Teltumbde', 1]]"
+G plain name,"Antoine de Saint Exupery, translated",DELETE (book lives under a corrected author),book now under: Antoine de Saint-Exupéry
+G plain name,Sohini Chattopaadhyay,DELETE (book lives under a corrected author),book now under: Sohini Chattopadhyay
+B glued title+author,Samantha ShanBoonok,DELETE (book lives under a corrected author),book now under: Samantha Shannon
+G plain name,Hussain Haqqani,DELETE (book lives under a corrected author),book now under: Husain Haqqani
+S used by a series,Robert Ludlum,KEEP,used by a series
+G plain name,Vivek Shanbag,DELETE (book lives under a corrected author),book now under: Vivek Shanbhag
+G plain name,John Tiffany,"REVIEW (no import trace, no PDF mention)",
+G plain name,AR Torre,DELETE (exact twin author exists),"[['A.R. Torre', 2]]"
+C glued name,ShojiMorimoto,DELETE (exact twin author exists),"[['Shoji Morimoto', 1]]"
+G plain name,E L Konigsburg,DELETE (exact twin author exists),"[['E.L. Konigsburg', 1]]"
+C glued name,MarjanKamali,DELETE (exact twin author exists),"[['Marjan Kamali', 2]]"
+G plain name,Ken Scholes,"REVIEW (no import trace, no PDF mention)",
+G plain name,Vincenzo Latronico & Sophie Hughes,"REVIEW (no import trace, no PDF mention)",
+G plain name,"Perumal Murugan, Appupen and CS",DELETE (fragment of a title or author line; the book exists under its correct author),import 'Vaadivaasal: The Arena' -> DB 'Vaadivaasal: The Arena' by C.S. Chellappa
+G plain name,Foster Wallace,DELETE (book lives under a corrected author),book now under: David Foster Wallace
+G plain name,Robert Bolaño,DELETE (book lives under a corrected author),book now under: Roberto Bolaño
+G plain name,ഷാനോജ് ആര്‍ ചന്ദ്രന്‍,"REVIEW (no import trace, no PDF mention)",
+G plain name,Banu Mushtaq,DELETE (exact twin author exists),"[['Banu Mushtaq', 1]]"
+G plain name,Mary Ann Schafer and,DELETE (book lives under a corrected author),book now under: Mary Ann Shaffer & Annie Barrows
+G plain name,Suleika Jaouad,"REVIEW (no import trace, no PDF mention)",
+C glued name,TaraWestover,DELETE (exact twin author exists),"[['Tara Westover', 1]]"
+G plain name,"Hwang Bo-Reum, translated from",DELETE (book lives under a corrected author),book now under: Hwang Bo-Reum
+G plain name,Eli Shafak,DELETE (book lives under a corrected author),book now under: Elif Shafak
+G plain name,A History of Japan,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Showa' -> DB 'Showa 1926-1939: A History of Japan' by Shigeru Mizuki
+G plain name,T Joseph,DELETE (book lives under a corrected author),book now under: Tony Joseph
+C glued name,AratiKumarRao,DELETE (exact twin author exists),"[['Arati Kumar-Rao', 1]]"
+G plain name,Lisa Seachrist Chiu,"REVIEW (no import trace, no PDF mention)",
+E not a name,Dick : Beigemoth,"DELETE (junk text, no author)",Mo -> Moby Dick
+B glued title+author,TheVillagebyTheSea AnitaDesai,DELETE (real book exists),"[['The Village by the Sea', 'Anita Desai', '275600']]"
+C glued name,MichaelHolding,DELETE (exact twin author exists),"[['Michael Holding', 1]]"
+G plain name,Palestine - Joe Sacco,REVIEW (import trace but canonical book gone),SHIVANKAR
+G plain name,Victor E Frankl,DELETE (book lives under a corrected author),book now under: Viktor E. Frankl
+G plain name,Spielman,DELETE (book lives under a corrected author),book now under: Andrew Spielman
+G plain name,Red Sweater,REVIEW (import trace but canonical book gone),The
+C glued name,ShigeruMizuki,DELETE (exact twin author exists),"[['Shigeru Mizuki', 2]]"
+G plain name,Saparmurat Niyazov,DELETE (book lives under a corrected author),book now under: Saparmyrat Nyýazow
+G plain name,Terence David John Pratchett,DELETE (book lives under a corrected author),book now under: Terry Pratchett
+G plain name,J Pinto,DELETE (book lives under a corrected author),book now under: Jerry Pinto
+S used by a series,David Peace,KEEP,used by a series
+B glued title+author,J. SawyeBrook,DELETE (book lives under a corrected author),book now under: Robert J. Sawyer
+C glued name,BlakeCrouch,DELETE (exact twin author exists),"[['Blake Crouch', 1]]"
+G plain name,Krupakar and Senani,DELETE (book lives under a corrected author),book now under: Krupakar
+G plain name,W Isaac,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Steve Jobs' -> DB 'Steve Jobs' by Walter Isaacson
+G plain name,Jack Reacher,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Night School' -> DB 'Night School' by Lee Child
+G plain name,"MT Vasudevan Nair, translated from Malayalam by",DELETE (book lives under a corrected author),book now under: M.T. Vasudevan Nair
+G plain name,Cori Doerrfeld,REVIEW (no import trace; PDF mentions it),80 - BBB Meetup - Jan 2025 l130: The Rabbit Listened by Cori Doerrfeld
+G plain name,M.E. Rabb,"REVIEW (no import trace, no PDF mention)",
+G plain name,Vicious Vet,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Agatha Raisin and the' -> DB 'Agatha Raisin and the Vicious Vet' by M.C. Beaton
+G plain name,Mia Owen,"REVIEW (no import trace, no PDF mention)",
+S used by a series,Jasper Fforde,KEEP,used by a series
+B glued title+author,"Fasting,Feasting AnitaDesai",DELETE (real book exists),"[['Fasting, Feasting', 'Anita Desai', '271734']]"
+G plain name,Eric Welke,"REVIEW (no import trace, no PDF mention)",
+G plain name,True Jeyamohan,DELETE (book lives under a corrected author),book now under: Jeyamohan
+E not a name,Genre:,"DELETE (junk text, no author)",Books Categorized -> None
+G plain name,M.T. Vasudevan Nair,DELETE (exact twin author exists),"[['M.T. Vasudevan Nair', 2]]"
+G plain name,Italian Brahmin,DELETE (fragment of a title or author line; the book exists under its correct author),"import 'The Courtesan, the Mahatma & the' -> DB 'The Courtesan, The Mahatma and The Italian Brahmin' by Manu S. Pillai"
+C glued name,NehaDixit,DELETE (exact twin author exists),"[['Neha Dixit', 1]]"
+G plain name,JDVance,DELETE (exact twin author exists),"[['J.D. Vance', 1]]"
+G plain name,Arvind Krishna Mehrotra (,REVIEW (no import trace; PDF mentions it),BBB Meetup-9 l831: Poetry by Arvind Krishna Mehrotra (https://www.goodreads.com/author/list/835628.Arvind_Kri
+G plain name,Rita Kothari),DELETE (exact twin author exists),"[['Rita Kothari', 1]]"
+G plain name,Bird by Anne Lamott,DELETE (book lives under a corrected author),"book now under: Bird, by Anne Lemott"
+G plain name,Leah Franke,HOLD (title clash: DB book has a different author),"import 'Motherland' -> DB 'Y: The Last Man, Vol. 9: Motherland' by Brian K. Vaughan"
+G plain name,"Silence, by Perumal Murugan",DELETE (book lives under a corrected author),book now under: Perumal Murugan
+E not a name,Big Short,"DELETE (junk text, no author)",The -> None
+C glued name,DanaMattioli,DELETE (exact twin author exists),"[['Dana Mattioli', 1]]"
+G plain name,Houses Uketsu,REVIEW (import trace but canonical book gone),Strange
+G plain name,Frances H. Burnett,DELETE (book lives under a corrected author),book now under: Frances Hodgson Burnett
+G plain name,Happiness Project,REVIEW (import trace but canonical book gone),The
+G plain name,Queens Dynasty,DELETE (fragment of a title or author line; the book exists under its correct author),import 'The Fisher' -> DB 'The Fisher Queen's Dynasty' by Kavita Kané
+G plain name,Guillotine Murders,DELETE (fragment of a title or author line; the book exists under its correct author),import 'The Meiji' -> DB 'The Meiji Guillotine Murders' by Fūtarō Yamada
+C glued name,SudhaBharadwaj,DELETE (exact twin author exists),"[['Sudha Bharadwaj', 1]]"
+G plain name,Lance Carbuncle,"REVIEW (no import trace, no PDF mention)",
+B glued title+author,Hans Christian Andersen & AudibleBooks,"REVIEW (no import trace, no PDF mention)",
+C glued name,ZacharyAuburn,DELETE (exact twin author exists),"[['Zachary Auburn', 1]]"
+C glued name,LindsayPereira,DELETE (exact twin author exists),"[['Lindsay Pereira', 1]]"
+E not a name,Hygiene and the Rational Feeding of Man. : Brussels) International Congress of Food,"DELETE (junk text, no author)",no import trace
+G plain name,KR Mira,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Hangwoman' -> DB 'Hangwoman' by കെ.ആർ.മീര | K.R.Meera
+C glued name,JokhaAlharti,DELETE (book lives under a corrected author),book now under: Jokha Alharthi
+G plain name,Annie Zaidi,"REVIEW (no import trace, no PDF mention)",
+G plain name,Quest for restoring financial stability in India,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Viral Acharya' -> DB 'Quest for Restoring Financial Stability in India' by Viral V. Acharya
+C glued name,RanaSafvi,DELETE (exact twin author exists),"[['Rana Safvi', 1]]"
+G plain name,Anuk Arudpragasam,DELETE (book lives under a corrected author),book now under: Anuk Arudprasagam
+G plain name,Abhiram G. Ranade,"REVIEW (no import trace, no PDF mention)",
+G plain name,Shehan,DELETE (book lives under a corrected author),book now under: Shehan Karunatilaka
+G plain name,C Voss,DELETE (book lives under a corrected author),book now under: Christopher Voss & Tahl Raz
+S used by a series,Amish,KEEP,used by a series
+C glued name,BaekSehee,DELETE (exact twin author exists),"[['Baek Se-hee', 1]]"
+S used by a series,Max Harms,KEEP,used by a series
+C glued name,TejiSethi,DELETE (exact twin author exists),"[['Teji Sethi', 1]]"
+G plain name,"Perumal Murugan, Appupen, CS Chellappa",DELETE (book lives under a corrected author),book now under: C.S. Chellappa
+C glued name,StuartMcGill,DELETE (exact twin author exists),"[['Stuart McGill', 1]]"
+G plain name,Jungeun Yun & Shanna Tan,"REVIEW (no import trace, no PDF mention)",
+G plain name,Richard Harwood,HOLD (title clash: DB book has a different author),"import 'Did 6 million really die?' -> DB 'Did Six Million Really Die? Report of the Evidence in the Canadian ""False News"" Trial of Ernst Zündel – 1988' by Barbara Kulaszka"
+S used by a series,Margaret Weis,KEEP,used by a series
+G plain name,Shelby Van Pelt,DELETE (exact twin author exists),"[['ShelbyVanPelt', 1]]"
+C glued name,MaliniGoyal,DELETE (exact twin author exists),"[['Malini Goyal', 2]]"
+G plain name,Roberto Bolano,DELETE (exact twin author exists),"[['Roberto Bolaño', 2]]"
+S used by a series,Veronica Roth,KEEP,used by a series
+C glued name,NegarDjavadi,DELETE (exact twin author exists),"[['Négar Djavadi', 1]]"
+G plain name,the Sea (Anita Desai),DELETE (book lives under a corrected author),book now under: Anita Desai
+G plain name,Kawakami,DELETE (book lives under a corrected author),book now under: Mieko Kawakami
+G plain name,Bonam Young,DELETE (book lives under a corrected author),book now under: Hannah Bonam-Young
+G plain name,Final Curtain,REVIEW (import trace but canonical book gone),The
+G plain name,Pavan K. Varma,DELETE (exact twin author exists),"[['Pavan K Varma', 1]]"
+G plain name,Mathew Walker,DELETE (book lives under a corrected author),book now under: Matthew Walker
+G plain name,John Ortberg,"REVIEW (no import trace, no PDF mention)",
+C glued name,BinaSarkar,DELETE (book lives under a corrected author),book now under: Bina Sarkar Ellias
+G plain name,"Dick, by Herman Melville",DELETE (book lives under a corrected author),book now under: Herman Melville
+C glued name,JamesBaldwin,DELETE (exact twin author exists),"[['James Baldwin', 1]]"
+G plain name,Dostoyevsky,DELETE (book lives under a corrected author),book now under: Fyodor Dostoyevsky
+G plain name,Aysegul Savas,DELETE (exact twin author exists),"[['Aysegül Savas', 1]]"
+G plain name,Donald A. Wollheim,"REVIEW (no import trace, no PDF mention)",
+C glued name,MarioPuzo,DELETE (exact twin author exists),"[['Mario Puzo', 1]]"
+C glued name,LizMoore,DELETE (exact twin author exists),"[['Liz Moore', 1]]"
+G plain name,Irregular Witches,DELETE (fragment of a title or author line; the book exists under its correct author),import 'The Very Secret Society of' -> DB 'The Very Secret Society of Irregular Witches' by Sangu Mandanna
+C glued name,RahulBhatia,DELETE (exact twin author exists),"[['Rahul Bhatia', 1]]"
+G plain name,Sarah Maas,DELETE (exact twin author exists),"[['Sarah Maas', 1]]"
+G plain name,N Machiavelli,DELETE (book lives under a corrected author),book now under: Niccolò Machiavelli
+G plain name,Iain M Banks,DELETE (exact twin author exists),"[['Iain M. Banks', 2]]"
+G plain name,Shrayana,DELETE (book lives under a corrected author),book now under: Shrayana Bhattacharya
+C glued name,ColsonWhitehead,DELETE (exact twin author exists),"[['Colson Whitehead', 1]]"
+G plain name,Jo Nesbø & Neil Smith,"REVIEW (no import trace, no PDF mention)",
+G plain name,Fei Fei Li,DELETE (exact twin author exists),"[['Fei-Fei Li', 1]]"
+G plain name,Iaim Reed,DELETE (fragment of a title or author line; the book exists under its correct author),import 'I am thinking of ending things' -> DB 'I'm Thinking of Ending Things' by Iain Reid
+C glued name,JoeSacco,DELETE (exact twin author exists),"[['Joe Sacco', 1]]"
+B glued title+author,Georgia McCain,"REVIEW (no import trace, no PDF mention)",
+G plain name,Henry Reymond Fitzwalter Keating,REVIEW (no import trace; PDF mentions it),80 - BBB Meetup - Jan 2025 l36: The Perfect Murder by Henry Reymond Fitzwalter Keating
+G plain name,A Princesses Pilgrimage - Nawab Sikander Begum,REVIEW (import trace but canonical book gone),LEAH
+G plain name,Aravind Narayanan,DELETE (book lives under a corrected author),"book now under: Aravind Narayanan, Sayash Kapoor"
+G plain name,MC Beaton,DELETE (exact twin author exists),"[['M.C. Beaton', 4]]"
+G plain name,Seicho Matsumoto,DELETE (exact twin author exists),"[['Seichō Matsumoto', 1]]"
+G plain name,qntm/Sam Hughes,DELETE (book lives under a corrected author),book now under: Qntm
+G plain name,Robert Macfarlane,HOLD (title clash: DB book has a different author),import 'Underland' -> DB 'Underland' by Suzanne Collins
+E not a name,"Atta Galatta. We had 3 new members in addition to 12 other old-heads and it was, as always, a lot of fun!","DELETE (junk text, no author)","Today’s meetup, as the previous meetup did, had 16 members and was again at our regular venue -> None"
+G plain name,Pradeep Chhibber,DELETE (book lives under a corrected author),book now under: Pradeep K. Chhibber
+C glued name,IainBanks,DELETE (book lives under a corrected author),book now under: Iain M. Banks
+G plain name,Vladimir Nabakov,DELETE (book lives under a corrected author),book now under: Vladimir Nabokov
+G plain name,Charlie Munger,DELETE (book lives under a corrected author),book now under: Charles T. Munger
+G plain name,Chetna Khanna,"REVIEW (no import trace, no PDF mention)",
+G plain name,Claire Chambers (**),DELETE (exact twin author exists),"[['Claire Chambers', 2]]"
+B glued title+author,WhenYouReachMe RebeccaStead,DELETE (real book exists),"[['When You Reach Me', 'Rebecca Stead', '208258144']]"
+C glued name,NoamChomsky,DELETE (exact twin author exists),"[['Noam Chomsky', 1]]"
+G plain name,G Honeyman,DELETE (book lives under a corrected author),book now under: Gail Honeyman
+G plain name,Beau Cornerstone,"REVIEW (no import trace, no PDF mention)",
+G plain name,Albert Uderzo,"REVIEW (no import trace, no PDF mention)",
+G plain name,Prayaag Akbar,DELETE (book lives under a corrected author),book now under: Prayag Akbar
+G plain name,Claire Mackintosh,DELETE (book lives under a corrected author),book now under: Clare Mackintosh
+E not a name,Foreign authors:,"DELETE (junk text, no author)",Books -> None
+G plain name,Richard V Reeves,DELETE (exact twin author exists),"[['Richard V. Reeves', 1]]"
+D mojibake,NiccolÃƒÂ² Machiavelli,DELETE (clean twin or book under correct name),book now under: Niccolò Machiavelli
+G plain name,John Raju,DELETE (book lives under a corrected author),book now under: John A. Raju
+G plain name,"Jogathi Manjamma, Harsha Bhat",DELETE (book lives under a corrected author),book now under: Harsha Bhat
+E not a name,World His,"DELETE (junk text, no author)",His Majesty’s Headhunters: The Siege of Kohima that Shaped -> His Majesty's Headhunters: The Siege of Kohima that Shaped World History
+G plain name,Habib,DELETE (book lives under a corrected author),book now under: Shahnaz Habib
+G plain name,Vivek Murthy,DELETE (book lives under a corrected author),book now under: Vivek H. Murthy
+G plain name,Ken Follett,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Books' -> DB 'Books by Robert Caro' by Robert Caro
+G plain name,Ottessa Moshefegh,DELETE (book lives under a corrected author),book now under: Ottessa Moshfegh
+G plain name,Frida Mc,DELETE (exact twin author exists),"[['Frida Mc', 1]]"
+G plain name,Mr Ripley,REVIEW (import trace but canonical book gone),The Talented
+G plain name,Koli,DELETE (book lives under a corrected author),book now under: Prajakta Koli
+G plain name,Wiliam Dalrymple,DELETE (book lives under a corrected author),book now under: William Dalrymple
+B glued title+author,Benjamin SteveBnosookn,DELETE (book lives under a corrected author),book now under: Benjamin Stevenson
+G plain name,Clio Evans,"REVIEW (no import trace, no PDF mention)",
+G plain name,Yuval Noah Hariri,REVIEW (import trace but canonical book gone),Sapiens
+G plain name,Charlie,DELETE (book lives under a corrected author),book now under: Charlie Mackesy
+B glued title+author,SwamiandFriends RKNarayan,DELETE (real book exists),"[['Swami and Friends', 'R.K. Narayan', '732482']]"
+C glued name,IchiroKishimi,DELETE (exact twin author exists),"[['Ichiro Kishimi', 1]]"
+G plain name,Carol Dweck,DELETE (book lives under a corrected author),book now under: Carol S. Dweck
+E not a name,Indian authors:,"DELETE (junk text, no author)",Books -> None
+G plain name,J. Herbert,"REVIEW (no import trace, no PDF mention)",
+G plain name,Aparna Upadhyaya Sanyal,"REVIEW (no import trace, no PDF mention)",
+C glued name,JohnMarrs,DELETE (exact twin author exists),"[['John Marrs', 1]]"
+G plain name,The Athletic TIFO,DELETE (book lives under a corrected author),book now under: Tifo - The Athletic
+G plain name,T Kingfisher,DELETE (exact twin author exists),"[['T. Kingfisher', 1]]"
+G plain name,Victor Frankl,DELETE (book lives under a corrected author),book now under: Viktor E. Frankl
+C glued name,AsakoYazuki,REVIEW (no import trace; PDF mentions it),BBB SEP 24 l70: 1.​ Butter (Asako Yazuki) https://www.goodreads.com/book/show/209220917-butter
+G plain name,Katherine May,DELETE (book lives under a corrected author),book now under: Catherine May
+G plain name,Bird (Anne Lamott),DELETE (book lives under a corrected author),"book now under: Bird, by Anne Lemott"
+C glued name,SohiniChattopadhyay,DELETE (exact twin author exists),"[['Sohini Chattopadhyay', 2]]"
+G plain name,Dick Davis,REVIEW (import trace but canonical book gone),Persian
+C glued name,NandiniGuha,DELETE (exact twin author exists),"[['Nandini Guha', 1]]"
+G plain name,Michael Bar-Zohar and Nissim Mishal,REVIEW (import trace but canonical book gone),DARSHAN: Mossad
+G plain name,R W Sykes,HOLD (title clash: DB book has a different author),import 'Kindred' -> DB 'Kindred' by Octavia Butler
+G plain name,Varun Aggarwal,REVIEW (no import trace; PDF mentions it),82 - BBB Meetup - Mar 2025 l94: 18. The Authenticity Protocol - Varun Aggarwal
+S used by a series,Ian Rankin,KEEP,used by a series
+C glued name,KalpanaSwaminathan,DELETE (exact twin author exists),"[['Kalpana Swaminathan', 1]]"
+G plain name,Second Brain,REVIEW (import trace but canonical book gone),Building a
+G plain name,Omar Elbaga,"REVIEW (no import trace, no PDF mention)",
+G plain name,Xiao Qiang,"REVIEW (no import trace, no PDF mention)",
+G plain name,Alejandro Jodorowsky,"REVIEW (no import trace, no PDF mention)",
+C glued name,SosukeNatsukawa,DELETE (exact twin author exists),"[['Sōsuke Natsukawa', 1]]"
+G plain name,Francis Hodgson Burnett,DELETE (book lives under a corrected author),book now under: Frances Hodgson Burnett
+G plain name,K Hari Kumar,DELETE (exact twin author exists),"[['K. Hari Kumar', 2]]"
+C glued name,JohannHari,DELETE (exact twin author exists),"[['Johann Hari', 2]]"
+G plain name,Business Review,DELETE (book lives under a corrected author),book now under: Harvard Business Review
+G plain name,Annie Spence,"REVIEW (no import trace, no PDF mention)",
+G plain name,Hella S Hause,DELETE (book lives under a corrected author),book now under: Hella S. Haasse
+C glued name,AnuradhaRoy,DELETE (exact twin author exists),"[['Anuradha Roy', 1]]"
+G plain name,Pratik Kulkarni,REVIEW (import trace but canonical book gone),IV
+G plain name,Timeri N. Murari,"REVIEW (no import trace, no PDF mention)",
+G plain name,Tsubasa Yamaguchi,"REVIEW (no import trace, no PDF mention)",
+G plain name,Kari Gregg,"REVIEW (no import trace, no PDF mention)",
+G plain name,DN Jha,DELETE (exact twin author exists),"[['D.N. Jha', 1]]"
+S used by a series,Vineet Bajpai,KEEP,used by a series
+G plain name,Ellie Scott,DELETE (fragment of a title or author line; the book exists under its correct author),import 'The Impending Blindness of' -> DB 'The Impending Blindness of Billie Scott' by Zoe Thorogood
+G plain name,D A Mishani,DELETE (exact twin author exists),"[['D.A. Mishani', 1]]"
+G plain name,Cornelia Neumann,"REVIEW (no import trace, no PDF mention)",
+G plain name,Greame Simsion,DELETE (book lives under a corrected author),book now under: Graeme Simsion
+G plain name,Tricie Levenseller,DELETE (book lives under a corrected author),book now under: Tricia Levenseller
+G plain name,Kundera,DELETE (book lives under a corrected author),book now under: Milan Kundera
+G plain name,Machiavelli,DELETE (book lives under a corrected author),book now under: Niccolò Machiavelli
+C glued name,SherryTirkle,DELETE (book lives under a corrected author),book now under: Sherry Turkle
+B glued title+author,HullaballoointheGuava KiranDesai,"REVIEW (no import trace, no PDF mention)",
+G plain name,Deepa Varadarajan,"REVIEW (no import trace, no PDF mention)",
+G plain name,David Wallace,DELETE (book lives under a corrected author),book now under: David Foster Wallace
+G plain name,Lovecraft Omnibus,DELETE (book lives under a corrected author),book now under: H.P Lovecraft
+B glued title+author,Brandon SandeBrsooonk,DELETE (book lives under a corrected author),book now under: Brandon Sanderson
+G plain name,B Garmus,DELETE (book lives under a corrected author),book now under: Bonnie Garmus
+G plain name,Ngiao Marsh,REVIEW (import trace but canonical book gone),Books
+G plain name,"B R Ambedkar, annotated by Alex",DELETE (book lives under a corrected author),book now under: BR Ambedkar (ann. Alex
+G plain name,M Subramaniyam,HOLD (title clash: DB book has a different author),import 'Caste' -> DB 'Caste: The Origins of Our Discontents' by Isabel Wilkerson
+G plain name,Steven Levitsky and Daniel Ziblatt,DELETE (book lives under a corrected author),book now under: Steven Levitsky
+G plain name,Gaiman,DELETE (book lives under a corrected author),book now under: Neil Gaiman
+B glued title+author,TheOneandOnlyIvan KatherineApplegate,DELETE (real book exists),"[['The One and Only Ivan', 'Katherine Applegate', '11594337']]"
+G plain name,TJ Klune,DELETE (exact twin author exists),"[['T.J. Klune', 2]]"
+B glued title+author,Freida McFadden (**),DELETE (exact twin author exists),"[['Freida McFadden', 2]]"
+G plain name,C Divakaruni,DELETE (book lives under a corrected author),book now under: Chitra Divakaruni
+G plain name,William Gerald Golding,DELETE (book lives under a corrected author),book now under: William Golding
+G plain name,Haruki,DELETE (book lives under a corrected author),book now under: Haruki Murakami
+G plain name,Adrian Tchiakovsky,HOLD (title clash: DB book has a different author),import 'Dogs of War' -> DB 'Dogs of War' by Frederick Forsyth
+G plain name,Jessica Andrews,"REVIEW (no import trace, no PDF mention)",
+G plain name,Arvind Narayan,DELETE (book lives under a corrected author),"book now under: Aravind Narayanan, Sayash Kapoor"
+C glued name,SantaKhurai,DELETE (exact twin author exists),"[['Santa Khurai', 1]]"
+G plain name,Jennifer A. Nielsen,"REVIEW (no import trace, no PDF mention)",
+C glued name,MervynPeake,DELETE (exact twin author exists),"[['Mervyn Peake', 3]]"
+G plain name,Mountain Tasting,REVIEW (import trace but canonical book gone),Book of Haiku
+G plain name,Rohit De,HOLD (title clash: DB book has a different author),import 'A People’s Constitution' -> DB 'A People’s constitution' by Jesse Wegman
+G plain name,Qudsia Banerjee,"REVIEW (no import trace, no PDF mention)",
+G plain name,Jordan Mechner,"REVIEW (no import trace, no PDF mention)",
+C glued name,ManilSuri,DELETE (exact twin author exists),"[['Manil Suri', 1]]"
+G plain name,Dr Alok Kanodia,DELETE (book lives under a corrected author),book now under: Alok Kanojia
+G plain name,Atwood,DELETE (book lives under a corrected author),book now under: Margaret Atwood
+G plain name,Theek Tumhare peeche,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Manav Kaul' -> DB 'ठीक तुम्हारे पीछे [Theek Tumhare Peechhe]' by Manav Kaul
+G plain name,Iris Beaglehole,"REVIEW (no import trace, no PDF mention)",
+G plain name,Markus Zuzak,DELETE (book lives under a corrected author),book now under: Markus zusak
+G plain name,Mary Shelley,DELETE (book lives under a corrected author),book now under: Mary Wollstonecraft Shelley
+G plain name,Akash Kapoor,DELETE (book lives under a corrected author),book now under: Akash Kapur
+G plain name,Chitra Katha,DELETE (fragment of a title or author line; the book exists under its correct author),import ' Kanikonna and other stories from Amar' -> DB 'Kanikonna and Other Stories' by Various
+G plain name,Brian Michael Bendis,"REVIEW (no import trace, no PDF mention)",
+G plain name,Unicorn Project,REVIEW (import trace but canonical book gone),The
+G plain name,M.R. James (Author of Collected Ghost Stories),REVIEW (import trace but canonical book gone),Books
+G plain name,Megha,DELETE (book lives under a corrected author),book now under: Megha Majumdar
+G plain name,Mary Shelly,DELETE (book lives under a corrected author),book now under: Mary Wollstonecraft Shelley
+S used by a series,Harry Harrison,KEEP,used by a series
+G plain name,Wendell M Levi,DELETE (exact twin author exists),"[['Wendell M. Levi', 1]]"
+G plain name,Hugh J. Schonfield,"REVIEW (no import trace, no PDF mention)",
+G plain name,Tom Bower,"REVIEW (no import trace, no PDF mention)",
+C glued name,RuthOzeki,DELETE (exact twin author exists),"[['Ruth Ozeki', 1]]"
+G plain name,Robert Caro,DELETE (exact twin author exists),"[['Robert Caro', 1]]"
+G plain name,Oberoi,DELETE (book lives under a corrected author),book now under: Sidharth Oberoi
+G plain name,Higashino,DELETE (book lives under a corrected author),book now under: Keigo Higashino
+G plain name,Hansda Sowvendra Shekar,DELETE (book lives under a corrected author),book now under: Hansda Sowvendra Shekhar
+G plain name,Young Man,DELETE (fragment of a title or author line; the book exists under its correct author),import 'A Portrait of the Artist as a' -> DB 'A Portrait of the Artist as a Young Man' by James Joyce
+G plain name,Chris Miller,DELETE (book lives under a corrected author),book now under: C Miller
+C glued name,LingoMastery,DELETE (exact twin author exists),"[['Lingo Mastery', 1]]"
+G plain name,Saunders,DELETE (book lives under a corrected author),book now under: George Saunders
+G plain name,Robin – Robin Hobb,DELETE (book lives under a corrected author),book now under: Robin Hobb
+C glued name,PradipSaha,DELETE (book lives under a corrected author),book now under: Pradip K. Saha
+G plain name,Silence,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Trial' -> DB 'Trial by Silence' by Perumal Murugan
+G plain name,Anthony Lowenstein,DELETE (book lives under a corrected author),book now under: Antony Loewenstein
+C glued name,ArunaChakravarti,DELETE (exact twin author exists),"[['Aruna Chakravarti', 2]]"
+G plain name,Eve Kellman,"REVIEW (no import trace, no PDF mention)",
+G plain name,Dalvi,DELETE (book lives under a corrected author),book now under: Shashank Dalvi
+G plain name,Glass Elevator,DELETE (fragment of a title or author line; the book exists under its correct author),import 'Charlie and the Great' -> DB 'Charlie and the Great Glass Elevator' by Roald Dahl
+G plain name,Shinoj,DELETE (book lives under a corrected author),book now under: Shanoj R. Chandran
+G plain name,Graeme Simson,DELETE (book lives under a corrected author),book now under: Graeme Simsion
+G plain name,Phoenix Zayden,"REVIEW (no import trace, no PDF mention)",
+G plain name,A R Torres,DELETE (book lives under a corrected author),book now under: A.R. Torre
+G plain name,Namrata Bhandari,DELETE (book lives under a corrected author),book now under: Mannu Bhandari
+G plain name,Vivek Shanbhag & Srinath Perur,"REVIEW (no import trace, no PDF mention)",
+C glued name,AmarChitraKatha,DELETE (exact twin author exists),"[['Amar Chitra Katha', 2]]"
+E not a name,"Charles Bukowski...i hope you are keeping track of all the data im giving you, cuz more is yet to vome","DELETE (junk text, no author)",Notes of a Dirty Old Man -> Notes of a Dirty Old Man
+G plain name,Thea Harrison,"REVIEW (no import trace, no PDF mention)",
+E not a name,A hat tip to Aarzu Sadana for yet again noting down the names of the books and making life a little bit easier for me,"DELETE (junk text, no author)",PS -> None
+G plain name,Samanth Subramaniam,DELETE (book lives under a corrected author),book now under: Samanth Subramanian
+G plain name,Jean Paul Didierlaurent,DELETE (exact twin author exists),"[['Jean-Paul Didierlaurent', 1]]"
+G plain name,Nangishta Vasudhendra,DELETE (book lives under a corrected author),book now under: Vasudhendra
+C glued name,MaiMochizuki,DELETE (exact twin author exists),"[['Mai Mochizuki', 1]]"
+G plain name,Eight Graves,REVIEW (import trace but canonical book gone),The Village of
+G plain name,M. R. Sharan,DELETE (exact twin author exists),"[['M.R. Sharan', 1]]"
+G plain name,Jimmy Hawkins,"REVIEW (no import trace, no PDF mention)",

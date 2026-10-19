@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ClubPage } from '@/components/club/ClubPage'
@@ -61,8 +62,9 @@ export default async function MeetupPage({ params }: { params: Promise<{ id: str
       )}
       {m.photo_url && (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="ph" src={m.photo_url} alt={`Group photo from BBB meetup #${n}`} />
+          <div className="ph" style={{ position: 'relative' }}>
+            <Image src={m.photo_url} alt={`Group photo from BBB meetup #${n}`} fill sizes="(max-width: 430px) 100vw, 430px" style={{ objectFit: 'cover' }} />
+          </div>
           <p className="pcap">The group at meetup #{n}, {m.venue || 'Bookworm'}.</p>
         </>
       )}

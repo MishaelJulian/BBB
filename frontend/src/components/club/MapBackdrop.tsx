@@ -90,7 +90,7 @@ export function MapBackdrop() {
   return (
     <div className="mapbg" aria-hidden="true">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img ref={img} src="/ui/map-kamsb.webp" width={MAP_W} height={MAP_H} alt="" decoding="async" />
+      <img ref={img} src="/ui/map-kamsb.webp" width={MAP_W} height={MAP_H} alt="" decoding="async" fetchPriority="low" />
     </div>
   )
 }
