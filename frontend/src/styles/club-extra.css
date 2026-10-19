@@ -59,3 +59,45 @@
 .club .homelogo:focus-visible{outline:3px solid var(--ink);outline-offset:4px}
 .club .stage .more{display:flex;flex-wrap:wrap;justify-content:center;gap:0 20px;margin-top:8px}
 .club .reveal.r404{padding-bottom:0}
+/* Club hub, About, FAQ, Listicles */
+.club .sub{margin:6px 0 0}
+.club .fol{display:flex;flex-wrap:wrap;gap:0 20px;margin-top:4px}
+.club .gt2{font:600 14px/21px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:28px 0 0}
+.club .tag{font:400 20px/30px var(--serif);margin:10px 0 0}
+.club .pas{margin:20px 0 0}.club .pas+.pas{margin-top:16px}
+.club .pas a{color:var(--ink);text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:4px}
+.club .about .fol{margin-top:12px}
+.club .built{margin-top:72px;padding-top:32px;border-top:1px solid var(--line2)}
+.club .dev{display:block;max-width:358px;margin:20px 0 0;padding:10px 16px 12px;border:2px solid #1a1a1a;border-radius:16px;background:#faf8f5;color:#1a1a1a;text-decoration:none}
+.club .dev+.dev{margin-top:16px}
+.club .dev .slot{display:block;width:40px;height:10px;margin:0 auto 10px;border:2px solid #1a1a1a;border-radius:99px}
+.club .dev .top{display:flex;align-items:center;gap:14px}
+.club .dev img{flex:none;width:56px;height:56px;object-fit:cover;display:block;border-radius:50%}
+.club .dev .nm{display:block;font:600 22px/28px "Newsreader Var",Georgia,serif}
+.club .dev .cap{display:block;font:400 14px/21px var(--sans);color:#4a4a4a}
+.club .dev .go{margin-left:auto;align-self:flex-start;font:600 24px/1 var(--sans);color:#c93a14}
+.club .dev .gh{display:block;margin-top:10px;padding-top:8px;border-top:1px solid #d4cfc9;font:400 14px/21px var(--sans);color:#4a4a4a}
+.club .dev:active{background:#1a1a1a;color:#faf8f5}.club .dev:active .cap,.club .dev:active .gh{color:#faf8f5}.club .dev:active .gh{border-color:#4a4a4a}
+.club .dev:focus-visible{outline:3px solid #1a1a1a;outline-offset:3px}
+.club .faq dl{margin:8px 0 0}.club .faq dt{font:600 18px/26px var(--sans);margin:28px 0 0}.club .faq dd{margin:6px 0 0;font:400 16px/25.6px var(--sans)}
+.club .faq dd a{color:var(--ink);text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:4px}
+.club .listicle .intro{margin:16px 0 0}.club .listicle .h1{padding-right:60px}
+.club .listicle .sec{font:600 22px/30px var(--serif);margin:32px 0 0}
+.club .listicle .bk{margin:8px 0 0;border-top:1px solid var(--line2);padding:0}
+.club .listicle .bk>li{list-style:none;border-bottom:1px solid var(--line2);min-height:44px;display:flex;align-items:center;padding:8px 0;font:400 16px/24px var(--sans)}
+.club .listicle .bk a{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;color:var(--ink);text-decoration:none}
+.club .listicle .bk .au1{display:block;font:400 14px/21px var(--sans);color:var(--muted)}
+.club .listicle .sub2{font:600 14px/21px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:24px 0 0}
+.club .listicle .srcl{margin:2px 0 0}
+.club .listicle .bk a .go{font:600 22px/1 var(--sans);color:var(--accent);flex:none}
+.club .listicle .bk a .in{font:400 12px/16px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block}
+.club .listicle .bk a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.club .listicle .au{margin:0;border-top:1px solid var(--line2)}.club .listicle .au>div{border-bottom:1px solid var(--line2);padding:10px 0}
+.club .listicle .au b{display:block;font:600 17px/24px var(--sans)}.club .listicle .au .bs{display:flex;flex-direction:column}
+.club .listicle .au .bs a,.club .listicle .au .bs span{display:flex;align-items:center;min-height:44px;font:400 16px/24px var(--sans);color:var(--ink);text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:4px}
+.club .listicle .au .bs a{text-decoration:underline}.club .listicle .au .bs span{color:var(--muted)}
+.club .listicle .en{border-top:1px solid var(--line2);padding:16px 0}.club .listicle .en h3{margin:0;font:600 20px/28px var(--serif)}
+.club .listicle .en dl{margin:8px 0 0}.club .listicle .en dl>div{display:grid;grid-template-columns:104px 1fr;gap:12px;padding:3px 0}
+.club .listicle .en dt{font:600 13px/24px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.club .listicle .en dd{margin:0;font:400 16px/24px var(--sans)}
+.club .listicle .en .ok{color:#12295a;font-weight:600}.club .listicle .en dd a{display:inline-flex;align-items:center;min-height:44px;color:var(--ink);text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:4px}
+.club .listicle .foot{margin-top:40px;border-top:1px solid var(--line2);padding-top:8px}
