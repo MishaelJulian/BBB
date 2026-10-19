@@ -14,7 +14,8 @@ export const GET = route(async (req: NextRequest) => {
   if (!who) return apiError(401, 'Sign in to continue.', NO_STORE)
   const db = sql()
   const [me] = await db<{ id: string }[]>`select id from members where auth_user_id = ${who.id}`
-  if (!me) return apiError(404, 'No member record is linked to this login yet.', NO_STORE)
+  // A login with no member record yet (an admin before claiming) is a normal state, not an error: answer 200 so the page load stays clean.
+  if (!me) return ok({ linked: false }, NO_STORE)
   const entries = await db`
     select d.id, m.meetup_number, m.date::text as date, b.title, a.full_name as author, d.notes
     from discussions d join meetups m on m.id = d.meetup_id join canonical_books b on b.id = d.canonical_book_id

@@ -119,7 +119,10 @@ export function MeHome() {
   React.useEffect(() => {
     if (me.state !== 'member' && me.state !== 'admin') return
     let dead = false
-    void authFetch('/api/me/card').then(async (r) => !dead && setCard(r.ok ? ((await r.json()) as Card) : null))
+    void authFetch('/api/me/card').then(async (r) => {
+      const j = r.ok ? await r.json() : null
+      if (!dead) setCard(j && j.linked !== false ? (j as Card) : null)
+    })
     return () => {
       dead = true
     }

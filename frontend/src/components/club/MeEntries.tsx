@@ -35,7 +35,8 @@ export function MeEntries() {
 
   const load = React.useCallback(async () => {
     const r = await authFetch('/api/me/entries', { cache: 'no-store' })
-    setData(r.ok ? await r.json() : null)
+    const j = r.ok ? await r.json() : null
+    setData(j && j.linked !== false ? j : null)
   }, [])
   React.useEffect(() => { void load() }, [load])
 

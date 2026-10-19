@@ -28,7 +28,7 @@ export function MyEntries() {
 
   const load = React.useCallback(async () => {
     const res = await authFetch('/api/me/entries', { cache: 'no-store' })
-    if (res.ok) setData(await res.json())
+    if (res.ok) { const j = await res.json(); if (j.linked !== false) setData(j) }
   }, [])
   React.useEffect(() => { load().catch(() => {}) }, [load])
 

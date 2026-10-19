@@ -46,7 +46,7 @@ export function AccountScreens() {
   React.useEffect(() => {
     if (me.state !== 'member' && me.state !== 'admin') return
     void authFetch('/api/me').then(async (r) => { if (r.ok) { const j = await r.json(); setBio(j.member?.bio ?? ''); setBioLoaded(true) } })
-    void authFetch('/api/me/card').then(async (r) => { if (r.ok) { const j = await r.json(); setRec({ name: j.name, code: j.code }) } })
+    void authFetch('/api/me/card').then(async (r) => { if (r.ok) { const j = await r.json(); if (j.linked !== false) setRec({ name: j.name, code: j.code }) } })
   }, [me.state])
 
   if (s === 'deleted') return <AccountDeleted />
