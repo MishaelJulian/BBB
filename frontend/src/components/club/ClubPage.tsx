@@ -22,6 +22,10 @@ interface Props {
   noMap?: boolean
   /** Render children without the 430 px column wrapper. */
   bare?: boolean
+  /** No floating search button (the 404 page). */
+  noSearch?: boolean
+  /** Extra class on <main>. */
+  mainClass?: string
   children: React.ReactNode
 }
 
@@ -117,7 +121,7 @@ const TABS: [Tab, string, IconName][] = [
   ['me', 'Me', 'me'],
 ]
 
-function TabBar({ active }: { active: Tab }) {
+export function TabBar({ active }: { active: Tab }) {
   const me = useMe()
   const href = (k: Tab) => (k === 'home' ? '/' : k === 'dir' ? '/directory' : k === 'lib' ? '/library-room' : k === 'club' ? '/club' : me.state === 'out' ? '/login' : '/me')
   return (
@@ -132,7 +136,7 @@ function TabBar({ active }: { active: Tab }) {
   )
 }
 
-export function ClubPage({ kind = 'home', crumbs = [], tab = '', home = false, noMap = false, bare = false, children }: Props) {
+export function ClubPage({ kind = 'home', crumbs = [], tab = '', home = false, noMap = false, bare = false, noSearch = false, mainClass = '', children }: Props) {
   const [searchOpen, setSearchOpen] = React.useState(false)
   React.useEffect(() => {
     const el = document.documentElement
@@ -145,12 +149,12 @@ export function ClubPage({ kind = 'home', crumbs = [], tab = '', home = false, n
     <div className="club">
       {!noMap && <MapBackdrop />}
       <TopBar kind={kind} crumbs={crumbs} />
-      {kind !== 'back' && (
+      {kind !== 'back' && !noSearch && (
         <button className="fsearch" id="open-search" type="button" aria-label="Search" onClick={() => setSearchOpen(true)}>
           <PixelIcon name="search" />
         </button>
       )}
-      <main className="reveal" id="top">
+      <main className={`reveal${mainClass ? ` ${mainClass}` : ''}`} id="top">
         {bare ? children : <div className="wrap">{children}</div>}
       </main>
       <ClubFooter />

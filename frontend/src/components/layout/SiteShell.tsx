@@ -6,17 +6,16 @@ import { Navigation } from '@/components/layout/Navigation'
 import { Footer } from '@/components/layout/Footer'
 import { CommandPalette } from '@/components/search/CommandPalette'
 
+// The club pages bring their own shell (top bar, tab bar, footer: components/club/ClubPage). Only the pages that have not been
+// ported yet keep the old navigation and footer.
+const LEGACY = ['/admin', '/books', '/authors']
+
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isClosetView = pathname === '/' || pathname === '/library-room'
+  const legacy = LEGACY.some((p) => pathname === p || pathname.startsWith(p + '/'))
 
-  if (isClosetView) {
-    return (
-      <div className="min-h-screen w-screen overflow-x-hidden">
-        {children}
-        <CommandPalette />
-      </div>
-    )
+  if (!legacy) {
+    return <div className="min-h-screen w-full overflow-x-hidden">{children}</div>
   }
 
   return (

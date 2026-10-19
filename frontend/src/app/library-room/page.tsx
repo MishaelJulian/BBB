@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import dynamic from 'next/dynamic'
+import { TabBar } from '@/components/club/ClubPage'
 
 const CriterionBookCloset = dynamic(
   () => import('@/components/library/CriterionBookCloset').then((mod) => mod.CriterionBookCloset),
@@ -19,5 +20,13 @@ const CriterionBookCloset = dynamic(
 )
 
 export default function LibraryRoomPage() {
-  return <CriterionBookCloset />
+  return (
+    <>
+      <CriterionBookCloset />
+      {/* the tab bar is the club's own; this wrapper carries none of its page padding */}
+      <div className="club" style={{ padding: 0, background: 'none', height: 0 }}>
+        <TabBar active="lib" />
+      </div>
+    </>
+  )
 }

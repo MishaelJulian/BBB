@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { fetchBookSynopsis, type Book } from '@/lib/api'
 import { getBookSpineStyle } from './CriterionBookCloset'
+import { Rotatable3DBook } from './CriterionDetailModal'
 
 interface CriterionListDetailModalProps {
   book: Book
@@ -136,7 +137,7 @@ export function CriterionListDetailModal({
   return (
     <div
       ref={modalScrollRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+      className="fixed inset-0 z-50 overflow-y-auto bg-[#faf8f5]"
     >
       {/* Darkened backdrop with blur */}
       <motion.div
@@ -187,30 +188,33 @@ export function CriterionListDetailModal({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 12 }}
         transition={{ duration: 0.18 }}
-        className="relative z-10 w-full max-w-[520px] bg-paper border border-border-dark my-4 p-6 sm:p-8 max-h-[92vh] overflow-y-auto text-ink"
+        className="relative z-10 w-full max-w-3xl mx-auto min-h-full bg-paper p-4 pb-16 text-ink"
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-4 z-20 min-h-9 text-sm text-ink-light underline underline-offset-4 hover:text-ink"
-          aria-label="Close"
-        >
-          Close
-        </button>
+        <div className="fixed top-0 inset-x-0 z-[70] h-14 bg-[#070709] border-b border-white/30 flex items-center px-2">
+          <button onClick={onClose} aria-label="Close book view" className="min-h-14 px-3 inline-flex items-center gap-2 text-paper text-xl font-bold uppercase tracking-widest">
+            <span aria-hidden="true" className="text-3xl leading-none font-normal">&lsaquo;</span>
+            <span className="underline decoration-[3px] underline-offset-[8px]">Close</span>
+          </button>
+        </div>
 
-        <div className="flex gap-5 items-start pr-12">
-          <div className="relative w-28 shrink-0 aspect-2/3 overflow-hidden border border-border bg-[#1A1816]">
-            {hasCover ? (
-              <img src={coverSrc} alt={book.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" loading="eager" />
-            ) : (
-              <div className="w-full h-full p-3 flex flex-col justify-between text-center" style={{ backgroundColor: spineStyle.palette.bg }}>
-                <div className="w-6 h-px mx-auto opacity-50" style={{ backgroundColor: spineStyle.palette.foil }} />
-                <h4 className="font-display font-bold text-xs text-white leading-snug line-clamp-4">{book.title}</h4>
-                <div className="w-6 h-px mx-auto opacity-50" style={{ backgroundColor: spineStyle.palette.foil }} />
-              </div>
-            )}
-          </div>
+        <div className="-mx-4 -mt-4 mb-5 bg-[#070709] pt-20 pb-4 flex flex-col items-center">
+          <Rotatable3DBook
+            book={book}
+            spineStyle={spineStyle}
+            coverSrc={coverSrc}
+            hasCover={hasCover}
+            isSaved={isSaved}
+            onTogglePick={onTogglePick}
+            onShowToast={onShowToast}
+            onClose={onClose}
+          />
+          <button type="button" onClick={() => document.getElementById('book-details')?.scrollIntoView({ behavior: 'smooth' })} className="mt-4 min-h-12 px-4 text-paper text-lg font-semibold underline decoration-2 underline-offset-[6px]">
+            Synopsis and details <span aria-hidden="true">&darr;</span>
+          </button>
+        </div>
 
+        <div id="book-details" className="flex gap-5 items-start scroll-mt-20">
           <div className="min-w-0">
             <p className="font-mono text-xs text-muted">Spine {spineStyle.numericSpine}</p>
             <h2 className="mt-1 font-display text-2xl font-bold leading-tight">{book.title}</h2>
@@ -275,7 +279,7 @@ export function CriterionListDetailModal({
           </p>
           <p className="mt-3 flex flex-wrap gap-x-6 gap-y-1">
             {latestMeetup && (
-              <Link href={`/meetups/${latestMeetup.id || latestMeetup.number}`} className="underline underline-offset-4 hover:text-accent">
+              <Link href={`/meetups/${latestMeetup.id || latestMeetup.number}`} className="font-semibold text-[#8a1c1c] underline decoration-2 underline-offset-4 hover:text-[#5e1010]">
                 Meetup #{latestMeetup.number} discussion
               </Link>
             )}
@@ -287,7 +291,7 @@ export function CriterionListDetailModal({
               }
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-4 hover:text-accent"
+              className="font-semibold text-[#8a1c1c] underline decoration-2 underline-offset-4 hover:text-[#5e1010]"
             >
               Search on Goodreads
             </a>
@@ -300,7 +304,7 @@ export function CriterionListDetailModal({
             <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
               {book.members.map((member) => (
                 <li key={`reader-${member.id}`}>
-                  <Link href={`/members/${member.id}`} className="underline decoration-border-dark underline-offset-4 hover:text-accent">
+                  <Link href={`/members/${member.id}`} className="font-semibold text-[#8a1c1c] underline decoration-2 underline-offset-4 hover:text-[#5e1010]">
                     {member.display_name}
                   </Link>
                 </li>

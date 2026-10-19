@@ -6,9 +6,11 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { fetchBook, fetchBooks, getPersistentData, setPersistentData, type Book } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
-import { CriterionDetailModal } from './CriterionDetailModal'
 import { CriterionListDetailModal } from './CriterionListDetailModal'
 import { getSession } from '@/lib/auth'
+import { useRouter } from 'next/navigation'
+import { useMe } from '@/components/club/useMe'
+// mockup: the agreed header, search sheet, list grid and one merged book view
 
 // Header controls are plain text, not pills (docs/ux/ADR-ui-revamp.md section 5).
 const hdrLink = (dark: boolean) =>
@@ -406,123 +408,50 @@ function PicksTray({
   onOpenPolaroid,
 }: PicksTrayProps) {
   if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/80 " onClick={onClose} />
-
-      <m.div
-        initial={{ opacity: 0, scale: 0.94, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.94, y: 20 }}
-        className="relative z-10 w-full max-w-xl bg-[#14100D]/95 border border-white/15 rounded-[2px] p-6 sm:p-8 shadow-2xl text-center"
-      >
-        <div className="text-[10px] font-mono tracking-[0.25em] text-white/50 uppercase mb-1">
-          THE BBB LIBRARY TOTE BAG
+    <div className="fixed inset-0 z-50 flex items-end" role="dialog" aria-modal="true" aria-label="Your picks">
+      <div className="fixed inset-0 bg-black/45" onClick={onClose} />
+      <div className="relative w-full max-h-[88dvh] overflow-auto bg-[#faf8f5] text-[#1a1a1a] border-t-2 border-[#1a1a1a] p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="m-0 font-serif text-2xl font-semibold">Your picks</h3>
+          <button type="button" onClick={onClose} className="min-h-11 px-1 underline decoration-2 decoration-[#c93a14] underline-offset-[5px] text-base">Close</button>
         </div>
-        <h3 className="font-display text-2xl font-bold text-white mb-2">
-          Your Four Library Picks
-        </h3>
-        <p className="text-xs text-white/60 mb-6 font-serif">
-          Curate your personal 4-volume stack from the BBB Archive shelves.
-        </p>
-
-        {/* 4 Pick Slots (Front Book Covers) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
+        <p className="mt-1 text-sm text-[#4a4a4a]">{userPicks.length} of 4 picks used</p>
+        <div className="mt-2">
           {Array.from({ length: 4 }).map((_, idx) => {
             const book = userPicks[idx]
-            if (book) {
-              const styleInfo = getBookSpineStyle(book.title, book.id)
-              const hasCover = Boolean(book.cover_url || book.thumbnail_url)
-              const coverSrc = book.cover_url || book.thumbnail_url || ''
+            if (!book) {
               return (
-                <div
-                  key={`pick-${book.id}`}
-                  className="group relative flex flex-col items-center cursor-pointer transition-transform hover:-translate-y-1"
-                  onClick={() => {
-                    onClose()
-                    onSelectBook(book)
-                  }}
-                >
-                  <div className="relative w-full aspect-2/3 rounded-[2px] overflow-hidden shadow-lg border border-white/20 bg-[#1E1B18]">
-                    {hasCover ? (
-                      <img
-                        src={coverSrc}
-                        alt={book.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div
-                        className="w-full h-full p-2.5 flex flex-col justify-between text-center"
-                        style={{ backgroundColor: styleInfo.palette.bg }}
-                      >
-                        <div className="w-4 h-px mx-auto opacity-50" style={{ backgroundColor: styleInfo.palette.foil }} />
-                        <span className="text-[10px] font-serif font-bold text-white line-clamp-3 leading-snug">
-                          {book.title}
-                        </span>
-                        <span className="text-[8px] font-serif uppercase tracking-wider text-white/70 truncate">
-                          {book.author_name || 'BBB'}
-                        </span>
-                      </div>
-                    )}
-                    {/* Spine Badge */}
-                    <div className="absolute top-1.5 left-1.5 bg-black/85 text-white text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-[2px] border border-white/20">
-                      #{styleInfo.numericSpine}
-                    </div>
-                    {/* Remove button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onRemovePick(book.id)
-                      }}
-                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-[2px] bg-black/80 border border-white/25 text-white/80 hover:text-white hover:bg-red-600 flex items-center justify-center text-xs transition-all shadow-md"
-                      title="Remove pick"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <span className="text-[10.5px] font-display font-medium text-white line-clamp-1 mt-2 text-center w-full px-1">
-                    {book.title}
-                  </span>
+                <div key={`empty-${idx}`} className="flex items-center gap-3 min-h-16 py-2 border-t border-[#d4cfc9] text-[#4a4a4a]">
+                  <span className="w-10 text-center font-semibold">{idx + 1}</span>
+                  <span>Empty</span>
                 </div>
               )
             }
-
+            const styleInfo = getBookSpineStyle(book.title, book.id)
+            const coverSrc = book.cover_url || book.thumbnail_url || ''
             return (
-              <div
-                key={`empty-slot-${idx}`}
-                className="w-full aspect-2/3 rounded-[2px] border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center p-3 text-center text-white/30"
-              >
-                <span className="text-xl mb-1">♡</span>
-                <span className="text-[9px] font-mono">Empty Slot</span>
+              <div key={`pick-${book.id}`} className="grid grid-cols-[48px_1fr_auto] items-center gap-3 min-h-16 py-2 border-t border-[#d4cfc9]">
+                <button type="button" onClick={() => { onClose(); onSelectBook(book) }} aria-label={`Open ${book.title}`} className="block w-12">
+                  {coverSrc ? (
+                    <img src={coverSrc} alt="" referrerPolicy="no-referrer" className="block w-12 aspect-2/3 object-cover border-2 border-[#1a1a1a]" />
+                  ) : (
+                    <span className="flex w-12 aspect-2/3 items-end border-2 border-[#1a1a1a] p-1 font-mono text-[10px]">#{styleInfo.numericSpine}</span>
+                  )}
+                </button>
+                <button type="button" onClick={() => { onClose(); onSelectBook(book) }} className="text-left">
+                  <span className="block font-serif font-semibold text-base leading-snug line-clamp-2">{book.title}</span>
+                  <span className="block text-sm text-[#4a4a4a]">{(book as any).tag ? (book as any).tag + ' \u00b7 ' : ''}{book.author_name || 'Author not recorded'}</span>
+                </button>
+                <button type="button" onClick={() => onRemovePick(book.id)} aria-label={`Remove ${book.title}`} className="min-h-11 px-1 underline decoration-2 decoration-[#c93a14] underline-offset-[5px] text-base">Remove</button>
               </div>
             )
           })}
         </div>
-
-        {/* Action Buttons */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-          {userPicks.length > 0 && (
-            <button
-              onClick={() => {
-                onClose()
-                onOpenPolaroid()
-              }}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-[2px] bg-paper hover:bg-paper-dark text-black font-semibold text-xs tracking-wider uppercase transition-all shadow-lg flex items-center justify-center gap-2"
-            >
-              <span>Take a Polaroid</span>
-              <span className="text-[10px] opacity-75">({userPicks.length}/4)</span>
-            </button>
-          )}
-
-          <button
-            onClick={onClose}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-[2px] bg-white/10 hover:bg-white/15 text-white font-medium text-xs tracking-wider uppercase transition-all border border-white/15"
-          >
-            Keep Browsing
-          </button>
-        </div>
-      </m.div>
+        {userPicks.length > 0 && (
+          <button type="button" onClick={() => { onClose(); onOpenPolaroid() }} className="mt-3 w-full min-h-12 px-4 bg-[#1a1a1a] text-[#faf8f5] font-semibold text-base shadow-[3px_3px_0_0_#f15534]">Take a Polaroid ({userPicks.length}/4)</button>
+        )}
+      </div>
     </div>
   )
 }
@@ -895,6 +824,8 @@ function useFullBook(book: Book | null): Book | null {
 
 export function CriterionBookCloset() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const me = useMe()
   const selectParam = searchParams.get('select')
   const meetupParam = searchParams.get('meetup')
 
@@ -939,6 +870,11 @@ export function CriterionBookCloset() {
   const [userPicks, setUserPicks] = React.useState<Book[]>([])
   const [isPicksTrayOpen, setIsPicksTrayOpen] = React.useState(false)
   const [isPolaroidOpen, setIsPolaroidOpen] = React.useState(false)
+  const [isSearchSheetOpen, setIsSearchSheetOpen] = React.useState(false)
+  const [sheetQ, setSheetQ] = React.useState('')
+  const [pendingPick, setPendingPick] = React.useState<Book | null>(null)
+  const [pickTag, setPickTag] = React.useState('Favourite')
+  const [replaceId, setReplaceId] = React.useState<string | null>(null)
   const [toastMessage, setToastMessage] = React.useState<string | null>(null)
 
   // Available Meetups extracted dynamically from loaded archive
@@ -1183,14 +1119,14 @@ export function CriterionBookCloset() {
   // Load user picks
   React.useEffect(() => {
     try {
-      const saved = localStorage.getItem('bbb_library_picks') || localStorage.getItem('bbb_closet_picks')
-      if (saved) setUserPicks(JSON.parse(saved))
+      const saved = localStorage.getItem('bbb_picks')
+      if (saved) setUserPicks((JSON.parse(saved) as any[]).filter((x) => x && x.id).map((x) => ({ ...x, title: x.title ?? x.t, author_name: x.author_name ?? x.a })))
     } catch {}
   }, [])
 
   React.useEffect(() => {
     try {
-      localStorage.setItem('bbb_library_picks', JSON.stringify(userPicks))
+      localStorage.setItem('bbb_picks', JSON.stringify(userPicks))
     } catch {}
   }, [userPicks])
 
@@ -1351,23 +1287,46 @@ export function CriterionBookCloset() {
     setTimeout(() => setToastMessage(null), 2500)
   }
 
+  const logPick = (what: string, b: any, tag?: string) => {
+    try {
+      const l = JSON.parse(localStorage.getItem('bbb_pick_log') || '[]')
+      l.unshift({ d: new Date().toISOString().slice(0, 10), who: me.name ?? 'Member', what, t: b.title ?? b.t, tag: tag || '' })
+      localStorage.setItem('bbb_pick_log', JSON.stringify(l.slice(0, 100)))
+    } catch {}
+  }
+
   const handleTogglePick = (book: Book) => {
-    setUserPicks((prev) => {
-      const exists = prev.some((b) => b.id === book.id)
-      if (exists) {
-        showToast(`Removed “${book.title}” from your stack`)
-        return prev.filter((b) => b.id !== book.id)
-      }
-      if (prev.length >= 4) {
-        showToast(`Your 4 picks are full! Replaced oldest volume.`)
-        return [...prev.slice(1), book]
-      }
-      showToast(`+ Added “${book.title}” to your library picks`)
-      return [...prev, book]
-    })
+    if (me.state === 'loading') return
+    if (me.state === 'out') { router.push('/login'); return }
+    if (me.state === 'new') { router.push('/me'); return }
+    if (userPicks.some((b) => b.id === book.id)) {
+      logPick('removed', book)
+      setUserPicks((prev) => prev.filter((b) => b.id !== book.id))
+      showToast('Removed "' + book.title + '" from your picks')
+      return
+    }
+    setPickTag('Favourite')
+    setReplaceId(userPicks[0]?.id ?? null)
+    setPendingPick(book)
+  }
+
+  const confirmPick = () => {
+    if (!pendingPick) return
+    const b: any = pendingPick
+    const entry = { id: b.id, title: b.title, author_name: b.author_name, cover_url: b.cover_url, thumbnail_url: b.thumbnail_url, t: b.title, a: b.author_name || '', tag: pickTag, d: new Date().toISOString().slice(0, 10) } as any
+    if (userPicks.length >= 4) {
+      const old = userPicks.find((x) => x.id === replaceId)
+      if (old) logPick('removed', old)
+    }
+    logPick('added', b, pickTag)
+    setUserPicks((prev) => [...(prev.length >= 4 ? prev.filter((x) => x.id !== replaceId) : prev), entry])
+    showToast('Added "' + b.title + '" to your picks')
+    setPendingPick(null)
   }
 
   const handleRemovePick = (bookId: string) => {
+    const old = userPicks.find((b) => b.id === bookId)
+    if (old) logPick('removed', old)
     setUserPicks((prev) => prev.filter((b) => b.id !== bookId))
   }
 
@@ -1564,6 +1523,11 @@ export function CriterionBookCloset() {
     return filteredBooks.slice(0, 6)
   }, [filteredBooks, searchQuery])
 
+  const sheetResults = React.useMemo(() => {
+    const v = sheetQ.trim().toLowerCase().replace(/^#/, '')
+    if (v.length < 2) return [] as Book[]
+    return books.filter((b) => (`${b.title} ${b.author_name || ''}`).toLowerCase().includes(v) || String(getBookSpineStyle(b.title, b.id).numericSpine) === v).slice(0, 30)
+  }, [sheetQ, books])
   const activeFiltersCount = (discussionFilter !== 'all' ? 1 : 0) + (selectedLetter ? 1 : 0) + (selectedMeetup !== null ? 1 : 0)
 
   return (
@@ -1571,7 +1535,7 @@ export function CriterionBookCloset() {
     <div
       suppressHydrationWarning
       className={`relative min-h-screen w-screen transition-colors duration-500 overflow-x-hidden ${
-        viewMode === 'closet' ? 'bg-[#070709] text-paper cursor-crosshair' : 'bg-[#F3EFE6] text-[#14130F]'
+        viewMode === 'closet' ? 'bg-[#070709] text-paper cursor-crosshair' : 'bg-[#faf8f5] text-[#1a1a1a]'
       }`}
       onMouseMove={handleMouseMove}
     >
@@ -1609,108 +1573,34 @@ export function CriterionBookCloset() {
       {/* =======================================================
           1. THE CRITERION CLOSET CHROME & MARQUEE
           ======================================================= */}
-      <header
-        className={`sticky top-0 z-40 w-full border-b ${
-          viewMode === 'closet' ? 'bg-[#0E0D0B] border-white/20 text-paper' : 'bg-paper border-border text-ink'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-x-8 gap-y-2">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-            <Link href="/" className="font-display text-xl font-semibold tracking-tight text-inherit">
-              BBB Library
-            </Link>
-            <nav aria-label="Quick navigation" className="flex items-center gap-x-5 text-sm">
-              <Link href="/meetups" className={hdrLink(viewMode === 'closet')}>Meetups</Link>
-              <Link href="/members" className={hdrLink(viewMode === 'closet')}>Readers</Link>
-              <AdminLink className={hdrLink(viewMode === 'closet')} />
-            </nav>
+      <header className="sticky top-0 z-40 w-full bg-[#faf8f5] text-[#1a1a1a] border-b-2 border-[#1a1a1a]">
+        <div className="px-4 flex items-center min-h-[56px] gap-1.5">
+          <a href="/" aria-label="Back to Home" className="-ml-3 min-w-11 min-h-11 inline-flex items-center justify-center text-[28px] leading-none font-semibold text-[#1a1a1a] no-underline">&lsaquo;</a>
+          <h1 className="m-0 font-serif text-[22px] leading-7 font-semibold">Library</h1>
+          <div role="group" aria-label="View" className="ml-auto flex">
+            {(['closet', 'list'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={viewMode === mode}
+                onClick={() => switchView(mode)}
+                className={`min-h-11 px-2.5 text-base ${viewMode === mode ? 'font-semibold underline decoration-2 decoration-[#c93a14] underline-offset-[7px]' : 'text-[#4a4a4a]'}`}
+              >
+                {mode === 'closet' ? 'Closet' : 'List'}
+              </button>
+            ))}
           </div>
-
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-            {/* Search (closet view only; the list view has its own search and filter bar) */}
-            {viewMode === 'closet' && (
-              <div className="relative">
-                <input
-                  id="closet-search-input"
-                  type="search"
-                  aria-label="Search by title, author or spine number"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 250)}
-                  placeholder="Title, author or spine number"
-                  className="w-44 md:w-56 bg-transparent border-0 border-b border-white/40 py-1 text-sm text-paper placeholder:text-paper/60 focus:border-paper focus:outline-hidden"
-                />
-
-                {/* Suggestions */}
-                <AnimatePresence>
-                  {isSearchFocused && searchSuggestions.length > 0 && (
-                    <m.div
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 5 }}
-                      className="absolute left-0 right-0 top-full mt-2 bg-[#0E0D0B] border border-white/25 p-1 z-50"
-                    >
-                      {searchSuggestions.map((book) => {
-                        const style = getBookSpineStyle(book.title, book.id)
-                        return (
-                          <button
-                            key={`sug-${book.id}`}
-                            onMouseDown={() => {
-                              setSelectedBook(book)
-                              setSearchQuery('')
-                            }}
-                            className="w-full flex items-center justify-between gap-3 p-2 hover:bg-white/10 text-left"
-                          >
-                            <span className="truncate text-sm text-paper font-display">
-                              <span className="font-mono text-xs text-paper/70 mr-2">{style.spineNo}</span>
-                              {book.title}
-                            </span>
-                            <span className="text-xs text-paper/70 shrink-0">{book.author_name || 'BBB'}</span>
-                          </button>
-                        )
-                      })}
-                    </m.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
-
-            <button type="button" onClick={() => setIsFilterSheetOpen(true)} className={`min-h-9 ${hdrLink(viewMode === 'closet')}`}>
-              Filters{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsPicksTrayOpen(true)}
-              title="Open your four library picks"
-              className={`min-h-9 ${hdrLink(viewMode === 'closet')}`}
-            >
-              Picks{userPicks.length > 0 ? ` (${userPicks.length})` : ''}
-            </button>
-            {userPicks.length > 0 && (
-              <button type="button" onClick={() => setIsPolaroidOpen(true)} className={`min-h-9 ${hdrLink(viewMode === 'closet')}`}>
-                Polaroid
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleSyncDatabase}
-              disabled={isSyncing}
-              title="Load the latest changes from the database"
-              className={`min-h-9 disabled:opacity-60 ${hdrLink(viewMode === 'closet')}`}
-            >
-              {isSyncing ? 'Refreshing…' : 'Refresh'}
-            </button>
-
-            <div role="group" aria-label="View" className="flex items-center gap-x-4">
-              <button type="button" aria-pressed={viewMode === 'list'} onClick={() => switchView('list')} className={`min-h-9 ${hdrTab(viewMode === 'closet', viewMode === 'list')}`}>
-                List
-              </button>
-              <button type="button" aria-pressed={viewMode === 'closet'} onClick={() => switchView('closet')} className={`min-h-9 ${hdrTab(viewMode === 'closet', viewMode === 'closet')}`}>
-                Shelves
-              </button>
-            </div>
-          </div>
+        </div>
+        <div className="px-4">
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setIsSearchSheetOpen(true)}
+            className="flex w-full min-h-11 mb-2 items-center justify-between border-b-2 border-[#1a1a1a] text-base text-[#4a4a4a]"
+          >
+            <span>Search title, author, number</span>
+            <span aria-hidden="true">&#9906;</span>
+          </button>
         </div>
       </header>
 
@@ -1719,7 +1609,7 @@ export function CriterionBookCloset() {
           ======================================================= */}
       {viewMode === 'closet' && (
         <main
-          className="relative w-full h-[calc(100dvh-64px)] overflow-hidden flex items-center justify-center select-none"
+          className="relative w-full h-[calc(100dvh-110px-var(--tab,56px))] overflow-hidden flex items-center justify-center select-none"
           style={{
             perspective: isMobile ? '1000px' : '1150px',
             touchAction: 'none',
@@ -1746,86 +1636,12 @@ export function CriterionBookCloset() {
             }}
           />
 
-          {/* Shelf navigation: one flat text row under the header (no capsules, no yellow pills) */}
-          <div className="absolute top-0 inset-x-0 z-30 flex flex-wrap items-center justify-center gap-x-8 gap-y-1 px-4 py-2 text-sm text-paper bg-[#0E0D0B]/90 border-b border-white/10">
-            <div className="flex flex-wrap items-center justify-center gap-x-4">
-              <button
-                type="button"
-                onClick={() => setShelfSection((s) => Math.max(0, s - 1))}
-                disabled={safeSection === 0}
-                className="min-h-9 underline-offset-4 hover:underline disabled:opacity-40 disabled:no-underline"
-                title="Previous shelves (Left arrow or [)"
-              >
-                Previous
-              </button>
-              <span className="font-semibold">
-                Shelves {currentShelfStartNumber}–{currentShelfStartNumber + 2}
-                <span className="font-normal text-paper/70"> of {totalSections * 3}</span>
-                {sectionInfo.maxMeetup !== null && (
-                  <span className="font-normal text-paper/70">
-                    {sectionInfo.maxMeetup === sectionInfo.minMeetup
-                      ? ` · meetup #${sectionInfo.maxMeetup}`
-                      : ` · meetups #${sectionInfo.maxMeetup}–#${sectionInfo.minMeetup}`}
-                  </span>
-                )}
-              </span>
-              <button
-                type="button"
-                onClick={() => setShelfSection((s) => Math.min(totalSections - 1, s + 1))}
-                disabled={safeSection >= totalSections - 1}
-                className="min-h-9 underline-offset-4 hover:underline disabled:opacity-40 disabled:no-underline"
-                title="Next shelves (Right arrow or ])"
-              >
-                Next
-              </button>
-              {totalSections > 1 && (
-                <select
-                  aria-label="Jump to shelf section"
-                  value={safeSection}
-                  onChange={(e) => setShelfSection(Number(e.target.value))}
-                  className="min-h-9 bg-transparent border-0 border-b border-white/40 text-paper text-sm cursor-pointer focus:outline-hidden focus:border-paper"
-                >
-                  {Array.from({ length: totalSections }).map((_, idx) => {
-                    const startShelf = idx * 3 + 1
-                    return (
-                      <option key={idx} value={idx} className="bg-[#14100D] text-white">
-                        {startShelf}–{startShelf + 2} {idx === 0 ? '(latest)' : ''}
-                      </option>
-                    )
-                  })}
-                </select>
-              )}
-            </div>
-
-            <div role="group" aria-label="Wall" className="flex items-center gap-x-4">
-              {['Left wing', 'Main', 'Right wing'].map((label, i) => (
-                <button
-                  key={label}
-                  type="button"
-                  aria-pressed={currentWallIndex === i}
-                  onClick={() => snapToWall(i as 0 | 1 | 2)}
-                  className={`min-h-9 underline-offset-4 ${
-                    currentWallIndex === i ? 'font-semibold underline decoration-2' : 'text-paper/70 hover:text-paper hover:underline'
-                  }`}
-                >
-                  {label} ({currentShelfStartNumber + i})
-                </button>
-              ))}
-            </div>
-
-            <button type="button" onClick={handleRandomPick} className="min-h-9 underline-offset-4 hover:underline" title="Open a random book (R)">
-              Random
-            </button>
-
-            {selectedMeetup !== null && (
-              <span>
-                Shelving meetup #{selectedMeetup} ({filteredBooks.length} volumes){' '}
-                <button type="button" onClick={() => setSelectedMeetup(null)} className="underline underline-offset-4" title="Show all volumes">
-                  Show all
-                </button>
-              </span>
-            )}
-          </div>
+          {safeSection > 0 && (
+            <button type="button" aria-label="Previous shelves" onClick={() => setShelfSection((s) => Math.max(0, s - 1))} className="absolute left-0 top-1/2 -translate-y-1/2 z-30 min-w-11 h-24 bg-[#faf8f5] text-[#1a1a1a] border-2 border-l-0 border-[#1a1a1a] text-3xl leading-none">&lsaquo;</button>
+          )}
+          {safeSection < totalSections - 1 && (
+            <button type="button" aria-label="Next shelves" onClick={() => setShelfSection((s) => Math.min(totalSections - 1, s + 1))} className="absolute right-0 top-1/2 -translate-y-1/2 z-30 min-w-11 h-24 bg-[#faf8f5] text-[#1a1a1a] border-2 border-r-0 border-[#1a1a1a] text-3xl leading-none">&rsaquo;</button>
+          )}
 
           {loadError && !loading ? (
             <div role="alert" className="text-center space-y-3 z-10 px-6">
@@ -2106,265 +1922,126 @@ export function CriterionBookCloset() {
           3. VIEW MODE B: LIST VIEW / THE CRITERION WALL (Exact Criterion Layout)
           ======================================================= */}
       {viewMode === 'list' && (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 text-[#14130F]">
-          {/* Top Search & Filter Bar (Matching Screenshot 2026-10-01 201506.png) */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pb-4">
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-md">
-              <input
-                id="list-search-input"
-                type="search"
-                aria-label="Search by title, author or spine number"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Title, author or spine number"
-                className="w-full bg-transparent border-0 border-b border-border-dark py-2 text-base text-ink placeholder:text-muted focus:outline-hidden focus:border-ink"
-              />
-            </div>
-
-            {/* Filter Dropdowns on Right (Meetup, Discussions, Sort) */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Meetup Dropdown */}
-              <div className="relative">
-                <select
-                  aria-label="Filter by meetup"
-                  value={selectedMeetup ?? ''}
-                  onChange={(e) => setSelectedMeetup(e.target.value ? Number(e.target.value) : null)}
-                  className={`min-h-9 bg-transparent border-0 border-b border-border-dark py-1 pr-6 text-sm text-ink appearance-none cursor-pointer focus:outline-hidden focus:border-ink ${selectedMeetup !== null ? 'font-semibold' : ''}`}
-                >
-                  <option value="" className="text-neutral-800 bg-white">All Meetups</option>
-                  {availableMeetups.map((m) => (
-                    <option key={m.number} value={m.number} className="text-neutral-800 bg-white">
-                      Meetup #{m.number} ({m.count} {m.count === 1 ? 'book' : 'books'})
-                    </option>
-                  ))}
-                </select>
-                <span className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] ${
-                  selectedMeetup !== null ? 'text-ink' : 'text-neutral-500'
-                }`}>▼</span>
-              </div>
-
-              {/* Discussions Filter Dropdown */}
-              <div className="relative">
-                <select
-                  aria-label="Filter by number of discussions"
-                  value={discussionFilter}
-                  onChange={(e) => setDiscussionFilter(e.target.value as any)}
-                  className={`min-h-9 bg-transparent border-0 border-b border-border-dark py-1 pr-6 text-sm text-ink appearance-none cursor-pointer focus:outline-hidden focus:border-ink ${discussionFilter !== 'all' ? 'font-semibold' : ''}`}
-                >
-                  <option value="all" className="text-neutral-800 bg-white">All Discussions</option>
-                  <option value="popular" className="text-neutral-800 bg-white">★ 3+ Discussions</option>
-                  <option value="two-plus" className="text-neutral-800 bg-white">2+ Discussions</option>
-                  <option value="single" className="text-neutral-800 bg-white">1 Discussion</option>
-                </select>
-                <span className={`pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] ${
-                  discussionFilter !== 'all' ? 'text-ink' : 'text-neutral-500'
-                }`}>▼</span>
-              </div>
-
-              {/* Sort Dropdown (Spine #, Latest, Title, Random) */}
-              <div className="relative">
-                <select
-                  aria-label="Sort books"
-                  value={sortBy}
-                  onChange={(e) => {
-                    setSortBy(e.target.value as any)
-                    if (e.target.value === 'random') setShuffleSeed((s) => s + 1)
-                  }}
-                  className="min-h-9 bg-transparent border-0 border-b border-border-dark py-1 pr-6 text-sm text-ink appearance-none cursor-pointer focus:outline-hidden focus:border-ink"
-                >
-                  <option value="latest">Sort: Latest to Oldest</option>
-                  <option value="spine-asc">Sort: Spine # (Ascending)</option>
-                  <option value="spine-desc">Sort: Spine # (Descending)</option>
-                  <option value="title-asc">Sort: Title (A–Z)</option>
-                  <option value="discussions-desc">Sort: Most Discussed</option>
-                  <option value="random">Sort: Random Shuffle</option>
-                </select>
-                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-neutral-500">▼</span>
-              </div>
-            </div>
-          </div>
-
-          {/* YOUR LISTS Section (Screenshot 2026-10-01 201506.png) */}
-          <div className="pt-2 pb-4">
-            <span className="text-sm font-semibold text-ink block mb-1">Lists</span>
-            <div className="flex flex-wrap items-center gap-2">
+        <main className="px-4 pb-28 pt-2 text-[#1a1a1a] min-h-[calc(100dvh-110px-var(--tab,56px))]">
+          <div role="group" aria-label="Show" className="flex gap-4 overflow-x-auto">
+            {([['all', 'All'], ['two-plus', 'Discussed 2+'], ['single', 'Discussed once']] as const).map(([k, label]) => (
               <button
-                onClick={() => {
-                  setDiscussionFilter('all')
-                  setSelectedLetter(null)
-                  setSelectedMeetup(null)
-                  setSearchQuery('')
-                }}
-                className={`min-h-9 text-sm underline-offset-4 ${discussionFilter === 'all' && selectedLetter === null && selectedMeetup === null && searchQuery === '' ? 'font-semibold underline decoration-2' : 'text-ink-light hover:underline'}`}
+                key={k}
+                type="button"
+                aria-pressed={discussionFilter === k}
+                onClick={() => setDiscussionFilter(k)}
+                className={`min-h-11 whitespace-nowrap text-base ${discussionFilter === k ? 'font-semibold underline decoration-2 decoration-[#c93a14] underline-offset-[7px]' : 'text-[#4a4a4a]'}`}
               >
-                All books
+                {label}
               </button>
-
-              <button
-                onClick={() => setIsPicksTrayOpen(true)}
-                className="min-h-9 text-sm text-ink-light underline-offset-4 hover:underline"
-              >
-                <span>Library picks ({userPicks.length})</span>
-              </button>
-
-              <button
-                onClick={() => setDiscussionFilter(discussionFilter === 'popular' ? 'all' : 'popular')}
-                className={`min-h-9 text-sm underline-offset-4 ${discussionFilter === 'popular' ? 'font-semibold underline decoration-2' : 'text-ink-light hover:underline'}`}
-              >
-                Community favorites
-              </button>
-            </div>
+            ))}
           </div>
-
-          {/* Sub-bar: Showing X of Y Volumes */}
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#DDD6C7] flex-wrap gap-2">
-            <span className="text-xs text-neutral-500 font-sans">
-              Showing <strong className="text-neutral-900 font-semibold">{filteredBooks.length.toLocaleString()}</strong> of {books.length.toLocaleString()}
-            </span>
-
-            <div className="flex items-center gap-3 sm:gap-4 text-xs font-medium flex-wrap">
-              <Link href="/meetups" className="underline text-neutral-600 hover:text-black">
-                Meetups Archive →
-              </Link>
-              <Link href="/members" className="underline text-neutral-600 hover:text-black">
-                Readers Directory →
-              </Link>
-              <AdminLink className="underline text-neutral-600 hover:text-black" />
-            </div>
-          </div>
-
-          {/* Wall Grid Cards (Matching Screenshot 2026-10-01 201506.png) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+          <p className="mt-1 text-sm text-[#4a4a4a]" aria-live="polite">{filteredBooks.length.toLocaleString('en-IN')} books</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5 mt-3">
             {displayedBooks.map((book) => {
               const style = getBookSpineStyle(book.title, book.id)
-              const isSaved = userPicks.some((b) => b.id === book.id)
-              const hasCover = Boolean(book.cover_url || book.thumbnail_url)
               const coverSrc = book.cover_url || book.thumbnail_url || ''
-              const pubYear =
-                book.publication_year ||
-                (book.first_discussed_date ? new Date(book.first_discussed_date).getFullYear() : null)
-
+              const latest = book.meetups && book.meetups.length > 0 ? book.meetups[0] : null
               return (
-                <div
+                <button
                   key={book.id}
+                  type="button"
                   onClick={() => setSelectedBook(book)}
-                  role="button"
-                  tabIndex={0}
                   aria-label={`${book.title}${book.author_name ? `, by ${book.author_name}` : ''}`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      setSelectedBook(book)
-                    }
-                  }}
                   style={{ contentVisibility: 'auto', containIntrinsicSize: '320px' }}
-                  className="group flex flex-col cursor-pointer text-left select-none outline-hidden focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+                  className="block text-left min-h-11 outline-hidden focus-visible:ring-2 focus-visible:ring-[#c93a14] focus-visible:ring-offset-2"
                 >
-                  {/* Card Front Cover with Criterion Spine Badge */}
-                  <div className="relative w-full aspect-2/3 overflow-hidden border border-border bg-[#1E1B18]">
-                    {hasCover ? (
-                      <img
-                        src={coverSrc}
-                        alt={book.title}
-                        loading="lazy"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none'
-                        }}
-                      />
-                    ) : null}
-
-                    {/* Fallback Artwork if no cover or image fails to load */}
-                    <div
-                      className={`absolute inset-0 p-3.5 flex flex-col justify-between text-center ${
-                        hasCover ? '-z-10' : 'z-0'
-                      }`}
-                      style={{ backgroundColor: style.palette.bg }}
-                    >
-                      <div className="w-5 h-px mx-auto opacity-50" style={{ backgroundColor: style.palette.foil }} />
-                      <div>
-                        <h4
-                          className="font-serif font-bold text-xs sm:text-sm leading-snug line-clamp-3 text-white"
-                          style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
-                        >
-                          {book.title}
-                        </h4>
-                        {book.author_name && (
-                          <p className="mt-1 text-[10px] font-sans uppercase tracking-wider truncate" style={{ color: style.palette.foil }}>
-                            {book.author_name}
-                          </p>
-                        )}
-                      </div>
-                      <div className="w-5 h-px mx-auto opacity-50" style={{ backgroundColor: style.palette.foil }} />
+                  {coverSrc ? (
+                    <img src={coverSrc} alt="" loading="lazy" referrerPolicy="no-referrer" className="block w-full aspect-2/3 object-cover border-2 border-[#1a1a1a] bg-[#f0ede8]" />
+                  ) : (
+                    <div className="w-full aspect-2/3 border-2 border-[#1a1a1a] bg-[#faf8f5] p-3 flex flex-col justify-between">
+                      <span className="font-serif font-semibold text-[17px] leading-snug line-clamp-6">{book.title}</span>
+                      <small className="font-mono text-[13px] text-[#4a4a4a]">#{style.numericSpine}</small>
                     </div>
-
-                    {/* Saved in picks: a plain label, not a glowing dot */}
-                    {isSaved && (
-                      <div className="absolute top-2 right-2 z-10 bg-paper text-ink text-xs font-semibold px-1.5 py-0.5">Saved</div>
-                    )}
-
-                    {/* Hover sheen */}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
-                  </div>
-
-                  {/* Caption underneath: Title in bold serif, Subtitle and Meetup tags */}
-                  <div className="mt-2.5 px-0.5">
-                    <h3 className="font-serif font-bold text-xs sm:text-sm leading-snug text-[#14130F] line-clamp-1 group-hover:underline block">
-                      {book.title}
-                    </h3>
-                    <p className="text-[11px] sm:text-xs text-neutral-500 truncate block mt-0.5">
-                      {pubYear ? `${pubYear} · ` : ''}{book.author_name || 'Bangalore Book Club'}
-                    </p>
-                    <p className="text-xs font-mono text-muted mt-0.5">Spine {style.numericSpine}</p>
-                    {book.meetups && book.meetups.length > 0 && (
-                      <div className="mt-1 flex items-center gap-1 flex-wrap">
-                        {book.meetups.slice(0, 2).map((m) => (
-                          <span
-                            key={`m-${book.id}-${m.number}`}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setSelectedMeetup(m.number)
-                            }}
-                            className="text-xs font-mono text-ink-light underline underline-offset-2 hover:text-accent cursor-pointer"
-                            title={`Filter archive by Meetup #${m.number}`}
-                          >
-                            #{m.number}
-                          </span>
-                        ))}
-                        {book.meetups.length > 2 && (
-                          <span className="text-xs font-mono text-muted">
-                            +{book.meetups.length - 2}
-                          </span>
-                        )}
-                        <span className="text-xs font-mono text-muted ml-auto">
-                          {book.discussion_count} {book.discussion_count === 1 ? 'disc' : 'discs'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  )}
+                  <span className="mt-2 block font-serif font-semibold text-base leading-snug line-clamp-2">{book.title}</span>
+                  <span className="block text-sm text-[#4a4a4a]">{book.author_name || 'Author not recorded'}</span>
+                  {latest && <span className="block text-[13px] text-[#4a4a4a]">Discussed at #{latest.number}</span>}
+                </button>
               )
             })}
           </div>
 
-          {/* Progressive Infinite Load Sentinel */}
           {visibleListCount < filteredBooks.length && (
-            <div
-              ref={loadMoreRef}
-              className="py-12 flex flex-col items-center justify-center gap-3 text-neutral-600"
-            >
-              <div className="w-5 h-5 border-2 border-white/25 border-t-transparent rounded-full animate-spin" />
-              <button
-                type="button"
-                onClick={() => setVisibleListCount((c) => Math.min(filteredBooks.length, c + 60))}
-                className="min-h-9 underline underline-offset-4 text-sm text-ink hover:text-accent"
-              >
-                Load more ({displayedBooks.length} of {filteredBooks.length.toLocaleString()})
+            <div ref={loadMoreRef} className="py-10 flex flex-col items-center">
+              <button type="button" onClick={() => setVisibleListCount((c) => Math.min(filteredBooks.length, c + 60))} className="min-h-11 underline decoration-2 decoration-[#c93a14] underline-offset-[6px] text-base font-semibold">
+                Load more ({displayedBooks.length} of {filteredBooks.length.toLocaleString('en-IN')})
               </button>
             </div>
           )}
         </main>
+      )}
+
+      {/* Floating Filters and Picks, thumb zone */}
+      <div className={`fixed bottom-[calc(var(--tab,56px)+12px)] z-40 flex gap-2.5 ${viewMode === 'closet' ? 'right-[76px]' : 'right-4'}`}>
+        <button type="button" onClick={() => setIsFilterSheetOpen(true)} className="min-h-12 px-5 bg-[#faf8f5] text-[#1a1a1a] border-2 border-[#1a1a1a] font-semibold text-base">
+          Filters{activeFiltersCount > 0 ? ` ${activeFiltersCount}` : ''}
+        </button>
+        <button type="button" onClick={() => setIsPicksTrayOpen(true)} className="min-h-12 px-5 bg-[#1a1a1a] text-[#faf8f5] font-semibold text-base shadow-[3px_3px_0_0_#f15534]">
+          Picks{userPicks.length > 0 ? ` ${userPicks.length}` : ''}
+        </button>
+      </div>
+
+      {pendingPick && (
+        <div className="fixed inset-0 z-[60] flex items-end" role="dialog" aria-modal="true" aria-labelledby="pick-t">
+          <div className="fixed inset-0 bg-black/45" onClick={() => setPendingPick(null)} />
+          <div className="relative w-full max-h-[88dvh] overflow-auto bg-[#faf8f5] text-[#1a1a1a] border-t-2 border-[#1a1a1a] p-4">
+            <h3 id="pick-t" className="m-0 font-serif text-2xl font-semibold">{userPicks.length >= 4 ? 'You have four picks' : 'Add to my picks'}</h3>
+            <p className="mt-1 font-serif text-base">{pendingPick.title}</p>
+            {userPicks.length >= 4 && (
+              <fieldset className="mt-3 border-0 p-0">
+                <legend className="text-sm font-semibold uppercase tracking-wider text-[#4a4a4a]">Picks are limited to four. Replace which one?</legend>
+                {userPicks.map((x) => (
+                  <label key={x.id} className="flex items-center gap-3 min-h-11 text-base">
+                    <input type="radio" name="rp" checked={replaceId === x.id} onChange={() => setReplaceId(x.id)} className="w-[22px] h-[22px] accent-[#c93a14] m-0" />
+                    {x.title}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            <fieldset className="mt-3 border-0 p-0">
+              <legend className="text-sm font-semibold uppercase tracking-wider text-[#4a4a4a]">Why?</legend>
+              {['Favourite', 'Want to read'].map((t) => (
+                <label key={t} className="flex items-center gap-3 min-h-11 text-base">
+                  <input type="radio" name="pt" checked={pickTag === t} onChange={() => setPickTag(t)} className="w-[22px] h-[22px] accent-[#c93a14] m-0" />
+                  {t}
+                </label>
+              ))}
+            </fieldset>
+            <div className="mt-4 flex items-center gap-3">
+              <button type="button" onClick={() => setPendingPick(null)} className="min-h-11 px-1 underline decoration-2 decoration-[#c93a14] underline-offset-[5px] text-base">Cancel</button>
+              <button type="button" onClick={confirmPick} className="flex-1 min-h-12 px-4 bg-[#1a1a1a] text-[#faf8f5] font-semibold text-base shadow-[3px_3px_0_0_#f15534]">{userPicks.length >= 4 ? 'Replace pick' : 'Add pick'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isSearchSheetOpen && (
+        <div className="fixed inset-0 z-50 flex items-end" role="dialog" aria-modal="true" aria-label="Search the library">
+          <div className="fixed inset-0 bg-black/45" onClick={() => setIsSearchSheetOpen(false)} />
+          <div className="relative w-full max-h-[88dvh] overflow-auto bg-[#faf8f5] text-[#1a1a1a] border-t-2 border-[#1a1a1a] p-4">
+            <label htmlFor="sheet-q" className="block text-sm text-[#4a4a4a]">Search title, author or number</label>
+            <div className="flex items-center gap-2">
+              <input id="sheet-q" type="search" autoFocus autoComplete="off" value={sheetQ} onChange={(e) => setSheetQ(e.target.value)} placeholder="Dungeon, Dinniman, #102" className="flex-1 min-h-11 bg-transparent border-0 border-b-2 border-[#1a1a1a] text-base outline-hidden" />
+              <button type="button" onClick={() => setIsSearchSheetOpen(false)} className="min-h-11 px-1 underline decoration-2 decoration-[#c93a14] underline-offset-[5px] text-base">Close</button>
+            </div>
+            <div role="list" className="mt-2">
+              {sheetResults.map((b) => (
+                <button key={b.id} type="button" role="listitem" onClick={() => { setIsSearchSheetOpen(false); setSheetQ(''); setSelectedBook(b) }} className="grid grid-cols-[52px_1fr] w-full min-h-14 items-center py-1.5 border-t border-[#d4cfc9] text-left">
+                  <span className="font-mono text-[13px] text-[#4a4a4a]">#{getBookSpineStyle(b.title, b.id).numericSpine}</span>
+                  <span className="font-serif font-semibold text-base leading-snug">{b.title}</span>
+                  <span className="col-start-2 text-sm text-[#4a4a4a]">{b.author_name || 'Author not recorded'}</span>
+                </button>
+              ))}
+              {sheetQ.trim().length >= 2 && sheetResults.length === 0 && <p className="mt-3 text-base">Nothing found for "{sheetQ.trim()}".</p>}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* =======================================================
@@ -2372,197 +2049,76 @@ export function CriterionBookCloset() {
           ======================================================= */}
       <AnimatePresence>
         {isFilterSheetOpen && (
-          <div className="fixed inset-0 z-50 flex justify-end">
-            <m.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60"
-              onClick={() => setIsFilterSheetOpen(false)}
-            />
-
-            <m.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="relative z-10 w-full max-w-sm h-full bg-[#14100D] border-l border-white/15 p-6 text-paper flex flex-col justify-between overflow-y-auto"
-            >
-              <div>
-                <div className="flex items-center justify-between pb-4 border-b border-white/10">
-                  <div>
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-400">
-                      BROWSE THE ARCHIVE
-                    </span>
-                    <h3 className="font-display text-xl font-bold text-white">
-                      Filters
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => setIsFilterSheetOpen(false)}
-                    className="w-8 h-8 rounded-[2px] bg-white/10 hover:bg-white/20 flex items-center justify-center text-sm"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {/* Meetup Facet */}
-                <div className="mt-6">
-                  <div className="flex items-center justify-between mb-2.5">
-                    <span className="text-xs font-mono uppercase tracking-wider text-paper/90">
-                      Filter by Meetup
-                    </span>
-                    {selectedMeetup !== null && (
-                      <button
-                        onClick={() => setSelectedMeetup(null)}
-                        className="text-[10px] font-mono text-paper/90 hover:underline"
-                      >
-                        Clear (M#{selectedMeetup})
-                      </button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <select
-                      aria-label="Filter by meetup"
-                      value={selectedMeetup ?? ''}
-                      onChange={(e) => setSelectedMeetup(e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-2 rounded-[2px] bg-white/10 border border-white/15 text-xs text-white focus:outline-hidden focus:border-paper cursor-pointer"
-                    >
-                      <option value="" className="bg-[#14100D] text-white">All Meetups ({availableMeetups.length})</option>
-                      {availableMeetups.map((m) => (
-                        <option key={m.number} value={m.number} className="bg-[#14100D] text-white">
-                          Meetup #{m.number} ({m.count} {m.count === 1 ? 'book' : 'books'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-2.5 max-h-24 overflow-y-auto pr-1 scrollbar-thin">
-                    {availableMeetups.slice(0, 16).map((m) => (
-                      <button
-                        key={`drawer-m-${m.number}`}
-                        onClick={() => setSelectedMeetup(selectedMeetup === m.number ? null : m.number)}
-                        className={`px-1 py-1 text-xs font-mono underline-offset-4 ${selectedMeetup === m.number ? 'text-white font-semibold underline decoration-2' : 'text-white/70 hover:text-white hover:underline'}`}
-                      >
-                        #{m.number}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Discussions Facet */}
-                <div className="mt-6">
-                  <span className="text-xs font-mono uppercase tracking-wider text-paper/90 block mb-2.5">
-                    Discussions Volume
-                  </span>
-                  <div className="space-y-1.5">
-                    {[
-                      { id: 'all', label: 'All Volumes' },
-                      { id: 'popular', label: '3+ Discussions (Community Staples)' },
-                      { id: 'two-plus', label: '2+ Discussions' },
-                      { id: 'single', label: '1 Discussion' },
-                    ].map((f) => (
-                      <button
-                        key={f.id}
-                        onClick={() => setDiscussionFilter(f.id as any)}
-                        className={`w-full text-left px-3 py-2 rounded-[2px] text-xs font-serif transition-colors ${
-                          discussionFilter === f.id
-                            ? 'bg-white/10 text-white font-bold'
-                            : 'bg-white/5 hover:bg-white/10 text-white/80'
-                        }`}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Sort Sequence Facet */}
-                <div className="mt-6">
-                  <span className="text-xs font-mono uppercase tracking-wider text-paper/90 block mb-2.5">
-                    Sort Sequence
-                  </span>
-                  <div className="space-y-1.5">
-                    {[
-                      { id: 'random', label: 'Random Order' },
-                      { id: 'latest', label: '⚡ Latest Meetups / Most Recent (Default)' },
-                      { id: 'title-asc', label: 'Title (A–Z)' },
-                      { id: 'discussions-desc', label: 'Most Discussed' },
-                      { id: 'spine-asc', label: 'Spine # (Ascending)' },
-                      { id: 'spine-desc', label: 'Spine # (Descending)' },
-                    ].map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => {
-                          setSortBy(s.id as any)
-                          if (s.id === 'random') setShuffleSeed((seed) => seed + 1)
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-[2px] text-xs font-serif transition-colors ${
-                          sortBy === s.id
-                            ? 'bg-white/10 text-white font-bold'
-                            : 'bg-white/5 hover:bg-white/10 text-white/80'
-                        }`}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Alphabet A-Z Facet */}
-                <div className="mt-6">
-                  <div className="flex items-center justify-between mb-2.5">
-                    <span className="text-xs font-mono uppercase tracking-wider text-paper/90">
-                      Alphabet Index
-                    </span>
-                    {selectedLetter && (
-                      <button
-                        onClick={() => setSelectedLetter(null)}
-                        className="text-[10px] font-mono text-paper/90 hover:underline"
-                      >
-                        Clear letter
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-7 gap-1">
-                    {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((letter) => (
-                      <button
-                        key={letter}
-                        onClick={() => setSelectedLetter(selectedLetter === letter ? null : letter)}
-                        className={`py-1.5 rounded text-xs font-mono font-bold transition-colors ${
-                          selectedLetter === letter
-                            ? 'bg-paper text-black'
-                            : 'bg-white/5 hover:bg-white/15 text-white/80'
-                        }`}
-                      >
-                        {letter}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+          <div className="fixed inset-0 z-50 flex items-end" role="dialog" aria-modal="true" aria-label="Filters">
+            <div className="fixed inset-0 bg-black/45" onClick={() => setIsFilterSheetOpen(false)} />
+            <div className="relative w-full max-h-[88dvh] overflow-auto bg-[#faf8f5] text-[#1a1a1a] border-t-2 border-[#1a1a1a] p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="m-0 font-serif text-2xl font-semibold">Filters</h3>
+                <button type="button" onClick={() => setIsFilterSheetOpen(false)} className="min-h-11 px-1 underline decoration-2 decoration-[#c93a14] underline-offset-[5px] text-base">Close</button>
               </div>
 
-              {/* Sheet Actions */}
-              <div className="pt-6 border-t border-white/10 flex items-center justify-between">
-                <button
-                  onClick={() => {
-                    setDiscussionFilter('all')
-                    setSelectedLetter(null)
-                    setSelectedMeetup(null)
-                    setSearchQuery('')
-                    setSortBy('latest')
-                  }}
-                  className="text-xs font-mono text-neutral-400 hover:text-white"
-                >
-                  Reset all
-                </button>
-                <button
-                  onClick={() => setIsFilterSheetOpen(false)}
-                  className="px-5 py-2 rounded-[2px] bg-white text-black text-xs font-semibold uppercase tracking-wider hover:bg-paper-dark"
-                >
-                  Show {filteredBooks.length} Volumes
-                </button>
+              <fieldset className="mt-3 border-0 p-0">
+                <legend className="text-sm font-semibold uppercase tracking-wider text-[#4a4a4a]">Meetup</legend>
+                <label htmlFor="f-meetup" className="sr-only">Filter by meetup</label>
+                <select id="f-meetup" value={selectedMeetup ?? ''} onChange={(e) => setSelectedMeetup(e.target.value ? Number(e.target.value) : null)} className="mt-1 w-full min-h-11 bg-transparent border-0 border-b-2 border-[#1a1a1a] text-base rounded-none">
+                  <option value="">All meetups ({availableMeetups.length})</option>
+                  {availableMeetups.map((mt) => (
+                    <option key={mt.number} value={mt.number}>Meetup #{mt.number} ({mt.count} {mt.count === 1 ? 'book' : 'books'})</option>
+                  ))}
+                </select>
+                <div className="mt-1 flex flex-wrap">
+                  {availableMeetups.slice(0, 16).map((mt) => (
+                    <button key={`fm-${mt.number}`} type="button" aria-pressed={selectedMeetup === mt.number} onClick={() => setSelectedMeetup(selectedMeetup === mt.number ? null : mt.number)} className={`min-h-11 min-w-11 px-2 text-base ${selectedMeetup === mt.number ? 'font-semibold underline decoration-2 decoration-[#c93a14] underline-offset-[7px]' : 'text-[#4a4a4a]'}`}>#{mt.number}</button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <fieldset className="mt-3 border-0 p-0">
+                <legend className="text-sm font-semibold uppercase tracking-wider text-[#4a4a4a]">Discussions</legend>
+                {[
+                  { id: 'all', label: 'All books' },
+                  { id: 'popular', label: '3 or more discussions' },
+                  { id: 'two-plus', label: '2 or more discussions' },
+                  { id: 'single', label: 'Discussed once' },
+                ].map((f) => (
+                  <label key={f.id} className="flex items-center gap-3 min-h-11 text-base">
+                    <input type="radio" name="f-disc" checked={discussionFilter === f.id} onChange={() => setDiscussionFilter(f.id as any)} className="w-[22px] h-[22px] accent-[#c93a14] m-0" />
+                    {f.label}
+                  </label>
+                ))}
+              </fieldset>
+
+              <fieldset className="mt-3 border-0 p-0">
+                <legend className="text-sm font-semibold uppercase tracking-wider text-[#4a4a4a]">Sort</legend>
+                {[
+                  { id: 'latest', label: 'Latest meetup first' },
+                  { id: 'title-asc', label: 'Title A to Z' },
+                  { id: 'discussions-desc', label: 'Most discussed' },
+                  { id: 'spine-asc', label: 'Spine number, low to high' },
+                  { id: 'spine-desc', label: 'Spine number, high to low' },
+                  { id: 'random', label: 'Random order' },
+                ].map((o) => (
+                  <label key={o.id} className="flex items-center gap-3 min-h-11 text-base">
+                    <input type="radio" name="f-sort" checked={sortBy === o.id} onChange={() => { setSortBy(o.id as any); if (o.id === 'random') setShuffleSeed((seed) => seed + 1) }} className="w-[22px] h-[22px] accent-[#c93a14] m-0" />
+                    {o.label}
+                  </label>
+                ))}
+              </fieldset>
+
+              <fieldset className="mt-3 border-0 p-0">
+                <legend className="text-sm font-semibold uppercase tracking-wider text-[#4a4a4a]">Starts with</legend>
+                <div className="grid grid-cols-7">
+                  {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((letter) => (
+                    <button key={letter} type="button" aria-pressed={selectedLetter === letter} onClick={() => setSelectedLetter(selectedLetter === letter ? null : letter)} className={`min-h-11 text-base ${selectedLetter === letter ? 'font-semibold underline decoration-2 decoration-[#c93a14] underline-offset-[7px]' : 'text-[#4a4a4a]'}`}>{letter}</button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div className="mt-4 flex items-center gap-3">
+                <button type="button" onClick={() => { setDiscussionFilter('all'); setSelectedLetter(null); setSelectedMeetup(null); setSearchQuery(''); setSortBy('latest') }} className="min-h-11 px-1 underline decoration-2 decoration-[#c93a14] underline-offset-[5px] text-base">Reset all</button>
+                <button type="button" onClick={() => setIsFilterSheetOpen(false)} className="flex-1 min-h-12 px-4 bg-[#1a1a1a] text-[#faf8f5] font-semibold text-base shadow-[3px_3px_0_0_#f15534]">Show {filteredBooks.length.toLocaleString('en-IN')} books</button>
               </div>
-            </m.div>
+            </div>
           </div>
         )}
       </AnimatePresence>
@@ -2574,27 +2130,15 @@ export function CriterionBookCloset() {
           ======================================================= */}
       <AnimatePresence>
         {selectedBook && (
-          viewMode === 'list' ? (
-            <CriterionListDetailModal
-              book={fullSelectedBook ?? selectedBook}
-              allBooks={filteredBooks}
-              userPicks={userPicks}
-              onTogglePick={handleTogglePick}
-              onClose={() => setSelectedBook(null)}
-              onSelectBook={(b) => setSelectedBook(b)}
-              onShowToast={showToast}
-            />
-          ) : (
-            <CriterionDetailModal
-              book={fullSelectedBook ?? selectedBook}
-              allBooks={filteredBooks}
-              userPicks={userPicks}
-              onTogglePick={handleTogglePick}
-              onClose={() => setSelectedBook(null)}
-              onSelectBook={(b) => setSelectedBook(b)}
-              onShowToast={showToast}
-            />
-          )
+          <CriterionListDetailModal
+            book={fullSelectedBook ?? selectedBook}
+            allBooks={filteredBooks}
+            userPicks={userPicks}
+            onTogglePick={handleTogglePick}
+            onClose={() => setSelectedBook(null)}
+            onSelectBook={(b) => setSelectedBook(b)}
+            onShowToast={showToast}
+          />
         )}
       </AnimatePresence>
 

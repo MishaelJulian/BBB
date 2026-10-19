@@ -46,3 +46,16 @@
 .club ol.tl h2{position:relative;margin:0}
 .club ol.tl h2::before{content:"";position:absolute;left:-12.5px;top:11px;width:9px;height:9px;border-radius:50%;background:var(--ink)}
 .club ol.tl li.cur h2::before{background:var(--accent)}
+/* 404 */
+@font-face{font-family:"Pinyon Script";src:url(/ui/fonts/pinyon-script-latin-400-normal.woff2) format("woff2");font-display:swap}
+@font-face{font-family:"Newsreader Var";src:url(/ui/fonts/newsreader-latin-wght.woff2) format("woff2");font-weight:200 800;font-display:swap}
+.club #wp{position:absolute;left:0;top:0;width:100%;height:100%;z-index:-2;image-rendering:pixelated;image-rendering:crisp-edges;pointer-events:none;opacity:.55}
+.club .stage{position:relative;overflow-x:clip;min-height:calc(100svh - var(--bar) - var(--tab));display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 24px 40px;isolation:isolate}
+.club .err{margin:0;font:400 min(17.7vw,84px)/1.05 "Pinyon Script",Georgia,serif;color:var(--ink);white-space:nowrap}
+.club .stage .q{margin:20px 0 0;max-width:300px;font:600 21px/29px "Newsreader Var",Georgia,serif;color:var(--ink)}
+.club .stage .by{margin:8px 0 0;font:400 14px/21px var(--sans);color:#3a3a3a}
+.club .homelogo{display:inline-flex;align-items:center;justify-content:center;min-width:72px;min-height:72px;margin-top:44px;color:var(--ink)}
+.club .homelogo .px{width:56px;height:56px}
+.club .homelogo:focus-visible{outline:3px solid var(--ink);outline-offset:4px}
+.club .stage .more{display:flex;flex-wrap:wrap;justify-content:center;gap:0 20px;margin-top:8px}
+.club .reveal.r404{padding-bottom:0}
