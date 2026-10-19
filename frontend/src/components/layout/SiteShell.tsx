@@ -8,7 +8,7 @@ import { CommandPalette } from '@/components/search/CommandPalette'
 
 // The club pages bring their own shell (top bar, tab bar, footer: components/club/ClubPage). Only the pages that have not been
 // ported yet keep the old navigation and footer.
-const LEGACY = ['/admin', '/books', '/authors']
+const LEGACY: string[] = [] // all former legacy paths now use the club shell
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()

@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import { fetchBook, fetchBooks, getPersistentData, setPersistentData, type Book } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { CriterionListDetailModal } from './CriterionListDetailModal'
-import { getSession } from '@/lib/auth'
+import { authFetch, getSession } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import { useMe } from '@/components/club/useMe'
 // mockup: the agreed header, search sheet, list grid and one merged book view
@@ -1116,19 +1116,16 @@ export function CriterionBookCloset() {
     window.history.replaceState(null, '', mode === 'list' ? '#list' : '#shelves')
   }
 
-  // Load user picks
+  // Picks live in the database (member_picks), shared across the club. Members and admins with a linked record load theirs.
+  const picksOk = me.state === 'member' || me.state === 'admin'
+  const applyPicks = (j: any) =>
+    setUserPicks(((j?.picks ?? []) as any[]).map((x) => ({ ...x, id: x.book_id, title: x.title, author_name: x.author_name })))
   React.useEffect(() => {
-    try {
-      const saved = localStorage.getItem('bbb_picks')
-      if (saved) setUserPicks((JSON.parse(saved) as any[]).filter((x) => x && x.id).map((x) => ({ ...x, title: x.title ?? x.t, author_name: x.author_name ?? x.a })))
-    } catch {}
-  }, [])
-
-  React.useEffect(() => {
-    try {
-      localStorage.setItem('bbb_picks', JSON.stringify(userPicks))
-    } catch {}
-  }, [userPicks])
+    if (!picksOk) { setUserPicks([]); return }
+    let dead = false
+    void authFetch('/api/me/picks').then(async (r) => { if (r.ok && !dead) applyPicks(await r.json()) }).catch(() => {})
+    return () => { dead = true }
+  }, [picksOk])
 
   // Load cached books immediately on mount for 0ms instant display!
   React.useEffect(() => {
@@ -1287,12 +1284,12 @@ export function CriterionBookCloset() {
     setTimeout(() => setToastMessage(null), 2500)
   }
 
-  const logPick = (what: string, b: any, tag?: string) => {
-    try {
-      const l = JSON.parse(localStorage.getItem('bbb_pick_log') || '[]')
-      l.unshift({ d: new Date().toISOString().slice(0, 10), who: me.name ?? 'Member', what, t: b.title ?? b.t, tag: tag || '' })
-      localStorage.setItem('bbb_pick_log', JSON.stringify(l.slice(0, 100)))
-    } catch {}
+  const sendPick = async (method: 'POST' | 'DELETE', body: Record<string, unknown>) => {
+    const r = await authFetch('/api/me/picks', { method, body: JSON.stringify(body) })
+    const j = await r.json().catch(() => null)
+    if (r.ok) { applyPicks(j); return true }
+    showToast(j?.detail || j?.error?.message || 'Could not save your picks.')
+    return false
   }
 
   const handleTogglePick = (book: Book) => {
@@ -1300,9 +1297,7 @@ export function CriterionBookCloset() {
     if (me.state === 'out') { router.push('/login'); return }
     if (me.state === 'new') { router.push('/me'); return }
     if (userPicks.some((b) => b.id === book.id)) {
-      logPick('removed', book)
-      setUserPicks((prev) => prev.filter((b) => b.id !== book.id))
-      showToast('Removed "' + book.title + '" from your picks')
+      void sendPick('DELETE', { book_id: book.id }).then((ok) => ok && showToast('Removed "' + book.title + '" from your picks'))
       return
     }
     setPickTag('Favourite')
@@ -1312,22 +1307,16 @@ export function CriterionBookCloset() {
 
   const confirmPick = () => {
     if (!pendingPick) return
-    const b: any = pendingPick
-    const entry = { id: b.id, title: b.title, author_name: b.author_name, cover_url: b.cover_url, thumbnail_url: b.thumbnail_url, t: b.title, a: b.author_name || '', tag: pickTag, d: new Date().toISOString().slice(0, 10) } as any
-    if (userPicks.length >= 4) {
-      const old = userPicks.find((x) => x.id === replaceId)
-      if (old) logPick('removed', old)
-    }
-    logPick('added', b, pickTag)
-    setUserPicks((prev) => [...(prev.length >= 4 ? prev.filter((x) => x.id !== replaceId) : prev), entry])
-    showToast('Added "' + b.title + '" to your picks')
-    setPendingPick(null)
+    const b = pendingPick
+    const body: Record<string, unknown> = { book_id: b.id, tag: pickTag }
+    if (userPicks.length >= 4) body.replace_book_id = replaceId
+    void sendPick('POST', body).then((ok) => {
+      if (ok) { showToast('Added "' + b.title + '" to your picks'); setPendingPick(null) }
+    })
   }
 
   const handleRemovePick = (bookId: string) => {
-    const old = userPicks.find((b) => b.id === bookId)
-    if (old) logPick('removed', old)
-    setUserPicks((prev) => prev.filter((b) => b.id !== bookId))
+    void sendPick('DELETE', { book_id: bookId })
   }
 
   const handleRandomPick = () => {

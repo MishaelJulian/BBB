@@ -27,7 +27,7 @@ function rng(s: number) {
  * The 404 wallpaper: a pixel tree in bloom and a bookshelf drawn by code on a coarse grid; petals drift from the crown
  * and pile up along the page's end, books slide and lean. Same scene and constants the founder approved in the mockup.
  */
-function useScene(ref: React.RefObject<HTMLCanvasElement | null>) {
+export function useScene(ref: React.RefObject<HTMLCanvasElement | null>) {
   React.useEffect(() => {
     const cv = ref.current
     const st = cv?.parentElement

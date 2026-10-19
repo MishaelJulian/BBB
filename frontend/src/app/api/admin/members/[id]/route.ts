@@ -1,6 +1,7 @@
 import { adminRoute } from '@/lib/handlers'
-import { deleteMember } from '@/lib/ops'
+import { removeMemberFull } from '@/lib/admin/members'
 
 export const dynamic = 'force-dynamic'
 
-export const DELETE = adminRoute<{ id: string }>((tx, who, p) => deleteMember(tx, who, decodeURIComponent(p.id)), { body: false })
+// Remove a member: the archive row (as before) plus a 7-day copy of their attendance, status and code, so a restore loses nothing.
+export const DELETE = adminRoute<{ id: string }>((tx, who, p) => removeMemberFull(tx, who, decodeURIComponent(p.id)), { body: false })

@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { FloatPair } from './FloatPair'
 import { authFetch } from '@/lib/auth'
 
 interface Entry { id: string; meetup_number: number; date: string | null; title: string; author: string | null; notes: string | null }
@@ -86,9 +87,9 @@ export function MeEntries() {
       ))}
       {data.entries.length === 0 && <p className="body">No entries yet.</p>}
       {msg && !sheet.current?.open && <p className="notice err" role="alert">{msg}</p>}
-      <div className="fpair right">
+      <FloatPair>
         <button className="btn" type="button" onClick={() => { setMsg(''); sheet.current?.showModal() }}><span>+ Add a book</span><span aria-hidden="true">&rsaquo;</span></button>
-      </div>
+      </FloatPair>
       {undo && (
         <div className="undo" role="status">
           <span>Entry removed.</span>

@@ -2,12 +2,14 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { authFetch, changePassword, signOut } from '@/lib/auth'
 import { PasswordField } from './AuthForm'
 import { refreshMe, useMe } from './useMe'
 
-type Screen = 'list' | 'email' | 'profile' | 'password' | 'record' | 'privacy'
+type Screen = 'list' | 'email' | 'profile' | 'password' | 'record' | 'privacy' | 'download' | 'delete' | 'deleted'
+const SCREENS = ['list', 'email', 'profile', 'password', 'record', 'privacy', 'download', 'delete', 'deleted']
+const REASONS = ['I do not use it', 'I have another account', 'I am worried about my privacy', 'I am leaving the club', 'Something else']
 const MAIL = 'brokebibliophilesbangalore@gmail.com'
 
 function Row({ s, t1, t2 }: { s: Screen; t1: string; t2?: string }) {
@@ -30,17 +32,24 @@ export function AccountScreens() {
   const [msg, setMsg] = React.useState<{ ok: boolean; t: string } | null>(null)
   const [busy, setBusy] = React.useState(false)
   const [rec, setRec] = React.useState<{ name: string; code: string | null } | null>(null)
+  const [reason, setReason] = React.useState('')
+  const [sure, setSure] = React.useState(false)
+  const [dpw, setDpw] = React.useState('')
 
+  // The screen follows the address (?s=...), so links between screens work without a reload.
+  const sp = useSearchParams()
+  const want = sp.get('s') || 'list'
   React.useEffect(() => {
-    const v = (new URLSearchParams(window.location.search).get('s') || 'list') as Screen
-    setS(['list', 'email', 'profile', 'password', 'record', 'privacy'].includes(v) ? v : 'list')
-  }, [])
+    setS((SCREENS.includes(want) ? want : 'list') as Screen)
+    setMsg(null)
+  }, [want])
   React.useEffect(() => {
     if (me.state !== 'member' && me.state !== 'admin') return
     void authFetch('/api/me').then(async (r) => { if (r.ok) { const j = await r.json(); setBio(j.member?.bio ?? ''); setBioLoaded(true) } })
     void authFetch('/api/me/card').then(async (r) => { if (r.ok) { const j = await r.json(); setRec({ name: j.name, code: j.code }) } })
   }, [me.state])
 
+  if (s === 'deleted') return <AccountDeleted />
   if (me.state === 'loading') return <p className="body">One moment...</p>
   if (me.state === 'out')
     return (
@@ -67,7 +76,7 @@ export function AccountScreens() {
         <p className="grp">Your record</p>
         <div><Row s="profile" t1="Profile" t2={linked && rec ? rec.name : 'No record linked'} /><Row s="record" t1="Linked record" t2={linked && rec?.code ? rec.code : 'Link a record'} /></div>
         <p className="grp">Your data</p>
-        <div><Row s="privacy" t1="Privacy and requests" t2="Your rights and how to use them" /></div>
+        <div><Row s="privacy" t1="Privacy and requests" t2="Your rights and how to use them" /><Row s="download" t1="Download my data" t2="A copy of what the club holds about you" /><Row s="delete" t1="Delete account" t2="Erase your bio, wishlist and picks" /></div>
         <p className="grp">Session</p>
         <button
           className="rowl"
@@ -176,6 +185,98 @@ export function AccountScreens() {
         )}
       </>
     )
+  if (s === 'download')
+    return (
+      <>
+        {back}
+        <h1 className="h1">Download my data</h1>
+        <p className="body" style={{ marginTop: 8 }}>A single file with your sign-in email, bio, linked record, entries, meetups attended, wishlist and picks.</p>
+        {note}
+        <div className="foot2">
+          <button
+            className="btn"
+            type="button"
+            disabled={busy}
+            style={{ width: '100%' }}
+            onClick={async () => {
+              setBusy(true)
+              setMsg(null)
+              try {
+                const r = await authFetch('/api/me/export')
+                if (!r.ok) throw new Error()
+                const url = URL.createObjectURL(await r.blob())
+                const a = document.createElement('a')
+                a.href = url
+                a.download = 'bbb-my-data.json'
+                a.click()
+                URL.revokeObjectURL(url)
+                setMsg({ ok: true, t: 'Your file has been downloaded.' })
+              } catch {
+                setMsg({ ok: false, t: 'Could not make the file. Try again in a minute.' })
+              }
+              setBusy(false)
+            }}
+          >
+            <span>{busy ? 'Preparing...' : 'Download my data'}</span><span aria-hidden="true">&rsaquo;</span>
+          </button>
+        </div>
+      </>
+    )
+  if (s === 'delete')
+    return (
+      <>
+        {back}
+        <h1 className="h1">Delete account</h1>
+        {me.role === 'admin' ? (
+          <p className="body" style={{ marginTop: 8 }}>An admin account cannot be deleted here. Ask the club to remove the admin role first.</p>
+        ) : (
+          <>
+            <fieldset className="tagset" style={{ marginTop: 12 }}>
+              <legend className="cap">Why are you leaving? (optional)</legend>
+              {REASONS.map((t) => (
+                <label className="opt" key={t}><input type="radio" name="why" checked={reason === t} onChange={() => setReason(t)} /> {t}</label>
+              ))}
+            </fieldset>
+            <p className="notice err" style={{ marginTop: 16, whiteSpace: "normal" }}>
+              <b>This is permanent.</b> Your sign-in is removed and your bio, wishlist and Closet Picks are erased. {linked ? 'The club keeps the meetups you attended and the books you brought, under your name. An admin can anonymise them if you ask.' : ''}
+            </p>
+            <label className="consent">
+              <input type="checkbox" checked={sure} onChange={(e) => setSure(e.target.checked)} />
+              <span>I understand this cannot be undone.</span>
+            </label>
+            <PasswordField id="dp" label="Your password" value={dpw} onChange={setDpw} auto="current-password" />
+            {note}
+            <div className="foot2">
+              <button
+                className="btn"
+                type="button"
+                disabled={busy || !sure || !dpw}
+                style={{ width: '100%' }}
+                onClick={async () => {
+                  setBusy(true)
+                  setMsg(null)
+                  const r = await authFetch('/api/me/delete', { method: 'POST', body: JSON.stringify({ password: dpw, reason: reason || undefined }) })
+                  const j = await r.json().catch(() => null)
+                  if (!r.ok) {
+                    setMsg({ ok: false, t: j?.detail || j?.error?.message || 'Could not delete the account.' })
+                    setBusy(false)
+                    return
+                  }
+                  setDpw('')
+                  await signOut().catch(() => {})
+                  await refreshMe()
+                  router.replace('/account?s=deleted')
+                  setS('deleted')
+                  setBusy(false)
+                }}
+              >
+                <span>{busy ? 'Deleting...' : 'Delete my account'}</span><span aria-hidden="true">&rsaquo;</span>
+              </button>
+            </div>
+          </>
+        )}
+      </>
+    )
   return (
     <>
       {back}
@@ -183,6 +284,17 @@ export function AccountScreens() {
       <p className="body" style={{ marginTop: 8 }}>Under India&apos;s data protection law you can ask us to show you what we hold, correct or update it, erase it, or let someone you name act for you. You can also withdraw your consent at any time.</p>
       <p className="body" style={{ marginTop: 12 }}>Write to <a className="link" href={`mailto:${MAIL}`}>{MAIL}</a> with your sign-in email. We answer within 90 days. The same address takes complaints.</p>
       <p style={{ marginTop: 12 }}><Link className="link" href="/privacy">Read the Privacy notice</Link></p>
+    </>
+  )
+}
+
+function AccountDeleted() {
+  return (
+    <>
+      <h1 className="h1">Account deleted</h1>
+      <p className="body" style={{ marginTop: 12 }}>Your sign-in is gone, and your bio, wishlist and picks are erased. The club keeps its meetup history under your name; to have that anonymised, write to <a className="link" href={`mailto:${MAIL}`}>{MAIL}</a>.</p>
+      <div className="sp24" />
+      <Link className="btn" href="/"><span>Back to Home</span><span aria-hidden="true">&rsaquo;</span></Link>
     </>
   )
 }

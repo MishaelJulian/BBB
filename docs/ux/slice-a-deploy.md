@@ -28,3 +28,6 @@ Book page, author page and the old admin page keep their old look (the book view
 | /meetups | 54 / 4,250 ms / 89 | 62 / 910 ms / 98 |
 | /library-room | 51 / 5,840 ms / 96 | 47 / 2,650 ms / 96 |
 Other new pages: Home 49 (TBT 2,190 ms, CLS 0.074), meetup #99 51, directory 53. Lab numbers on a fast machine with simulated slowdown; single runs vary by about 7 points. Real Android timings still to be taken after the deploy.
+
+## Desktop notice (added after the first deploy)
+On a screen 900 px or wider with a mouse (hover and fine pointer), the app is hidden and a notice in the 404's pixel-scene style shows: "The site is not meant for desktop use. Please open it in your browser on any mobile device and continue your exploration for the time being." (the founder's words, with "Mean" corrected to "meant"). Touch devices of any size (tablets) and narrow desktop windows keep the app. A developer can add `?desktop=1` to any address to see the app anyway (kept for the browser session). Files: `components/club/DesktopNotice.tsx`, `styles/desktop-gate.css`, the wrapper in `app/layout.tsx`. Playwright or Lighthouse runs at desktop size will see the notice unless they use the bypass.

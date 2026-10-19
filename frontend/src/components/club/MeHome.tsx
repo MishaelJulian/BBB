@@ -140,7 +140,8 @@ export function MeHome() {
       {(me.state === 'member' || card) && (
         <>
           <Link className="rowl" href="/me/entries"><span><span className="t1">Entries</span><span className="t2">Books you brought</span></span><span className="go" aria-hidden="true">&rsaquo;</span></Link>
-          <Link className="rowl" href="/me/picks"><span><span className="t1">Closet Picks</span><span className="t2">Your four from the Library</span></span><span className="go" aria-hidden="true">&rsaquo;</span></Link>
+          <Link className="rowl" href="/me/wishlist"><span><span className="t1">Wishlist</span><span className="t2">Books you want to read</span></span><span className="go" aria-hidden="true">&rsaquo;</span></Link>
+          <Link className="rowl" href="/me/picks"><span><span className="t1">Closet Picks</span><span className="t2">Up to four from the Library</span></span><span className="go" aria-hidden="true">&rsaquo;</span></Link>
         </>
       )}
       <Link className="rowl" href="/account"><span><span className="t1">Profile and account</span><span className="t2">Name, bio, password</span></span><span className="go" aria-hidden="true">&rsaquo;</span></Link>

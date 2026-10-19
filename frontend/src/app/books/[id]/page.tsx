@@ -1,268 +1,85 @@
-'use client'
-
-import * as React from 'react'
-import { notFound, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Container } from '@/components/layout/Container'
-import { Section } from '@/components/layout/Section'
-import { Divider } from '@/components/ui/Divider'
-import { LoadingState } from '@/components/shared/LoadingState'
-import { ErrorState } from '@/components/shared/ErrorState'
-import { fetchBook } from '@/lib/api'
-import { getBookColor, formatDate } from '@/lib/utils'
-import type { Book } from '@/lib/api'
+import { notFound } from 'next/navigation'
+import { ClubPage } from '@/components/club/ClubPage'
+import { BookPickControl } from '@/components/club/BookPickControl'
+import { ReadMore } from '@/components/club/ReadMore'
+import { sql } from '@/lib/db'
+import { BookRow, bookSelect, booksToDicts } from '@/lib/archive'
 
-export default function BookPage() {
-  const params = useParams()
-  const [book, setBook] = React.useState<Book | null>(null)
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
+export const revalidate = 60
 
-  React.useEffect(() => {
-    async function fetchBookData() {
-      try {
-        setLoading(true)
-        setError(null)
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const fd = (d: string) => {
+  const t = new Date(d.slice(0, 10) + 'T00:00:00')
+  return `${t.getDate()} ${MON[t.getMonth()]} ${t.getFullYear()}`
+}
 
-        const data = await fetchBook(params.id as string)
-        setBook(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
-      }
-    }
+async function load(id: string) {
+  const [row] = await sql()<BookRow[]>`${bookSelect()} where b.id = ${id}`.catch(() => [] as BookRow[])
+  return row ? (await booksToDicts([row]))[0] : null
+}
 
-    fetchBookData()
-  }, [params.id])
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const b = await load((await params).id)
+  return { title: b ? `${b.title} - BBB` : 'Book not found - BBB' }
+}
 
-  if (loading) {
-    return (
-      <Section>
-        <Container size="narrow">
-          <LoadingState count={3} />
-        </Container>
-      </Section>
-    )
-  }
-
-  if (error) {
-    return (
-      <Section>
-        <Container size="narrow">
-          <ErrorState
-            message={error}
-            onRetry={() => window.location.reload()}
-          />
-        </Container>
-      </Section>
-    )
-  }
-
-  if (!book) {
-    notFound()
-  }
-
-  const coverColor = getBookColor(book.title)
-
+export default async function BookPage({ params }: { params: Promise<{ id: string }> }) {
+  const b = await load((await params).id)
+  if (!b) notFound()
+  const cover = b.cover_url && !b.cover_url.includes('nophoto') ? b.cover_url : b.thumbnail_url
+  const ms = [...b.meetups].sort((x, y) => (y.number ?? 0) - (x.number ?? 0))
+  const latest = ms[0]?.number
   return (
-    <>
-      {/* Hero Section */}
-      <Section size="lg">
-        <Container size="narrow">
-          {/* Breadcrumb */}
-          <nav className="mb-8 text-sm text-muted">
-            <Link href="/library-room" className="hover:text-ink transition-colors">
-              The Library Room
-            </Link>
-            <span className="mx-2">/</span>
-            <span className="text-ink">{book.title}</span>
-          </nav>
-
-          <div className="flex flex-col md:flex-row gap-8 md:gap-12">
-            {/* Book Cover */}
-            <div className="w-full md:w-64 shrink-0">
-              <div
-                className="aspect-2/3 overflow-hidden relative border border-border/80 bg-neutral-900"
-                style={{ backgroundColor: coverColor }}
-              >
-                {book.cover_url || book.thumbnail_url ? (
-                  <img
-                    src={book.cover_url || book.thumbnail_url || ''}
-                    alt={book.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                ) : null}
-
-                {/* Cloth texture fallback */}
-                <div
-                  className={`absolute inset-0 ${
-                    book.cover_url || book.thumbnail_url ? '-z-10' : 'z-0'
-                  }`}
-                  style={{ backgroundColor: coverColor }}
-                >
-                  <div
-                    className="absolute inset-0 opacity-15"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3h1v1H1V3zm2-2h1v1H3V1z' fill='%23000000' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-                    }}
-                  />
-                  <div className="absolute inset-0 flex flex-col items-center justify-between p-6 text-center">
-                    <div className="w-12 h-px bg-white/30" />
-                    <div className="flex-1 flex flex-col items-center justify-center">
-                      <h1 className="font-display font-bold text-xl md:text-2xl text-white leading-tight mb-2">
-                        {book.title}
-                      </h1>
-                      {book.author_name && (
-                        <p className="text-sm text-white/70 tracking-wider uppercase">
-                          {book.author_name}
-                        </p>
-                      )}
-                    </div>
-                    <div className="w-12 h-px bg-white/30" />
-                  </div>
-                  <div className="absolute top-0 left-0 right-0 h-px bg-white/10" />
-                  <div className="absolute bottom-0 left-0 right-0 h-px bg-black/20" />
-                </div>
-              </div>
-            </div>
-
-            {/* Book Info */}
-            <div className="flex-1">
-              <h1 className="font-display text-3xl md:text-4xl font-bold text-ink mb-2">
-                {book.title}
-              </h1>
-              {book.author_name && (
-                <p className="text-xl text-muted mb-4">
-                  by{' '}
-                  {book.author_id ? (
-                    <Link
-                      href={`/authors/${book.author_id}`}
-                      className="text-ink hover:text-amber-900 underline decoration-border hover:decoration-amber-900 transition-colors"
-                    >
-                      {book.author_name}
-                    </Link>
-                  ) : (
-                    book.author_name
-                  )}
-                </p>
-              )}
-
-              <p className="mb-6 text-base text-muted">
-                {book.discussion_count} {book.discussion_count === 1 ? 'discussion' : 'discussions'}
-                {book.first_discussed_date ? ` · first discussed ${formatDate(book.first_discussed_date)}` : ''}
-                {book.last_discussed_date ? ` · last mentioned ${formatDate(book.last_discussed_date)}` : ''}
-              </p>
-              {/* Spatial 3D Shelf Action */}
-              <div className="mb-6">
-                <Link
-                  href={`/library-room?select=${book.id}`}
-                  className="inline-block bg-ink text-paper text-base font-semibold px-5 py-3 rounded-[2px] shadow-[3px_3px_0_0_var(--color-accent)] transition-[transform,box-shadow] hover:translate-x-px hover:translate-y-px hover:shadow-[2px_2px_0_0_var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
-                >
-                  Find this book on the shelf
-                </Link>
-              </div>
-
-              {/* Synopsis placeholder */}
-              <div className="prose prose-ink max-w-none">
-                <p className="text-muted italic">
-                  Synopsis will be added from external sources in a future update.
-                </p>
-              </div>
-            </div>
-          </div>
-        </Container>
-      </Section>
-
-      <Divider />
-
-      {/* BBB History */}
-      <Section>
-        <Container size="narrow">
-          <h2 className="font-display text-2xl font-bold text-ink mb-6">
-            BBB History
-          </h2>
-
-          <p className="text-lg text-ink-light mb-8">
-            {book.discussion_count} {book.discussion_count === 1 ? 'discussion' : 'discussions'} across {book.meetups.length}{' '}
-            {book.meetups.length === 1 ? 'meetup' : 'meetups'}, with {book.members.length} {book.members.length === 1 ? 'reader' : 'readers'}.
+    <ClubPage kind="crumb" crumbs={[{ href: '/library-room', label: 'Library' }, { label: b.title }]} tab="lib">
+      <div className="sp24" />
+      <div className="bkhead">
+        {cover ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="cv" src={cover} alt="" referrerPolicy="no-referrer" />
+        ) : (
+          <span className="nocover" aria-hidden="true" />
+        )}
+        <div>
+          <h1 className="h2" style={{ fontSize: 28, lineHeight: '34px' }}>{b.title}</h1>
+          <p className="body" style={{ color: 'var(--muted)' }}>
+            {b.author_id && b.author_name ? <Link className="red" href={`/authors/${b.author_id}`}>{b.author_name}</Link> : b.author_name || 'Author not recorded'}
           </p>
-        </Container>
-      </Section>
-
-      <Divider />
-
-      {/* Discussion Timeline */}
-      <Section>
-        <Container size="narrow">
-          <h2 className="font-display text-2xl font-bold text-ink mb-6">
-            Discussion Timeline
-          </h2>
-
-          <div className="space-y-4">
-            {book.meetups.map((meetup) => (
-              <Link
-                key={meetup.id}
-                href={`/meetups/${meetup.number}`}
-                className="flex items-center gap-4 py-4 border-b border-border hover:bg-paper-dark/60 -mx-2 px-2 group"
-              >
-                <div className="w-16 text-center">
-                  <div className="font-display font-bold text-ink group-hover:text-accent">
-                    #{meetup.number}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm text-muted">
-                    {formatDate(meetup.date)}
-                  </div>
-                  <div className="text-sm text-muted-light">
-                    {meetup.venue}
-                  </div>
-                </div>
-                <svg
-                  className="h-4 w-4 text-muted-light group-hover:text-accent transition-colors"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
+          {b.series_title && <p className="cap">{b.series_title}{b.series_position != null ? ` #${b.series_position}` : ''}</p>}
+        </div>
+      </div>
+      <p className="cap" style={{ marginTop: 14 }}>
+        {b.discussion_count
+          ? `Discussed ${b.discussion_count === 1 ? 'once' : `${b.discussion_count} times`}${latest ? `, latest at #${latest}` : ''}${b.first_discussed_date ? ` · first on ${fd(b.first_discussed_date)}` : ''}`
+          : 'Not discussed at a meetup yet'}
+      </p>
+      <BookPickControl bookId={b.id} title={b.title} />
+      {b.description ? <ReadMore text={b.description} /> : <p className="cap" style={{ marginTop: 14 }}>No synopsis on record.</p>}
+      <p style={{ marginTop: 12 }}><Link className="link" href={`/library-room?select=${b.id}`}>Find this book on the shelf</Link></p>
+      {ms.length > 0 && (
+        <>
+          <h2 className="sech">Discussed at <small>({ms.length})</small></h2>
+          <div>
+            {ms.map((m) => (
+              <Link key={m.id} className="mrow" href={`/meetups/${m.number}`}>
+                <span><b>#{m.number}</b><br />{m.date ? fd(m.date) : ''}{m.venue ? ` · ${m.venue}` : ''}</span>
+                <i aria-hidden="true">&rsaquo;</i>
               </Link>
             ))}
           </div>
-        </Container>
-      </Section>
-
-      <Divider />
-
-      {/* Readers */}
-      <Section>
-        <Container size="narrow">
-          <h2 className="font-display text-2xl font-bold text-ink mb-6">
-            Readers & Discussants
-          </h2>
-
-          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-base">
-            {book.members.map((member) => (
-              <li key={member.id}>
-                <Link
-                  href={`/members/${member.id}`}
-                  className="text-ink underline decoration-border-dark underline-offset-4 hover:decoration-accent hover:text-accent"
-                >
-                  {member.display_name}
-                </Link>
-              </li>
+        </>
+      )}
+      {b.members.length > 0 && (
+        <>
+          <h2 className="sech">Readers <small>({b.members.length})</small></h2>
+          <div className="names">
+            {b.members.map((m) => (
+              <Link key={m.id} href={`/members/${m.id}`}>{m.display_name}</Link>
             ))}
-          </ul>
-        </Container>
-      </Section>
-    </>
+          </div>
+        </>
+      )}
+      <div className="pad" />
+    </ClubPage>
   )
 }

@@ -1,0 +1,12 @@
+/* The site is for phones for now. On a large screen with a mouse, the app is hidden and the notice (the 404's scene) shows.
+   Touch devices of any size (tablets) and narrow windows keep the app. */
+.desk-notice{display:none}
+@media (min-width:900px) and (hover:hover) and (pointer:fine){
+  html:not([data-desktop="ok"]) #app-root{display:none}
+  html:not([data-desktop="ok"]) .desk-notice{display:block}
+}
+.club.desk-notice{padding-top:0;min-height:100vh;background:var(--paper)}
+.club.desk-notice .stage{min-height:100svh;padding:48px 24px}
+.club.desk-notice .stage .err{font-size:min(7vw,72px);white-space:normal;max-width:900px}
+.club.desk-notice .stage .q{max-width:560px;font-size:22px;line-height:32px}
+.club.desk-notice canvas{position:absolute;left:0;top:0;width:100%;height:100%;z-index:-2;image-rendering:pixelated;image-rendering:crisp-edges;pointer-events:none;opacity:.55}

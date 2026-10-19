@@ -4,6 +4,8 @@ import * as React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { fetchBookSynopsis, type Book } from '@/lib/api'
+import { authFetch } from '@/lib/auth'
+import { useMe } from '@/components/club/useMe'
 import { getBookSpineStyle } from './CriterionBookCloset'
 import { Rotatable3DBook } from './CriterionDetailModal'
 
@@ -44,6 +46,26 @@ export function CriterionListDetailModal({
   onShowToast,
 }: CriterionListDetailModalProps) {
   const isSaved = userPicks.some((b) => b.id === book.id)
+  const me = useMe()
+  const canSee = me.state === 'member' || me.state === 'admin'
+  // How many other members picked this book: a count only. An admin also gets the names.
+  const [others, setOthers] = React.useState<number | null>(null)
+  const [readers, setReaders] = React.useState<{ id: string; display_name: string; tag: string }[] | null>(null)
+  React.useEffect(() => {
+    setOthers(null)
+    setReaders(null)
+    if (!canSee) return
+    let dead = false
+    void authFetch(`/api/me/picks?book=${encodeURIComponent(book.id)}`)
+      .then(async (r) => {
+        if (!r.ok || dead) return
+        const j = await r.json()
+        setOthers(j.others ?? 0)
+        setReaders(j.readers ?? null)
+      })
+      .catch(() => {})
+    return () => { dead = true }
+  }, [book.id, canSee, isSaved])
   const spineStyle = React.useMemo(() => getBookSpineStyle(book.title, book.id), [book.title, book.id])
 
   const [isReadMore, setIsReadMore] = React.useState(false)
@@ -249,6 +271,14 @@ export function CriterionListDetailModal({
             Share
           </button>
         </div>
+        {others !== null && (
+          <p className="mt-3 text-sm text-ink-light" data-testid="picked-by">
+            {others === 0 ? 'No one else has picked this yet.' : `${others} ${others === 1 ? 'other has' : 'others have'} also picked this.`}
+            {readers && readers.length > 0 && (
+              <span className="block mt-1">Picked by: {readers.map((x) => `${x.display_name} (${x.tag})`).join(', ')}</span>
+            )}
+          </p>
+        )}
 
         <div className="mt-6 pt-4 border-t border-border text-base text-ink-light leading-relaxed">
           {loadingSynopsis ? (

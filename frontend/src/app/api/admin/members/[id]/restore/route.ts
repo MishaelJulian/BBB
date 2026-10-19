@@ -1,6 +1,6 @@
 import { adminRoute } from '@/lib/handlers'
-import { restoreMember } from '@/lib/ops'
+import { restoreMemberFull } from '@/lib/admin/members'
 
 export const dynamic = 'force-dynamic'
 
-export const POST = adminRoute<{ id: string }>((tx, who, p) => restoreMember(tx, who, decodeURIComponent(p.id)), { body: false })
+export const POST = adminRoute<{ id: string }>((tx, who, p) => restoreMemberFull(tx, who, decodeURIComponent(p.id)), { body: false })

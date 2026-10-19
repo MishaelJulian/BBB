@@ -3,7 +3,9 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import '@/styles/club.css'
 import '@/styles/club-extra.css'
+import '@/styles/desktop-gate.css'
 import { SiteShell } from '@/components/layout/SiteShell'
+import { DesktopNotice } from '@/components/club/DesktopNotice'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -52,7 +54,10 @@ export default function RootLayout({
         <link rel="preload" href="/ui/fonts/archivo-wdth.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
       </head>
       <body className="antialiased" suppressHydrationWarning>
-        <SiteShell>{children}</SiteShell>
+        <div id="app-root">
+          <SiteShell>{children}</SiteShell>
+        </div>
+        <DesktopNotice />
       </body>
     </html>
   )
