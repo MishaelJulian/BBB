@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { getApiBase } from '@/lib/api'
+import { authFetch } from '@/lib/auth'
 
 export interface MemberSuggestion {
   id?: string
@@ -17,13 +17,11 @@ interface MemberAutocompleteInputProps {
   onChange: (val: string) => void
   onSelectMember?: (member: MemberSuggestion) => void
   placeholder?: string
-  apiBase?: string
   className?: string
   autoFocus?: boolean
   bookId?: string
 }
 
-// Helper to get initials for member avatar
 function getInitials(name: string): string {
   if (!name) return '?'
   const parts = name.trim().split(/\s+/)
@@ -31,35 +29,15 @@ function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
-// Deterministic gentle avatar background colors
-const AVATAR_COLORS = [
-  'bg-amber-100 text-amber-800 border-amber-300',
-  'bg-emerald-100 text-emerald-800 border-emerald-300',
-  'bg-blue-100 text-blue-800 border-blue-300',
-  'bg-purple-100 text-purple-800 border-purple-300',
-  'bg-rose-100 text-rose-800 border-rose-300',
-  'bg-stone-100 text-stone-800 border-stone-300',
-]
-
-function getAvatarColor(name: string): string {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
-}
-
 export function MemberAutocompleteInput({
   value,
   onChange,
   onSelectMember,
   placeholder = 'Type reader name (e.g. Mishael, Avinash, Abhiram)...',
-  apiBase,
   className = '',
   autoFocus = false,
   bookId,
 }: MemberAutocompleteInputProps) {
-  const resolvedApiBase = apiBase || getApiBase()
   const [inputValue, setInputValue] = React.useState('')
   const [suggestions, setSuggestions] = React.useState<MemberSuggestion[]>([])
   const [isOpen, setIsOpen] = React.useState(false)
@@ -70,7 +48,6 @@ export function MemberAutocompleteInput({
   const inputRef = React.useRef<HTMLInputElement>(null)
   const abortControllerRef = React.useRef<AbortController | null>(null)
 
-  // Parse comma-separated value into array of trimmed member names
   const selectedMembers = React.useMemo(() => {
     if (!value) return []
     return value
@@ -83,7 +60,6 @@ export function MemberAutocompleteInput({
     (name: string) => {
       const trimmed = name.trim()
       if (!trimmed) return
-      // Check if already selected (case-insensitive)
       if (selectedMembers.some((m) => m.toLowerCase() === trimmed.toLowerCase())) {
         return
       }
@@ -101,7 +77,6 @@ export function MemberAutocompleteInput({
     [selectedMembers, onChange]
   )
 
-  // Handle click outside to close dropdown
   React.useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -112,7 +87,6 @@ export function MemberAutocompleteInput({
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [])
 
-  // Fetch suggestions when query changes
   const fetchSuggestions = React.useCallback(
     async (query: string) => {
       if (abortControllerRef.current) {
@@ -126,36 +100,31 @@ export function MemberAutocompleteInput({
         const params = new URLSearchParams()
         if (query.trim()) params.set('q', query.trim())
         if (bookId) params.set('book_id', bookId)
-        const url = `${resolvedApiBase}/admin/members/suggest?${params.toString()}`
-
-        const res = await fetch(url, { signal: controller.signal })
+        const res = await authFetch(`/api/admin/members/suggest?${params.toString()}`, {
+          signal: controller.signal,
+        })
         if (!res.ok) throw new Error('Search failed')
-        const data: MemberSuggestion[] = await res.json()
+        const data = (await res.json()) as MemberSuggestion[]
         setSuggestions(data)
-        setIsOpen(true)
         setSelectedIndex(-1)
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          console.warn('Member suggest error:', err)
+      } catch (err: unknown) {
+        if ((err as Error)?.name !== 'AbortError') {
           setSuggestions([])
         }
       } finally {
         setLoading(false)
       }
     },
-    [resolvedApiBase, bookId]
+    [bookId]
   )
 
-  // Debounced search on input change
   React.useEffect(() => {
     const timeoutId = setTimeout(() => {
-      fetchSuggestions(inputValue)
+      void fetchSuggestions(inputValue)
     }, 160)
-
     return () => clearTimeout(timeoutId)
   }, [inputValue, fetchSuggestions])
 
-  // Filter suggestions to exclude members who are already selected
   const filteredSuggestions = React.useMemo(() => {
     const selectedSet = new Set(selectedMembers.map((m) => m.toLowerCase()))
     return suggestions.filter((s) => !selectedSet.has(s.name.toLowerCase()))
@@ -163,7 +132,7 @@ export function MemberAutocompleteInput({
 
   const handleSelect = (item: MemberSuggestion) => {
     addMember(item.name)
-    if (onSelectMember) onSelectMember(item)
+    onSelectMember?.(item)
     setInputValue('')
     setSelectedIndex(-1)
     inputRef.current?.focus()
@@ -171,7 +140,6 @@ export function MemberAutocompleteInput({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Backspace' && !inputValue && selectedMembers.length > 0) {
-      // Remove last tag when backspacing on empty input
       e.preventDefault()
       removeMember(selectedMembers.length - 1)
       return
@@ -211,33 +179,65 @@ export function MemberAutocompleteInput({
   )
 
   return (
-    <div ref={containerRef} className="relative w-full">
-      {/* Interactive Tag Container */}
+    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
       <div
         onClick={() => inputRef.current?.focus()}
-        className={`w-full min-h-[42px] p-2 rounded-xl border border-[#DDD6C7] bg-white text-neutral-900 text-xs flex flex-wrap items-center gap-1.5 focus-within:border-amber-600 focus-within:ring-2 focus-within:ring-amber-500/15 transition-all cursor-text ${className}`}
+        className={className}
+        style={{
+          minHeight: 44,
+          padding: '6px 10px',
+          background: '#fff',
+          border: '1.5px solid #1a1a1a',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 6,
+          cursor: 'text',
+        }}
       >
-        {/* Selected Member Badges */}
         {selectedMembers.map((name, idx) => (
           <span
             key={`${name}-${idx}`}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200/80 text-xs text-amber-950 font-medium shadow-2xs group"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '3px 8px',
+              background: '#f2ede4',
+              border: '1px solid #1a1a1a',
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#1a1a1a',
+            }}
           >
             <span
-              className={`w-4 h-4 rounded-full flex items-center justify-center font-bold text-[9px] border shrink-0 ${getAvatarColor(
-                name
-              )}`}
+              style={{
+                width: 18,
+                height: 18,
+                background: '#1a1a1a',
+                color: '#faf8f5',
+                fontSize: 10,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
               {getInitials(name)}
             </span>
-            <span className="font-semibold text-[11px]">{name}</span>
+            <span>{name}</span>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation()
                 removeMember(idx)
               }}
-              className="ml-0.5 text-amber-700/60 hover:text-amber-900 rounded-full hover:bg-amber-100/80 w-3.5 h-3.5 inline-flex items-center justify-center text-[10px] transition-colors cursor-pointer"
+              style={{
+                all: 'unset',
+                cursor: 'pointer',
+                fontSize: 12,
+                color: '#c93a14',
+                padding: '0 2px',
+              }}
               title={`Remove ${name}`}
             >
               ✕
@@ -245,8 +245,7 @@ export function MemberAutocompleteInput({
           </span>
         ))}
 
-        {/* Live Input Field */}
-        <div className="relative flex-1 min-w-[120px] flex items-center">
+        <div style={{ flex: 1, minWidth: 140, display: 'flex', alignItems: 'center' }}>
           <input
             ref={inputRef}
             type="text"
@@ -254,8 +253,7 @@ export function MemberAutocompleteInput({
             onChange={(e) => {
               const val = e.target.value
               if (val.includes(',')) {
-                const parts = val.split(',')
-                for (const part of parts) {
+                for (const part of val.split(',')) {
                   if (part.trim()) addMember(part.trim())
                 }
                 setInputValue('')
@@ -267,148 +265,154 @@ export function MemberAutocompleteInput({
               const pasteText = e.clipboardData.getData('text')
               if (pasteText.includes(',')) {
                 e.preventDefault()
-                const parts = pasteText.split(',').map((p) => p.trim()).filter(Boolean)
-                for (const p of parts) {
+                for (const p of pasteText.split(',').map((s) => s.trim()).filter(Boolean)) {
                   addMember(p)
                 }
                 setInputValue('')
               }
             }}
             onFocus={() => {
-              fetchSuggestions(inputValue)
+              void fetchSuggestions(inputValue)
               setIsOpen(true)
             }}
             onKeyDown={handleKeyDown}
             placeholder={
               selectedMembers.length === 0
                 ? placeholder
-                : '+ Add another reader (or type & press Enter)...'
+                : '+ Add another reader (or press Enter)...'
             }
             autoFocus={autoFocus}
-            className="w-full py-1 px-1 text-xs text-neutral-900 bg-transparent focus:outline-hidden placeholder:text-neutral-400"
+            style={{
+              width: '100%',
+              border: 0,
+              outline: 'none',
+              background: 'transparent',
+              fontSize: 14,
+              fontFamily: 'var(--sans)',
+              color: '#1a1a1a',
+              padding: '4px 2px',
+            }}
           />
-          {loading && (
-            <div className="absolute right-1 flex items-center pointer-events-none">
-              <svg
-                className="animate-spin h-3.5 w-3.5 text-amber-600"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8H4z"
-                />
-              </svg>
-            </div>
-          )}
+          {loading && <span style={{ fontSize: 11, color: '#64748b' }}>...</span>}
         </div>
       </div>
 
-      {/* Helper text */}
-      <div className="flex items-center justify-between text-[10px] text-neutral-400 mt-1 px-1">
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: 11,
+          color: '#64748b',
+          marginTop: 4,
+        }}
+      >
         <span>
           {selectedMembers.length > 0
-            ? `${selectedMembers.length} reader${selectedMembers.length > 1 ? 's' : ''} assigned: ${selectedMembers.join(', ')}`
-            : 'Select or type one or more readers for this book discussion.'}
+            ? `${selectedMembers.length} reader${selectedMembers.length > 1 ? 's' : ''}: ${selectedMembers.join(', ')}`
+            : 'Select or type one or more readers for this discussion.'}
         </span>
-        <span className="font-mono hidden sm:inline text-neutral-400/80">
-          Separate multiple readers with commas or Enter
-        </span>
+        <span>Separate with commas or Enter</span>
       </div>
 
-      {/* Dropdown Menu */}
       {isOpen && (filteredSuggestions.length > 0 || (inputValue.trim() && !hasExactMatch)) && (
-        <div className="absolute left-0 right-0 z-50 mt-1 bg-white border border-[#DDD6C7] rounded-xl shadow-xl overflow-hidden max-h-60 overflow-y-auto divide-y divide-neutral-100 text-xs scrollbar-thin">
-          <div className="px-3 py-1.5 bg-paper border-b border-[#E5E0DB] flex items-center justify-between text-[10px] font-mono text-neutral-500 uppercase tracking-wider">
-            <span>👤 BBB Club Readers</span>
-            <span>
-              {filteredSuggestions.length} available
-              {selectedMembers.length > 0 && ` (${selectedMembers.length} selected)`}
-            </span>
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: '100%',
+            marginTop: 4,
+            zIndex: 80,
+            background: '#faf8f5',
+            border: '2px solid #1a1a1a',
+            boxShadow: '4px 4px 0 #1a1a1a',
+            maxHeight: 240,
+            overflowY: 'auto',
+          }}
+        >
+          <div
+            style={{
+              padding: '6px 12px',
+              background: '#f2ede4',
+              borderBottom: '1px solid #d4cfc9',
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              color: '#555',
+            }}
+          >
+            <span>BBB Club Readers</span>
+            <span>{filteredSuggestions.length} shown</span>
           </div>
 
           {filteredSuggestions.map((item, idx) => {
             const isSelected = idx === selectedIndex
+            const cnt = item.books_count ?? item.discussions_count ?? 0
             return (
               <button
                 key={item.id || item.name}
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelect(item)}
                 onMouseEnter={() => setSelectedIndex(idx)}
-                className={`w-full text-left p-2.5 flex items-center justify-between gap-3 transition-colors cursor-pointer ${
-                  isSelected ? 'bg-amber-50/80' : 'hover:bg-neutral-50'
-                }`}
+                style={{
+                  all: 'unset',
+                  boxSizing: 'border-box',
+                  width: '100%',
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  cursor: 'pointer',
+                  borderBottom: '1px solid #e6e1d8',
+                  background: isSelected ? 'rgba(201, 58, 20, 0.09)' : 'transparent',
+                }}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div
-                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] border shrink-0 ${getAvatarColor(
-                      item.name
-                    )}`}
-                  >
-                    {getInitials(item.name)}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-neutral-900 truncate text-xs">
-                      {item.name}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
+                <span style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>{item.name}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#64748b' }}>
                   {item.already_read && (
-                    <span 
-                      className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold flex items-center gap-1"
-                      title={item.already_read_meetups && item.already_read_meetups.length > 0 ? `Already discussed this book in Meetup #${item.already_read_meetups.join(', #')}` : 'Already read this book'}
-                    >
-                      <span>✓ Read</span>
-                      {item.already_read_meetups && item.already_read_meetups.length > 0 && (
-                        <span>(#{item.already_read_meetups.join(', #')})</span>
-                      )}
+                    <span style={{ color: '#137333', fontWeight: 600 }}>
+                      ✓ Read{item.already_read_meetups?.length ? ` (#${item.already_read_meetups.join(', #')})` : ''}
                     </span>
                   )}
-                  {(item.books_count !== undefined ? item.books_count : item.discussions_count) !== undefined && (item.books_count ?? item.discussions_count ?? 0) > 0 ? (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-100 text-amber-800 font-medium">
-                      {item.books_count ?? item.discussions_count} {(item.books_count ?? item.discussions_count) === 1 ? 'book' : 'books'}
-                    </span>
-                  ) : (
-                    <span className="text-[10px] text-neutral-400 font-mono">
-                      Member
-                    </span>
-                  )}
-                  <span className="text-amber-600 text-xs font-bold">+</span>
-                </div>
+                  <span>{cnt > 0 ? `${cnt} book${cnt === 1 ? '' : 's'}` : 'Member'}</span>
+                  <span style={{ color: '#c93a14', fontWeight: 700 }}>+</span>
+                </span>
               </button>
             )
           })}
 
-          {/* Add custom name option if inputValue doesn't match existing */}
           {inputValue.trim() && !hasExactMatch && (
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 addMember(inputValue.trim())
                 setInputValue('')
                 setIsOpen(false)
               }}
-              className="w-full text-left p-2.5 bg-neutral-50 hover:bg-amber-50 text-[11px] text-neutral-600 hover:text-amber-900 font-medium flex items-center justify-between gap-2 transition-colors border-t border-dashed border-neutral-200 cursor-pointer"
+              style={{
+                all: 'unset',
+                boxSizing: 'border-box',
+                width: '100%',
+                padding: '10px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                background: '#f2ede4',
+                fontSize: 13,
+                color: '#1a1a1a',
+              }}
             >
-              <div className="flex items-center gap-2">
-                <span>➕</span>
-                <span>
-                  Add <b className="text-neutral-900 font-bold">&quot;{inputValue.trim()}&quot;</b> as reader
-                </span>
-              </div>
-              <span className="text-[10px] font-mono text-neutral-400">Press Enter</span>
+              <span>
+                + Add <b>&ldquo;{inputValue.trim()}&rdquo;</b> as reader
+              </span>
+              <span style={{ fontSize: 11, color: '#c93a14', fontWeight: 600 }}>Enter ↵</span>
             </button>
           )}
         </div>

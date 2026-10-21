@@ -1,35 +1,55 @@
 // Look-up of book details, done on the server: the site's CSP blocks browser calls to these hosts.
-// Open Library first, then Apple Books. A result is accepted only when its title matches the book's title.
+// Goodreads first, then Open Library and Apple Books. A result is accepted only when its title matches the book's title.
 // Callers fill EMPTY fields only (see fillable below); nothing that is already there is overwritten.
 import { audit } from '../audit'
 import type { Caller } from '../session'
 import type { Tx } from '../writes'
 
-export interface Found { isbn?: string; year?: number; cover?: string; description?: string; author?: string }
+export interface Found { isbn?: string; year?: number; cover?: string; description?: string; author?: string; rating?: number; goodreads_id?: string }
 export interface SourceNote { source: string; result: string }
 export interface Lookup { found: Found; sources: SourceNote[]; failed: boolean }
 
 const UA = 'BBB-Library-admin/1.0 (brokebibliophilesbangalore@gmail.com)'
+const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
 const nz = (t: unknown) => String(t ?? '').toLowerCase().split(/[:(]/)[0].replace(/[^a-z0-9]+/g, ' ').trim()
 export const sameTitle = (a: unknown, b: unknown) => {
   const x = nz(a), y = nz(b)
   return !!x && !!y && (x === y || x.includes(y) || y.includes(x))
 }
 
-async function getJson(url: string): Promise<unknown> {
-  const r = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: AbortSignal.timeout(7000), cache: 'no-store' })
+async function getJson(url: string, ua = UA): Promise<unknown> {
+  const r = await fetch(url, { headers: { 'User-Agent': ua, Accept: 'application/json' }, signal: AbortSignal.timeout(7000), cache: 'no-store' })
   if (!r.ok) throw new Error(`HTTP ${r.status}`)
   return r.json()
 }
 
 interface OlDoc { title?: string; author_name?: string[]; isbn?: string[]; cover_i?: number; first_publish_year?: number }
 interface Itunes { trackName?: string; artistName?: string; artworkUrl100?: string; releaseDate?: string; description?: string }
+interface GoodreadsItem { bookTitleBare?: string; title?: string; author?: { name?: string }; imageUrl?: string; bookId?: string | number; avgRating?: string | number; description?: { html?: string } }
 
 export async function lookupBook(title: string, author?: string | null): Promise<Lookup> {
   const found: Found = {}
   const sources: SourceNote[] = []
   let failed = false
   const t = title.trim()
+  try {
+    const u = `https://www.goodreads.com/book/auto_complete?format=json&q=${encodeURIComponent(`${t} ${author ?? ''}`.trim())}`
+    const items = ((await getJson(u, BROWSER_UA)) as GoodreadsItem[]) ?? []
+    const matched = items.find((d) => sameTitle(d.bookTitleBare ?? d.title, t)) ?? items[0]
+    if (matched && (matched.bookTitleBare || matched.title)) {
+      const mTitle = (matched.bookTitleBare ?? matched.title ?? '').trim()
+      sources.push({ source: 'Goodreads', result: `found "${mTitle}"` })
+      if (matched.imageUrl) found.cover = matched.imageUrl.replace(/\._S[XY]\d+_\./, '._SY450_.')
+      if (matched.author?.name) found.author = matched.author.name.replace(/\s+/g, ' ').trim()
+      if (matched.bookId) found.goodreads_id = String(matched.bookId)
+      if (matched.avgRating && Number.isFinite(Number(matched.avgRating))) found.rating = Number(matched.avgRating)
+      if (matched.description?.html) found.description = matched.description.html.replace(/<[^>]+>/g, '').trim().slice(0, 1500)
+    } else {
+      sources.push({ source: 'Goodreads', result: 'no match' })
+    }
+  } catch {
+    sources.push({ source: 'Goodreads', result: 'did not answer' })
+  }
   try {
     const u = `https://openlibrary.org/search.json?title=${encodeURIComponent(t)}${author ? `&author=${encodeURIComponent(author)}` : ''}&limit=5&fields=title,author_name,isbn,cover_i,first_publish_year`
     const docs = (((await getJson(u)) as { docs?: OlDoc[] }).docs ?? []).filter((d) => sameTitle(d.title, t))
@@ -39,8 +59,8 @@ export async function lookupBook(title: string, author?: string | null): Promise
       const i = d.isbn?.find((x) => x.length === 13) ?? d.isbn?.[0]
       if (i) found.isbn = i
       if (d.first_publish_year) found.year = d.first_publish_year
-      if (d.cover_i) found.cover = `https://covers.openlibrary.org/b/id/${d.cover_i}-L.jpg`
-      if (d.author_name?.[0]) found.author = d.author_name[0]
+      if (!found.cover && d.cover_i) found.cover = `https://covers.openlibrary.org/b/id/${d.cover_i}-L.jpg`
+      if (!found.author && d.author_name?.[0]) found.author = d.author_name[0]
     } else sources.push({ source: 'Open Library', result: 'no match' })
   } catch {
     sources.push({ source: 'Open Library', result: 'did not answer' })
@@ -51,10 +71,9 @@ export async function lookupBook(title: string, author?: string | null): Promise
     const first = ((await getJson(u)) as { results?: Itunes[] }).results?.[0]
     if (first && sameTitle(first.trackName, t)) {
       sources.push({ source: 'Apple Books', result: `found "${first.trackName}"` })
-      // Apple's cover host is already allowed by the site's CSP (mzstatic.com); Open Library's is not, so Apple wins when it has one.
-      if (first.artworkUrl100) found.cover = first.artworkUrl100.replace('100x100', '600x600')
+      if (!found.cover && first.artworkUrl100) found.cover = first.artworkUrl100.replace('100x100', '600x600')
       if (!found.year && first.releaseDate) found.year = Number(first.releaseDate.slice(0, 4)) || undefined
-      if (first.description) found.description = first.description.replace(/<[^>]+>/g, '').slice(0, 1500)
+      if (!found.description && first.description) found.description = first.description.replace(/<[^>]+>/g, '').slice(0, 1500)
       if (!found.author && first.artistName) found.author = first.artistName
     } else sources.push({ source: 'Apple Books', result: first ? `found "${first.trackName}", not the same book` : 'no match' })
   } catch {
@@ -64,7 +83,7 @@ export async function lookupBook(title: string, author?: string | null): Promise
   return { found, sources, failed }
 }
 
-interface BookGaps { id: string; title: string; author: string | null; cover_url: string | null; thumbnail_url: string | null; description: string | null; publication_year: number | null; isbn10: string | null; isbn13: string | null }
+interface BookGaps { id: string; title: string; author: string | null; cover_url: string | null; thumbnail_url: string | null; description: string | null; publication_year: number | null; isbn10: string | null; isbn13: string | null; rating?: number | null; goodreads_id?: string | null }
 
 /** What a look-up may fill for this book: only the fields that are empty. */
 export function fillable(b: BookGaps, f: Found) {
@@ -73,6 +92,8 @@ export function fillable(b: BookGaps, f: Found) {
   if (!b.description && f.description) out.description = f.description
   if (!b.publication_year && f.year) out.publication_year = f.year
   if (!b.isbn10 && !b.isbn13 && f.isbn) out[f.isbn.length === 10 ? 'isbn10' : 'isbn13'] = f.isbn.toUpperCase()
+  if (!b.rating && f.rating) out.rating = f.rating
+  if (!b.goodreads_id && f.goodreads_id) out.goodreads_id = f.goodreads_id
   return out
 }
 
@@ -80,7 +101,7 @@ export interface EnrichSummary { total: number; enriched: number; complete: numb
 
 export async function booksOfMeetup(tx: Tx, number: number): Promise<BookGaps[]> {
   return tx<BookGaps[]>`
-    select b.id, b.title, a.full_name as author, b.cover_url, b.thumbnail_url, b.description, b.publication_year, b.isbn10, b.isbn13
+    select b.id, b.title, a.full_name as author, b.cover_url, b.thumbnail_url, b.description, b.publication_year, b.isbn10, b.isbn13, b.rating, b.goodreads_id
     from canonical_books b left join authors a on a.id = b.author_id
     where b.id in (select d.canonical_book_id from discussions d join meetups m on m.id = d.meetup_id where m.meetup_number = ${number} and d.canonical_book_id is not null)
     order by b.title`
@@ -122,6 +143,8 @@ export async function applyEnrich(tx: Tx, who: Caller, number: number, results: 
         publication_year = case when coalesce(publication_year, 0) = 0 then coalesce(${(f.publication_year as number) ?? null}::int, publication_year) else publication_year end,
         isbn10 = case when coalesce(isbn10, '') = '' and coalesce(isbn13, '') = '' then coalesce(${(f.isbn10 as string) ?? null}::text, isbn10) else isbn10 end,
         isbn13 = case when coalesce(isbn10, '') = '' and coalesce(isbn13, '') = '' then coalesce(${(f.isbn13 as string) ?? null}::text, isbn13) else isbn13 end,
+        rating = case when coalesce(rating, 0) = 0 then coalesce(${(f.rating as number) ?? null}::float8, rating) else rating end,
+        goodreads_id = case when coalesce(goodreads_id, '') = '' then coalesce(${(f.goodreads_id as string) ?? null}::text, goodreads_id) else goodreads_id end,
         updated_at = now() where id = ${r.book.id}`
       sum.enriched++
       changes.push({ id: r.book.id, title: r.book.title, filled: Object.keys(f).filter((k) => k !== 'thumbnail_url') })

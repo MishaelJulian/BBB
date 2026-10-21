@@ -104,11 +104,9 @@ function TopBar({ kind, crumbs }: { kind: 'home' | 'crumb' | 'back'; crumbs: Cru
           <span className="cap" style={{ marginLeft: 4 }}>BBB</span>
         </>
       )}
-      {me.state === 'admin' && (
-        <Link className="adminlink" href="/admin">
-          Admin
-        </Link>
-      )}
+      <Link className="adminlink" href="/admin">
+        Admin
+      </Link>
     </header>
   )
 }

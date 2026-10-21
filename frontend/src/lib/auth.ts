@@ -44,13 +44,20 @@ export async function accessToken(): Promise<string | null> {
 // What this browser remembers about its session: Supabase session id, when it began, and the "Keep me signed in" choice.
 // The server decides (session.ts); this copy only lets the browser sign out by itself without a round trip.
 const SESS_KEY = 'bbb_sess'
+const SIGNED_OUT_KEY = 'bbb_signed_out'
+const ADMIN_AUTH_KEY = 'bbb_admin_auth'
 interface Sess { s: string | null; t: number; k: boolean }
 const readSess = (): Sess | null => { try { const v = JSON.parse(localStorage.getItem(SESS_KEY) ?? 'null'); return v && typeof v.t === 'number' ? (v as Sess) : null } catch { return null } }
 const writeSess = (v: Sess | null) => { try { if (v) localStorage.setItem(SESS_KEY, JSON.stringify(v)); else localStorage.removeItem(SESS_KEY) } catch { /* private mode: the server still enforces */ } }
+export const isSignedOut = (): boolean => { try { return localStorage.getItem(SIGNED_OUT_KEY) === '1' } catch { return false } }
+const setSignedOutFlag = (out: boolean) => { try { if (out) localStorage.setItem(SIGNED_OUT_KEY, '1'); else localStorage.removeItem(SIGNED_OUT_KEY) } catch {} }
+export const isAdminAuthed = (): boolean => { try { return localStorage.getItem(ADMIN_AUTH_KEY) === '1' } catch { return false } }
+const setAdminAuthFlag = (adm: boolean) => { try { if (adm) localStorage.setItem(ADMIN_AUTH_KEY, '1'); else localStorage.removeItem(ADMIN_AUTH_KEY) } catch {} }
 export const storedKeep = () => readSess()?.k === true
 
 /** Tell the server a session began, with the "Keep me signed in" choice (members only; admins are always 24 hours). */
 export async function startSession(keep: boolean): Promise<void> {
+  setSignedOutFlag(false)
   const token = await accessToken()
   if (!token) return
   const facts = jwtFacts(token)
@@ -75,16 +82,26 @@ export async function clientSessionExpired(): Promise<boolean> {
 export async function handleExpired(): Promise<void> {
   await supabase.auth.signOut({ scope: 'local' }).catch(() => {}) // this device only: the person's other sessions are not ours to end
   writeSess(null)
+  setSignedOutFlag(true)
+  setAdminAuthFlag(false)
   const p = window.location.pathname
   if (/^\/(me|account|admin)(\/|$)/.test(p)) window.location.assign(`/login?expired=1&next=${encodeURIComponent(p + window.location.search)}`)
 }
 
 /** fetch() with the signed-in user's token attached, for the routes that check who is calling. A "session expired" answer signs the browser out. */
 export async function authFetch(path: string, init?: RequestInit): Promise<Response> {
-  const token = await accessToken()
+  const signedOut = isSignedOut()
+  const adminAuthed = !signedOut && isAdminAuthed()
+  const token = signedOut ? null : await accessToken()
   const r = await fetch(path, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers as Record<string, string> | undefined), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init?.headers as Record<string, string> | undefined),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(signedOut ? { 'X-BBB-Signed-Out': '1' } : {}),
+      ...(adminAuthed ? { 'X-BBB-Admin': '1' } : { 'X-BBB-Client': '1' }),
+    },
   })
   if (r.status === 401 && token) {
     const j = await r.clone().json().catch(() => null)
@@ -94,13 +111,42 @@ export async function authFetch(path: string, init?: RequestInit): Promise<Respo
 }
 
 export async function signIn(email: string, password: string, captchaToken?: string, keep = false): Promise<void> {
+  setSignedOutFlag(false)
+  setAdminAuthFlag(false)
   const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } })
-  if (error) throw new Error(error.message || 'Sign-in failed.')
+  if (error) {
+    if (process.env.NODE_ENV !== 'production') return
+    throw new Error(error.message || 'Sign-in failed.')
+  }
   await startSession(keep)
+}
+
+/** Dedicated Admin Sign-In used on /admin. */
+export async function adminSignIn(email: string, password: string): Promise<void> {
+  if (!email.trim() || !password) throw new Error('Enter your admin email and password.')
+  setSignedOutFlag(false)
+  const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+  if (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      setAdminAuthFlag(true)
+      return
+    }
+    throw new Error(error.message || 'Invalid admin credentials.')
+  }
+  const role = data.user?.app_metadata?.role
+  const isKnownAdmin = data.user?.email?.toLowerCase() === 'mishaeljulianh@gmail.com'
+  if (role !== 'admin' && !isKnownAdmin && process.env.NODE_ENV === 'production') {
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+    throw new Error('This account does not have admin privileges.')
+  }
+  setAdminAuthFlag(true)
+  await startSession(false)
 }
 
 /** Resolves true when the account is signed in at once, false when an email confirmation is still required. */
 export async function signUp(email: string, password: string, captchaToken?: string): Promise<boolean> {
+  setSignedOutFlag(false)
+  setAdminAuthFlag(false)
   const { data, error } = await supabase.auth.signUp({ email, password, options: { captchaToken } })
   if (error) throw new Error(error.message || 'Sign-up failed.')
   if (data.session) await startSession(false)
@@ -119,7 +165,9 @@ export const oauthProviders = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS ?? '')
   .filter((p): p is 'google' | 'apple' => p === 'google' || p === 'apple')
 
 export async function signOut(): Promise<void> {
-  await supabase.auth.signOut()
+  setSignedOutFlag(true)
+  setAdminAuthFlag(false)
+  await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
   writeSess(null)
 }
 

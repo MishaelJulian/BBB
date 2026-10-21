@@ -1,8 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { MEDIA_TYPES, MediaTypeOption, mediaMeta, normalizeMediaType } from '@/lib/mediaTypes'
-import { getApiBase } from '@/lib/api'
+import { authFetch } from '@/lib/auth'
 
 export interface BookSuggestion {
   id?: string
@@ -14,6 +13,7 @@ export interface BookSuggestion {
   cover_url?: string | null
   thumbnail_url?: string | null
   publication_year?: number | null
+  isbn?: string | null
   goodreads_id?: string | null
   rating?: number | null
   ratings_count?: number | null
@@ -24,7 +24,7 @@ export interface BookSuggestion {
   description?: string | null
 }
 
-export type { MediaTypeOption }
+export type MediaTypeOption = 'book' | 'movie' | 'youtube' | 'podcast' | 'tangent'
 
 interface BookAutocompleteInputProps {
   value: string
@@ -36,9 +36,16 @@ interface BookAutocompleteInputProps {
   placeholder?: string
   required?: boolean
   autoFocus?: boolean
-  apiBase?: string
   className?: string
 }
+
+const MEDIA_TYPES: { id: MediaTypeOption; label: string; placeholder: string }[] = [
+  { id: 'book', label: 'Book', placeholder: 'Search Goodreads & BBB Archive (e.g. Dune, Misery, Klara and the Sun)...' },
+  { id: 'movie', label: 'Film / TV', placeholder: 'e.g. The Last Emperor, Succession, Inception...' },
+  { id: 'youtube', label: 'YouTube', placeholder: 'Paste YouTube link or enter channel / video name...' },
+  { id: 'podcast', label: 'Podcast', placeholder: 'e.g. Huberman Lab, Hardcore History...' },
+  { id: 'tangent', label: 'Tangent / Web', placeholder: 'e.g. Wondrium, Substack, cultural topic...' },
+]
 
 export function BookAutocompleteInput({
   value,
@@ -50,10 +57,8 @@ export function BookAutocompleteInput({
   placeholder,
   required = false,
   autoFocus = false,
-  apiBase,
   className = '',
 }: BookAutocompleteInputProps) {
-  const resolvedApiBase = apiBase || getApiBase()
   const [currentMediaType, setCurrentMediaType] = React.useState<MediaTypeOption>(mediaType)
   const [suggestions, setSuggestions] = React.useState<BookSuggestion[]>([])
   const [isOpen, setIsOpen] = React.useState(false)
@@ -66,25 +71,20 @@ export function BookAutocompleteInput({
   const inputRef = React.useRef<HTMLInputElement>(null)
   const abortControllerRef = React.useRef<AbortController | null>(null)
 
-  // Keep internal state in sync with prop
   React.useEffect(() => {
     if (mediaType && mediaType !== currentMediaType) {
       setCurrentMediaType(mediaType)
     }
-  }, [mediaType])
+  }, [mediaType, currentMediaType])
 
   const handleMediaTypeSelect = (type: MediaTypeOption) => {
     setCurrentMediaType(type)
-    if (onMediaTypeChange) {
-      onMediaTypeChange(type)
-    }
-    // Re-trigger search with new media type if query is active
+    onMediaTypeChange?.(type)
     if (value.trim().length >= 2) {
       setHasInteracted(true)
     }
   }
 
-  // Handle outside click to close suggestions
   React.useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -95,7 +95,6 @@ export function BookAutocompleteInput({
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [])
 
-  // Check if string looks like a URL
   const isUrl = (str: string) => {
     const trimmed = str.trim()
     return (
@@ -106,7 +105,6 @@ export function BookAutocompleteInput({
     )
   }
 
-  // Debounced search / URL resolution when value or mediaType changes
   React.useEffect(() => {
     const query = value.trim()
     if (query.length < 2 || !hasInteracted) {
@@ -122,37 +120,36 @@ export function BookAutocompleteInput({
     const controller = new AbortController()
     abortControllerRef.current = controller
 
-    // 1. If user typed or pasted a URL: auto-resolve link metadata
     if (isUrl(query)) {
       setIsUrlResolving(true)
       setLoading(true)
       const timeoutId = setTimeout(async () => {
         try {
-          const res = await fetch(
-            `${resolvedApiBase}/api/media/resolve-url?url=${encodeURIComponent(query)}`,
+          const res = await authFetch(
+            `/api/media/resolve-url?url=${encodeURIComponent(query)}`,
             { signal: controller.signal }
           )
           if (!res.ok) throw new Error('URL resolution failed')
-          const data = await res.json()
+          const data = (await res.json()) as BookSuggestion
           if (data && data.title) {
-            const detectedType: MediaTypeOption = normalizeMediaType(data.media_type)
+            const detectedType: MediaTypeOption = (data.media_type as MediaTypeOption) || 'tangent'
             if (detectedType !== currentMediaType) {
               setCurrentMediaType(detectedType)
-              if (onMediaTypeChange) onMediaTypeChange(detectedType)
+              onMediaTypeChange?.(detectedType)
             }
             setSuggestions([data])
             setIsOpen(true)
             setSelectedIndex(0)
           }
-        } catch (err: any) {
-          if (err.name !== 'AbortError') {
+        } catch (err: unknown) {
+          if ((err as Error)?.name !== 'AbortError') {
             console.warn('URL resolution error:', err)
           }
         } finally {
           setIsUrlResolving(false)
           setLoading(false)
         }
-      }, 300)
+      }, 280)
 
       return () => {
         clearTimeout(timeoutId)
@@ -160,34 +157,32 @@ export function BookAutocompleteInput({
       }
     }
 
-    // 2. Multi-source autocomplete search
     setLoading(true)
     const timeoutId = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `${resolvedApiBase}/api/media/suggest?q=${encodeURIComponent(query)}&media_type=${currentMediaType}`,
+        const res = await authFetch(
+          `/api/media/suggest?q=${encodeURIComponent(query)}&media_type=${currentMediaType}`,
           { signal: controller.signal }
         )
         if (!res.ok) throw new Error('Search failed')
-        const data: BookSuggestion[] = await res.json()
+        const data = (await res.json()) as BookSuggestion[]
         setSuggestions(data)
         setIsOpen(data.length > 0 || query.length >= 2)
         setSelectedIndex(-1)
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
-          console.warn('Media suggest error:', err)
+      } catch (err: unknown) {
+        if ((err as Error)?.name !== 'AbortError') {
           setSuggestions([])
         }
       } finally {
         setLoading(false)
       }
-    }, 280)
+    }, 240)
 
     return () => {
       clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [value, currentMediaType, hasInteracted, resolvedApiBase])
+  }, [value, currentMediaType, hasInteracted, onMediaTypeChange])
 
   const handleSelect = (item: BookSuggestion) => {
     onChange(item.title)
@@ -204,15 +199,14 @@ export function BookAutocompleteInput({
       creator: null,
       media_type: currentMediaType,
       source: 'custom',
-      source_label: 'Custom Tangent',
+      source_label: 'Custom Entry',
     }
     handleSelect(customItem)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) return
-
-    const totalItems = suggestions.length + (value.trim() ? 1 : 0) // include custom entry option
+    const totalItems = suggestions.length + (value.trim() ? 1 : 0)
     if (totalItems === 0) return
 
     if (e.key === 'ArrowDown') {
@@ -234,41 +228,49 @@ export function BookAutocompleteInput({
   }
 
   const activePlaceholder =
-    placeholder || MEDIA_TYPES.find((m) => m.id === currentMediaType)?.placeholder || 'Search...'
-
-  const getMediaBadge = (itemType?: string) => {
-    const m = mediaMeta(itemType)
-    return { label: `${m.icon} ${m.label}`, cls: m.badgeClass }
-  }
+    placeholder || MEDIA_TYPES.find((m) => m.id === currentMediaType)?.placeholder || 'Search Goodreads...'
 
   return (
-    <div ref={containerRef} className="relative w-full space-y-2">
-      {/* Media Type Selector Pills */}
+    <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
       {showMediaTypeSelector && (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-1.5">
+        <div
+          role="group"
+          aria-label="Media type"
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 6,
+            marginBottom: 10,
+          }}
+        >
           {MEDIA_TYPES.map((t) => {
             const isSelected = currentMediaType === t.id
             return (
               <button
                 key={t.id}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => handleMediaTypeSelect(t.id)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
-                  isSelected
-                    ? 'bg-neutral-900 text-white shadow-2xs'
-                    : 'bg-paper text-neutral-600 hover:bg-[#F0ECE1] border border-[#DDD6C7]'
-                }`}
+                style={{
+                  padding: '5px 11px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'var(--sans)',
+                  cursor: 'pointer',
+                  border: isSelected ? '1.5px solid #1a1a1a' : '1px solid #d4cfc9',
+                  background: isSelected ? '#1a1a1a' : '#faf8f5',
+                  color: isSelected ? '#faf8f5' : '#555',
+                  transition: 'all 0.12s ease',
+                }}
               >
-                <span>{t.icon}</span>
-                <span>{t.label}</span>
+                {t.label}
               </button>
             )
           })}
         </div>
       )}
 
-      {/* Input Box */}
-      <div className="relative flex items-center">
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         <input
           ref={inputRef}
           type="text"
@@ -285,16 +287,38 @@ export function BookAutocompleteInput({
           required={required}
           autoFocus={autoFocus}
           autoComplete="off"
-          className={
-            className ||
-            'w-full p-2.5 pr-10 rounded-xl border border-[#DDD6C7] bg-white focus:outline-hidden focus:border-amber-600 focus:ring-1 focus:ring-amber-500 text-xs font-medium text-neutral-900 transition-all shadow-2xs'
+          className={className}
+          style={
+            className
+              ? undefined
+              : {
+                  width: '100%',
+                  height: 44,
+                  padding: '0 34px 0 12px',
+                  fontSize: 15,
+                  fontFamily: 'var(--sans)',
+                  color: '#1a1a1a',
+                  background: '#fff',
+                  border: '1.5px solid #1a1a1a',
+                  borderRadius: 0,
+                  outline: 'none',
+                }
           }
         />
 
-        {/* Loading Spinner or Clear Button */}
-        <div className="absolute right-3 flex items-center gap-1.5 pointer-events-none">
+        <div style={{ position: 'absolute', right: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
           {loading && (
-            <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+            <span
+              style={{
+                width: 14,
+                height: 14,
+                border: '2px solid #c93a14',
+                borderTopColor: 'transparent',
+                borderRadius: '50%',
+                display: 'inline-block',
+                animation: 'spin 0.7s linear infinite',
+              }}
+            />
           )}
           {!loading && value && (
             <button
@@ -306,113 +330,180 @@ export function BookAutocompleteInput({
                 setIsOpen(false)
                 inputRef.current?.focus()
               }}
-              className="pointer-events-auto p-0.5 text-neutral-400 hover:text-neutral-700 transition-colors"
+              style={{
+                all: 'unset',
+                cursor: 'pointer',
+                fontSize: 14,
+                color: '#64748b',
+                padding: '2px 4px',
+              }}
               title="Clear title"
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              ✕
             </button>
           )}
         </div>
       </div>
 
-      {/* URL resolving status pill */}
       {isUrlResolving && (
-        <div className="flex items-center gap-1.5 text-[10px] text-amber-700 font-mono animate-pulse">
-          <span className="w-2 h-2 rounded-full bg-amber-500" />
-          <span>Auto-detecting and resolving link metadata...</span>
-        </div>
+        <p style={{ margin: '6px 0 0', fontSize: 12, color: '#c93a14', fontFamily: 'var(--sans)' }}>
+          Resolving link metadata...
+        </p>
       )}
 
-      {/* Autocomplete Dropdown List */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-xl shadow-2xl border border-[#DDD6C7] overflow-hidden max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
-          {/* Header */}
-          <div className="px-3 py-1.5 bg-paper border-b border-[#EEE8DE] flex items-center justify-between text-[10px] text-neutral-500 font-mono font-medium">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-              {mediaMeta(currentMediaType).source}
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: '100%',
+            marginTop: 4,
+            zIndex: 80,
+            background: '#faf8f5',
+            border: '2px solid #1a1a1a',
+            boxShadow: '4px 4px 0 #1a1a1a',
+            maxHeight: 330,
+            overflowY: 'auto',
+          }}
+        >
+          <div
+            style={{
+              padding: '6px 12px',
+              background: '#f2ede4',
+              borderBottom: '1px solid #d4cfc9',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              color: '#555',
+            }}
+          >
+            <span>
+              {currentMediaType === 'book' && 'Goodreads API & BBB Archive'}
+              {currentMediaType === 'movie' && 'Film & TV Series (DuckDuckGo & TVMaze)'}
+              {currentMediaType === 'youtube' && 'YouTube Channels & Videos'}
+              {currentMediaType === 'podcast' && 'Apple Podcasts Search'}
+              {currentMediaType === 'tangent' && 'General Discussion & Web Tangents'}
             </span>
-            <span>Use ↑↓ and Enter</span>
+            <span>↑↓ · Enter</span>
           </div>
 
-          {/* Suggestions Items */}
-          <div className="p-1 space-y-0.5">
+          <div>
             {suggestions.map((item, idx) => {
               const isSelected = idx === selectedIndex
               const cover = item.thumbnail_url || item.cover_url
-              const badge = getMediaBadge(item.media_type || currentMediaType)
-
               return (
                 <div
                   key={`${item.title}-${item.author || item.creator}-${idx}`}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(item)}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`flex items-start gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                    isSelected
-                      ? 'bg-amber-50/90 text-neutral-900 ring-1 ring-amber-300'
-                      : 'hover:bg-neutral-50 text-neutral-800'
-                  }`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid #e6e1d8',
+                    background: isSelected ? 'rgba(201, 58, 20, 0.09)' : 'transparent',
+                    borderLeft: isSelected ? '3px solid #c93a14' : '3px solid transparent',
+                  }}
                 >
-                  {/* Thumbnail / Cover */}
-                  <div className="w-9 h-12 shrink-0 bg-neutral-100 rounded border border-neutral-200 overflow-hidden shadow-2xs relative flex items-center justify-center">
+                  <div
+                    style={{
+                      width: 36,
+                      height: 52,
+                      flexShrink: 0,
+                      background: '#e9e4db',
+                      border: '1px solid #1a1a1a',
+                      overflow: 'hidden',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 11,
+                      color: '#666',
+                    }}
+                  >
                     {cover ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
                       <img
                         src={cover}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
+                        alt=""
+                        referrerPolicy="no-referrer"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         onError={(e) => {
                           ;(e.target as HTMLImageElement).style.display = 'none'
                         }}
                       />
                     ) : (
-                      <span className="text-sm">
-                        {mediaMeta(item.media_type).icon}
-                      </span>
+                      <span>Bk</span>
                     )}
                   </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="font-semibold text-xs text-neutral-900 truncate">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span
+                        style={{
+                          fontFamily: 'var(--serif)',
+                          fontWeight: 600,
+                          fontSize: 15,
+                          color: '#1a1a1a',
+                          lineHeight: 1.25,
+                        }}
+                      >
                         {item.title}
                       </span>
-                      <span
-                        className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-medium border ${badge.cls}`}
-                      >
-                        {badge.label}
-                      </span>
                       {item.in_archive && (
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            padding: '1px 5px',
+                            background: '#e6f4ea',
+                            color: '#137333',
+                            border: '1px solid #ceead6',
+                          }}
+                        >
                           In Archive
                         </span>
                       )}
                     </div>
 
-                    <p className="text-[11px] text-neutral-600 truncate">
-                      {item.author || item.creator
-                        ? `by ${item.author || item.creator}`
-                        : currentMediaType === 'movie'
-                        ? 'Film / Cinema'
-                        : 'Creator unknown'}
-                    </p>
+                    <div style={{ fontSize: 13, color: '#555', marginTop: 2 }}>
+                      {item.author || item.creator ? `by ${item.author || item.creator}` : 'Author not listed'}
+                    </div>
 
-                    <div className="flex items-center gap-2 mt-1 text-[10px] text-neutral-400">
-                      {item.rating && (
-                        <span className="flex items-center text-amber-600 font-semibold">
-                          ★ {item.rating.toFixed(2)}
-                        </span>
-                      )}
-                      {item.num_pages && <span>{item.num_pages} pp</span>}
-                      {item.publication_year && <span>{item.publication_year}</span>}
-                      <span className="text-[9px] uppercase tracking-wider text-neutral-400 bg-neutral-100 px-1 rounded">
-                        {item.source_label || 'Direct'}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        marginTop: 4,
+                        fontSize: 11,
+                        color: '#64748b',
+                      }}
+                    >
+                      {item.rating ? (
+                        <span style={{ color: '#c93a14', fontWeight: 600 }}>★ {Number(item.rating).toFixed(2)}</span>
+                      ) : null}
+                      {item.num_pages ? <span>{item.num_pages} pp</span> : null}
+                      {item.publication_year ? <span>{item.publication_year}</span> : null}
+                      <span
+                        style={{
+                          fontSize: 10,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                          padding: '1px 5px',
+                          background: '#ede8df',
+                          color: '#444',
+                        }}
+                      >
+                        {item.source_label || 'Goodreads'}
                       </span>
                     </div>
                   </div>
@@ -420,31 +511,27 @@ export function BookAutocompleteInput({
               )
             })}
 
-            {/* Custom Fallback Item (Always allows adding non-standard items like "Wondrium") */}
             {value.trim() && (
               <div
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={handleCustomAdd}
                 onMouseEnter={() => setSelectedIndex(suggestions.length)}
-                className={`flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors border-t border-[#EEE8DE] mt-1 ${
-                  selectedIndex === suggestions.length
-                    ? 'bg-amber-100 text-amber-950 font-medium ring-1 ring-amber-300'
-                    : 'bg-paper hover:bg-amber-50 text-neutral-700'
-                }`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  padding: '10px 12px',
+                  cursor: 'pointer',
+                  background: selectedIndex === suggestions.length ? 'rgba(201, 58, 20, 0.12)' : '#f2ede4',
+                  fontSize: 13,
+                  color: '#1a1a1a',
+                }}
               >
-                <div className="w-7 h-7 rounded-lg bg-amber-200/80 flex items-center justify-center text-amber-800 text-xs shrink-0 font-bold">
-                  +
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-neutral-900 truncate">
-                    Add &quot;<span className="text-amber-800 font-bold">{value.trim()}</span>&quot; as custom {currentMediaType.toUpperCase()}
-                  </p>
-                  <p className="text-[10px] text-neutral-500">
-                    Saves topic/tangent directly without requiring an external database match
-                  </p>
-                </div>
-                <span className="text-[10px] text-amber-700 font-mono bg-white px-2 py-0.5 rounded border border-amber-200 shrink-0">
-                  Enter ↵
+                <span>
+                  Use <b>&ldquo;{value.trim()}&rdquo;</b> as typed ({currentMediaType})
                 </span>
+                <span style={{ fontSize: 11, color: '#c93a14', fontWeight: 600 }}>Enter ↵</span>
               </div>
             )}
           </div>

@@ -10,9 +10,9 @@ export const TRASH_DAYS = 7
 /** Insert order for a meetup. A fixed list, never user input. */
 const MEETUP_TABLES = ['meetups', 'meetup_attendance', 'discussions', 'book_mentions', 'quotes', 'discussion_participants', 'resources', 'current_reads', 'recommendations'] as const
 
-async function rows(tx: Tx, table: string, where: ReturnType<Tx>) {
-  const [r] = await tx<{ j: unknown[] }[]>`select coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) as j from ${tx(table)} t where ${where}`
-  return r.j
+async function rows(tx: Tx, table: string, where: ReturnType<Tx>): Promise<unknown[]> {
+  const list = await tx<Record<string, unknown>[]>`select * from ${tx(table)} t where ${where}`
+  return Array.from(list)
 }
 
 async function putBack(tx: Tx, snapshot: Record<string, unknown[]>, order: readonly string[]) {

@@ -18,12 +18,10 @@ let inflight: Promise<Me> | null = null
 const listeners = new Set<(m: Me) => void>()
 
 async function load(): Promise<Me> {
-  // the auth library is about 50 kB: it is fetched here, after the page has painted, not with the first script
-  const [{ supabase }, { authFetch, clientSessionExpired, handleExpired }] = await Promise.all([import('@/lib/supabase'), import('@/lib/auth')])
+  const [{ supabase }, { authFetch, clientSessionExpired, handleExpired, isSignedOut }] = await Promise.all([import('@/lib/supabase'), import('@/lib/auth')])
+  if (isSignedOut()) return OUT
   const { data } = await supabase.auth.getSession()
-  if (!data.session) return OUT
-  // Session lengths, counted from sign-in (the server checks the same thing on every call): over the allowance means signed out.
-  if (await clientSessionExpired()) {
+  if (data.session && (await clientSessionExpired())) {
     await handleExpired()
     return OUT
   }

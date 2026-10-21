@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { AdminPage, api, fmt, Rowl, Sheet, useApi } from './AdminKit'
 import { ChangeRow, useUndo } from './AdminChanges'
 import { clearDraft, hasDraft, loadDraft, type Draft } from '@/lib/admin/draft'
-import { useMe } from './useMe'
+import { signOut } from '@/lib/auth'
+import { refreshMe, useMe } from './useMe'
 
 interface Overview {
   on_record: number; held: number; this_year: number; last_year: number; year: number
@@ -121,11 +122,14 @@ export function AdminHome() {
   return (
     <AdminPage crumbs={[{ label: 'Admin' }]}>
       <h1 className="h1">Admin</h1>
-      <p className="body" style={{ marginTop: 8 }}>{o ? `${o.on_record} meetups on record of ${o.held} held` : ' '}</p>
+      <p className="body" style={{ marginTop: 8 }}>{o ? `${o.on_record} meetups on record of ${o.held} held` : ' '}</p>
       {ov.error && <p className="amsg bad" role="alert">{ov.error}</p>}
       <p className="note" aria-live="polite" style={{ margin: '4px 0 0', color: '#12295a' }}>{flash}</p>
       <div style={{ height: 28 }} />
-      <Link className="btn" href="/admin/record"><span>Record a meetup</span><span aria-hidden="true">&rsaquo;</span></Link>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Link className="btn" href="/admin/manage-db"><span>Manage DB (Meetups &amp; Goodreads API)</span><span aria-hidden="true">&rsaquo;</span></Link>
+        <Link className="btn" href="/admin/record" style={{ background: '#1a1a1a' }}><span>Record a meetup (Step-by-step)</span><span aria-hidden="true">&rsaquo;</span></Link>
+      </div>
       {draft && (
         <div className="draft" role="group" aria-label="Unfinished meetup">
           <span className="fold" aria-hidden="true" />
@@ -158,6 +162,7 @@ export function AdminHome() {
       <section className="block" aria-labelledby="th">
         <p className="sec" id="th">Tools</p>
         <div style={{ marginTop: 8 }}>
+          <Rowl href="/admin/manage-db" t1="Manage DB" t2="Full archive workspace: create/edit meetups, add books via Goodreads API, photos & PDFs" />
           <Rowl href="/admin/members" t1="Members" t2="Search, edit, hide or restore" />
           <Rowl href="/admin/meetups" t1="Meetups" t2="Photo, PDF, enrich, delete" />
           <Rowl href="/admin/books" t1="Books" t2="Search and edit" />
@@ -166,6 +171,7 @@ export function AdminHome() {
           <Rowl href="/admin/notify" t1="Notify members" t2="Draft a message" />
           <Rowl t1="Refresh site data" t2={refreshedAt ? `Refreshed ${time(refreshedAt)}` : 'Make recent changes show everywhere'} onClick={() => { setMsg(null); setSheet(true) }} />
           <Rowl href="/admin/changes" t1="All changes" t2="Everything done here, with Undo" />
+          <Rowl t1="Sign out of Admin" t2="End your admin session on this device" onClick={async () => { await signOut(); await refreshMe() }} />
         </div>
       </section>
 

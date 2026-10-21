@@ -1,7 +1,23 @@
 // The unfinished-meetup draft lives on the admin's phone (localStorage), never on the server (founder, round 29).
 export const DRAFT_KEY = 'bbb_draft_meetup'
 
-export interface DraftBook { title: string; author: string; translator: string; showTr: boolean; isbn: string; year: string; edit: boolean; src: string; srcText?: string; looked: string }
+export interface DraftBook {
+  title: string
+  author: string
+  translator: string
+  showTr: boolean
+  isbn: string
+  year: string
+  edit: boolean
+  src: string
+  srcText?: string
+  looked: string
+  cover_url?: string | null
+  thumbnail_url?: string | null
+  rating?: number | null
+  goodreads_id?: string | null
+  description?: string | null
+}
 export interface DraftReader { id: string | null; name: string; code?: string | null; status?: string; m: number; isNew: boolean; books: DraftBook[] }
 export interface Draft {
   date: string; venue: string; venueOther: string; presenter: string

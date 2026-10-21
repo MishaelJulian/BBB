@@ -1,5 +1,7 @@
 // Books PDF for a meetup: build it in memory (pdfkit), put it in the public `meetup-pdfs` bucket with the server-only service role key,
 // then point meetups.pdf_url at it. Every PDF gets a new file name and the old file stays, so Replace can be undone from All changes.
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import { audit } from '../audit'
 import { sql } from '../db'
 import { HttpError } from '../http'
@@ -19,7 +21,15 @@ export const pdfKey = (number: number, style: PdfStyle, now = Date.now()) => `me
 async function storePdf(key: string, bytes: Uint8Array): Promise<string> {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL
   const svc = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!base || !svc) throw new HttpError(503, 'PDF storage is not set up yet (SUPABASE_SERVICE_ROLE_KEY is missing on the server).')
+  if (!base || !svc) {
+    if (process.env.NODE_ENV !== 'production') {
+      const localDir = path.join(process.cwd(), 'public', 'uploads', 'pdfs')
+      await fs.mkdir(localDir, { recursive: true })
+      await fs.writeFile(path.join(localDir, key), bytes)
+      return `/uploads/pdfs/${key}`
+    }
+    throw new HttpError(503, 'PDF storage is not set up yet (SUPABASE_SERVICE_ROLE_KEY is missing on the server).')
+  }
   const r = await fetch(`${base}/storage/v1/object/${PDF_BUCKET}/${key}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${svc}`, apikey: svc, 'Content-Type': 'application/pdf', 'Cache-Control': 'max-age=3600', 'x-upsert': 'false' },
@@ -34,7 +44,9 @@ export async function makeMeetupPdf(who: Caller, number: number, styleIn: string
   if (!isStyle(styleIn)) throw new HttpError(422, 'Choose a style: magazine or classic.')
   const style: PdfStyle = styleIn
   if (!Number.isInteger(number) || number < 0) throw new HttpError(404, 'Meetup not found')
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) throw new HttpError(503, 'PDF storage is not set up yet (SUPABASE_SERVICE_ROLE_KEY is missing on the server).')
+  if (process.env.NODE_ENV === 'production' && (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+    throw new HttpError(503, 'PDF storage is not set up yet (SUPABASE_SERVICE_ROLE_KEY is missing on the server).')
+  }
   if (active >= MAX_ACTIVE) throw new HttpError(503, 'Other PDFs are being made right now. Try again in a minute.')
   active++
   try {

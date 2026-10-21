@@ -6,7 +6,18 @@ import type { Caller } from '../session'
 import { titleCaseName, type Tx } from '../writes'
 import { linkTranslation } from './books'
 
-export interface RecordBook { title?: string; author?: string; translator?: string; isbn?: string; year?: string | number }
+export interface RecordBook {
+  title?: string
+  author?: string
+  translator?: string
+  isbn?: string
+  year?: string | number
+  cover_url?: string | null
+  thumbnail_url?: string | null
+  rating?: number | null
+  goodreads_id?: string | null
+  description?: string | null
+}
 export interface RecordReader { id?: string | null; name?: string; books?: RecordBook[] }
 export interface RecordInput { date?: string; venue?: string; presenter?: string; readers?: RecordReader[]; make?: string[] }
 
@@ -63,8 +74,15 @@ export async function recordMeetup(tx: Tx, who: Caller, input: RecordInput) {
       const full = tr && !/\(tr\./i.test(title) ? `${title} (tr. ${tr})` : title
       const year = b.year === undefined || b.year === '' ? undefined : Number(b.year)
       await addBookToMeetup(tx, who, number, {
-        title: full, author: (b.author ?? '').trim() || undefined, member: name,
+        title: full,
+        author: (b.author ?? '').trim() || undefined,
+        member: name,
         publication_year: year && Number.isInteger(year) && year > 0 && year <= 2100 ? year : undefined,
+        cover_url: b.cover_url || undefined,
+        thumbnail_url: b.thumbnail_url || undefined,
+        rating: typeof b.rating === 'number' && Number.isFinite(b.rating) ? b.rating : undefined,
+        goodreads_id: b.goodreads_id || undefined,
+        description: b.description || undefined,
       }, { joinExisting: true })
       const [bk] = await tx<{ id: string; isbn10: string | null; isbn13: string | null }[]>`select id, isbn10, isbn13 from canonical_books where normalized_title = ${full.toLowerCase()} limit 1`
       const isbn = (b.isbn ?? '').replace(/[\s-]/g, '').toUpperCase()

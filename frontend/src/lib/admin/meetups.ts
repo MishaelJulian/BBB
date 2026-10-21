@@ -1,4 +1,6 @@
 // Meetups tool: list, group photo (Supabase Storage, public bucket, uploaded by this server with the service role key).
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import { audit } from '../audit'
 import { HttpError } from '../http'
 import type { Caller } from '../session'
@@ -25,18 +27,26 @@ export function imageType(b: Uint8Array): { mime: string; ext: string } | null {
   return null
 }
 
-async function storeFile(path: string, bytes: Uint8Array, mime: string): Promise<string> {
+async function storeFile(fileName: string, bytes: Uint8Array, mime: string): Promise<string> {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!base || !key) throw new HttpError(503, 'Photo storage is not set up yet (SUPABASE_SERVICE_ROLE_KEY is missing on the server).')
-  const r = await fetch(`${base}/storage/v1/object/${PHOTO_BUCKET}/${path}`, {
+  if (!base || !key) {
+    if (process.env.NODE_ENV !== 'production') {
+      const localDir = path.join(process.cwd(), 'public', 'uploads', 'photos')
+      await fs.mkdir(localDir, { recursive: true })
+      await fs.writeFile(path.join(localDir, fileName), bytes)
+      return `/uploads/photos/${fileName}`
+    }
+    throw new HttpError(503, 'Photo storage is not set up yet (SUPABASE_SERVICE_ROLE_KEY is missing on the server).')
+  }
+  const r = await fetch(`${base}/storage/v1/object/${PHOTO_BUCKET}/${fileName}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, apikey: key, 'Content-Type': mime, 'Cache-Control': 'max-age=3600', 'x-upsert': 'false' },
     body: bytes as unknown as BodyInit,
     signal: AbortSignal.timeout(20000),
   }).catch(() => null)
   if (!r || !r.ok) throw new HttpError(502, 'The photo could not be stored. Try again in a minute.')
-  return `${base}/storage/v1/object/public/${PHOTO_BUCKET}/${path}`
+  return `${base}/storage/v1/object/public/${PHOTO_BUCKET}/${fileName}`
 }
 
 export async function uploadMeetupPhoto(tx: Tx, who: Caller, number: number, bytes: Uint8Array) {

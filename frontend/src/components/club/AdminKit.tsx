@@ -3,9 +3,87 @@
 import * as React from 'react'
 import Link from 'next/link'
 import '@/styles/club-admin.css'
-import { authFetch } from '@/lib/auth'
+import { adminSignIn, authFetch } from '@/lib/auth'
 import { ClubPage, type Crumb } from './ClubPage'
-import { useMe } from './useMe'
+import { refreshMe, useMe } from './useMe'
+
+export function AdminLoginGate() {
+  const [email, setEmail] = React.useState('')
+  const [password, setPassword] = React.useState('')
+  const [showPw, setShowPw] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const [busy, setBusy] = React.useState(false)
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    if (!email.trim() || !password) {
+      setError('Enter your admin email and password.')
+      return
+    }
+    setBusy(true)
+    try {
+      await adminSignIn(email.trim(), password)
+      await refreshMe()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Admin sign-in failed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="auth" style={{ maxWidth: 420 }}>
+      <h1 className="h1">Admin Sign In</h1>
+      <p className="body" style={{ marginTop: 8 }}>
+        For BBB presenters and admins. Accounts are created by a founder.
+      </p>
+      <form onSubmit={onSubmit} noValidate style={{ marginTop: 18 }}>
+        <label className="l" htmlFor="adm-email">Admin email</label>
+        <div className="field">
+          <input
+            id="adm-email"
+            type="email"
+            autoComplete="username"
+            inputMode="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            placeholder="admin@brokebibliophiles.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <label className="l" htmlFor="adm-pw">Password</label>
+        <div className="field">
+          <input
+            id="adm-pw"
+            type={showPw ? 'text' : 'password'}
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            className="show"
+            type="button"
+            aria-pressed={showPw}
+            onClick={() => setShowPw((s) => !s)}
+          >
+            {showPw ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        {error && <p className="notice err" role="alert" style={{ marginTop: 12 }}>{error}</p>}
+        <div className="sp16" />
+        <button className="btn" type="submit" disabled={busy}>
+          <span>{busy ? 'Signing in...' : 'Sign in to Admin'}</span>
+          <span aria-hidden="true">&rarr;</span>
+        </button>
+      </form>
+      <p className="cap" style={{ marginTop: 16 }}>
+        Forgot your password? Ask a founder to reset it. Regular book club members can sign in from <Link className="link" href="/login">Me</Link>.
+      </p>
+    </div>
+  )
+}
 
 /** The page every admin tool sits in. The client only decides what to SHOW; each /api/admin route checks the admin again on the server. */
 export function AdminPage({ crumbs, children }: { crumbs: Crumb[]; children: React.ReactNode }) {
@@ -17,12 +95,7 @@ export function AdminPage({ crumbs, children }: { crumbs: Crumb[]; children: Rea
         {me.state === 'loading' ? (
           <p className="body">One moment...</p>
         ) : me.state !== 'admin' ? (
-          <div className="gate">
-            <h1 className="h1">Admin</h1>
-            <p className="body" style={{ marginTop: 12 }}>{me.state === 'out' ? 'Sign in with an admin account to continue.' : 'This area is for admins only.'}</p>
-            <div className="sp24" />
-            <Link className="btn" href={me.state === 'out' ? '/login' : '/'}><span>{me.state === 'out' ? 'Sign in' : 'Go to Home'}</span><span aria-hidden="true">&rsaquo;</span></Link>
-          </div>
+          <AdminLoginGate />
         ) : (
           children
         )}

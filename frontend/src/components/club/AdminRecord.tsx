@@ -3,12 +3,13 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { AdminPage, api, fmt, useApi } from './AdminKit'
+import { BookAutocompleteInput, type BookSuggestion } from '@/components/admin/BookAutocompleteInput'
 import { clearDraft, emptyDraft, hasDraft, loadDraft, saveDraft, type Draft, type DraftBook, type DraftReader } from '@/lib/admin/draft'
 import { useMe } from './useMe'
 
 interface Member { id: string; name: string; code: string | null; status: string; meetups: number }
 interface Overview { next_number: number; venues: string[] }
-interface Look { found: { isbn?: string; year?: number; author?: string }; sources: { source: string; result: string }[]; failed: boolean }
+interface Look { found: { isbn?: string; year?: number; author?: string; cover?: string; rating?: number; goodreads_id?: string; description?: string }; sources: { source: string; result: string }[]; failed: boolean }
 
 const blank = (): DraftBook => ({ title: '', author: '', translator: '', showTr: false, isbn: '', year: '', edit: false, src: '', looked: '' })
 const nb = (r: DraftReader) => r.books.filter((b) => b.title.trim()).length
@@ -83,7 +84,24 @@ export function AdminRecord() {
     setBusy(true)
     setErr(null)
     try {
-      const clean = D.readers.map((r) => ({ id: r.id, name: r.name, books: r.books.filter((b) => b.title.trim()).map((b) => ({ title: b.title, author: b.author, translator: b.translator, isbn: b.isbn, year: b.year })) }))
+      const clean = D.readers.map((r) => ({
+        id: r.id,
+        name: r.name,
+        books: r.books
+          .filter((b) => b.title.trim())
+          .map((b) => ({
+            title: b.title,
+            author: b.author,
+            translator: b.translator,
+            isbn: b.isbn,
+            year: b.year,
+            cover_url: b.cover_url,
+            thumbnail_url: b.thumbnail_url,
+            rating: b.rating,
+            goodreads_id: b.goodreads_id,
+            description: b.description,
+          })),
+      }))
       const r = await api<{ number: number; readers: number; books: number; made_members: number }>('/api/admin/meetups/record', {
         json: { date: D.date, venue: venueName, presenter: D.presenter, readers: clean, make: Object.keys(D.make).filter((k) => D.make[k]) },
       })
@@ -146,7 +164,7 @@ function Step1({ D, update, next, venues, onNext }: { D: Draft; update: Upd; nex
       <label className="f" hidden={D.venue !== '__o'}><span>Name of the other venue</span><input id="venueOther" maxLength={80} value={D.venueOther} onChange={(e) => update((d) => { d.venueOther = e.target.value })} /></label>
       <label className="f"><span>Presented by</span><input id="presenter" maxLength={60} autoComplete="off" value={D.presenter} onChange={(e) => update((d) => { d.presenter = e.target.value })} /></label>
       <div className="cnt">{n >= 45 ? `${n}/60` : ''}</div>
-      <p className="note">Your draft is saved on this phone.</p>
+      <p className="note">Your draft is saved on this device.</p>
       <div className="nav2">
         <button type="button" className="btn" id="next1" aria-disabled={!ok} onClick={() => ok && onNext()}><span>Next</span><span aria-hidden="true">&rsaquo;</span></button>
         <Link className="lnk" href="/admin">&lsaquo; Admin</Link>
@@ -216,22 +234,50 @@ function Step3({ D, update, who, onRegister, onAnother, onBack }: { D: Draft; up
   if (!r) return <p className="body">Pick a reader first. <button className="lnk" type="button" onClick={onBack}>Back</button></p>
   const setBook = (i: number, patch: Partial<DraftBook>) => update((d) => { Object.assign(d.readers[idx].books[i], patch) })
   const finish = () => update((d) => { d.readers[idx].books = d.readers[idx].books.filter((b) => b.title.trim()) })
-  const look = async (i: number) => {
+
+  const handleSelectGoodreads = (i: number, sug: BookSuggestion) => {
+    update((d) => {
+      const x = d.readers[idx].books[i]
+      x.title = sug.title
+      if (sug.author || sug.creator) x.author = sug.author || sug.creator || ''
+      if (sug.publication_year) x.year = String(sug.publication_year)
+      if (sug.isbn) x.isbn = sug.isbn
+      x.cover_url = sug.cover_url ?? sug.thumbnail_url ?? null
+      x.thumbnail_url = sug.thumbnail_url ?? sug.cover_url ?? null
+      x.rating = sug.rating ?? null
+      x.goodreads_id = sug.goodreads_id ?? null
+      x.description = sug.description ?? null
+      x.looked = sug.title
+      x.src = 'ok'
+      x.srcText = `Filled from ${sug.source_label || 'Goodreads'}${sug.rating ? ` (★ ${Number(sug.rating).toFixed(2)})` : ''}.`
+    })
+    void look(i, sug.title, sug.author || sug.creator || '')
+  }
+
+  const look = async (i: number, overrideTitle?: string, overrideAuthor?: string) => {
     const b = r.books[i]
-    const title = b.title.trim()
-    if (title.length < 3 || b.looked === title) return
+    const title = (overrideTitle ?? b.title).trim()
+    if (title.length < 3 || (!overrideTitle && b.looked === title)) return
     setBook(i, { looked: title, src: 'wait' })
     setLooking(i)
     try {
-      const res = await api<Look>('/api/admin/books/lookup', { json: { title, author: b.author } })
+      const res = await api<Look>('/api/admin/books/lookup', { json: { title, author: overrideAuthor ?? b.author } })
       const sources = res.sources.filter((s) => s.result.startsWith('found')).map((s) => s.source)
       update((d) => {
         const x = d.readers[idx].books[i]
         if (!x.author && res.found.author) x.author = res.found.author
         if (!x.isbn && res.found.isbn) x.isbn = res.found.isbn
         if (!x.year && res.found.year) x.year = String(res.found.year)
-        x.src = sources.length ? 'ok' : 'bad'
-        x.srcText = sources.length ? `Filled from ${sources.join(' and ')}.${x.isbn ? '' : ' No ISBN found: add it yourself if you have it.'}` : 'Not found. Type it by hand.'
+        if (!x.cover_url && res.found.cover) { x.cover_url = res.found.cover; x.thumbnail_url = res.found.cover }
+        if (!x.rating && res.found.rating) x.rating = res.found.rating
+        if (!x.goodreads_id && res.found.goodreads_id) x.goodreads_id = res.found.goodreads_id
+        if (!x.description && res.found.description) x.description = res.found.description
+        x.src = sources.length ? 'ok' : x.src === 'ok' ? 'ok' : 'bad'
+        if (sources.length) {
+          x.srcText = `Filled from ${sources.join(', ')}.${x.isbn ? '' : ' No ISBN found: add it yourself if you have it.'}`
+        } else if (!x.srcText) {
+          x.srcText = 'Not found. Type it by hand.'
+        }
       })
     } catch {
       setBook(i, { src: 'bad', srcText: 'The look-up did not answer. Type it by hand.' })
@@ -241,17 +287,38 @@ function Step3({ D, update, who, onRegister, onAnother, onBack }: { D: Draft; up
   }
   return (
     <>
-      <p className="step">3 of 3 &middot; Books</p>
+      <p className="step">3 of 3 &middot; Books (Goodreads API)</p>
       <h1 className="h1">{r.name}&rsquo;s books</h1>
       <div>
         {r.books.map((b, i) => (
           <div className="abk" key={i}>
-            <label className="f"><span>Title</span><input value={b.title} autoComplete="off" onChange={(e) => setBook(i, { title: e.target.value })} onBlur={() => look(i)} /></label>
-            <label className="f"><span>Author</span><input value={b.author} autoComplete="off" onChange={(e) => setBook(i, { author: e.target.value })} /></label>
+            <div className="f" style={{ marginTop: 20 }}>
+              <span style={{ marginBottom: 6 }}>Title (Goodreads &amp; BBB Archive Search)</span>
+              <BookAutocompleteInput
+                value={b.title}
+                onChange={(val) => setBook(i, { title: val })}
+                onSelectBook={(sug) => handleSelectGoodreads(i, sug)}
+                showMediaTypeSelector={false}
+                placeholder="Start typing book title (Goodreads live search)..."
+              />
+            </div>
+            {b.cover_url && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, padding: '8px 10px', background: '#f2ede4', border: '1px solid #1a1a1a' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={b.cover_url} alt="" referrerPolicy="no-referrer" style={{ width: 28, height: 42, objectFit: 'cover', border: '1px solid #1a1a1a' }} />
+                <div style={{ fontSize: 13 }}>
+                  <b style={{ fontFamily: 'var(--serif)' }}>{b.title}</b>
+                  <span style={{ display: 'block', fontSize: 12, color: '#555' }}>
+                    {b.author ? `by ${b.author}` : ''}{b.rating ? ` · ★ ${Number(b.rating).toFixed(2)}` : ''}{b.year ? ` · ${b.year}` : ''}
+                  </span>
+                </div>
+              </div>
+            )}
+            <label className="f"><span>Author</span><input value={b.author} autoComplete="off" onChange={(e) => setBook(i, { author: e.target.value })} onBlur={() => void look(i)} /></label>
             {b.showTr
               ? <label className="f"><span>Translator</span><input value={b.translator} autoComplete="off" onChange={(e) => setBook(i, { translator: e.target.value })} /></label>
               : <button type="button" className="lnk" onClick={() => setBook(i, { showTr: true })}>+ Translator</button>}
-            <p className={`src${b.src === 'bad' ? ' bad' : ''}`} aria-live="polite">{looking === i ? 'Looking up...' : b.srcText ?? ''}</p>
+            <p className={`src${b.src === 'bad' ? ' bad' : ''}`} aria-live="polite">{looking === i ? 'Looking up on Goodreads & Open Library...' : b.srcText ?? ''}</p>
             {b.edit ? (
               <>
                 <label className="f"><span>ISBN</span><input value={b.isbn} inputMode="numeric" onChange={(e) => setBook(i, { isbn: e.target.value })} /></label>
