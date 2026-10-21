@@ -39,13 +39,19 @@ export default async function HomePage() {
         </div>
       </section>
       <section className="wrap" aria-labelledby="h100">
-        <p className="eyebrow">Meetup #100 &middot; 11 Oct 2026</p>
-        <h2 className="h2" id="h100">The 100th, in three moments</h2>
+        <p className="eyebrow">Meetup #100 &middot; 11 Oct 2026 &middot; Samagata Foundation</p>
+        <h2 className="h2" id="h100">Breaking: BBB completes 100 meetups</h2>
+        <p className="body" style={{ marginTop: 8 }}>
+          Started in 2017 by Abhiram Ramesh and Radhika Chauhan, BBB gathered at Samagata Foundation on Church Street for its 100th meetup &mdash; featuring a reflection on the journey from Atta Galatta and The Bookworm to #100, an author session and book signing with <b>Sairam Krishnan</b> (<i>Super Cool Startup</i>), and a round of Book Bingo.
+        </p>
         <div className="sp16" />
         <div className="rows">
-          <PhotoRows ids={['wa0037', 'wa0044', 'wa0019']} caps={{ wa0037: 'Arrival and introduction', wa0044: 'Discussion', wa0019: 'Games' }} />
+          <PhotoRows ids={['wa0037', 'wa0044', 'wa0019']} caps={{ wa0037: 'Arrival and introduction', wa0044: 'Discussion with Sairam Krishnan', wa0019: 'Book Bingo & Winners' }} />
         </div>
-        <Link className="link" href="/meetups/100">See the whole day &rarr;</Link>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 8 }}>
+          <Link className="link" href="/meetups/100">Read the full 100th story, photos &amp; video &rarr;</Link>
+          <a className="link" href="https://brokebibliophilesbangalore.substack.com/p/breaking-bbb-completes-100-meetups" target="_blank" rel="noopener">Substack post &nearr;</a>
+        </div>
       </section>
       <div className="sp48" />
       {m && (

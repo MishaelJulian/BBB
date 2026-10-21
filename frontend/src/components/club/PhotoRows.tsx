@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { PHOTOS } from '@/lib/club/photos'
 import { photoSrc } from '@/lib/club/photoUrl'
+import { Lightbox } from './Lightbox'
 
 const BY_ID = Object.fromEntries(PHOTOS.map((p) => [p.id, p]))
 const ratio = (p: { w: number; h: number }) => p.w / p.h
@@ -35,10 +36,13 @@ const stopOf = (id: string) => STOP[BY_ID[id].stop] ?? ''
 
 export function PhotoRows({ ids, order, caps, flush = false }: { ids: string[]; order?: string[]; caps?: Record<string, string>; flush?: boolean }) {
   const [open, setOpen] = React.useState<number | null>(null)
+  // A page can hold several galleries (the timeline has three), so each viewer needs its own id.
+  const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '')
   const seq = order ?? ids
   const gap = flush ? 0 : 8
   const rows = React.useMemo(() => layout(ids), [ids])
   const idx = Object.fromEntries(seq.map((id, i) => [id, i]))
+  const items = seq.map((id) => ({ src: photoSrc(id, 'full'), alt: BY_ID[id].alt, caption: stopOf(id) }))
   // Each photo's width follows its ratio (flex-grow = ratio), so every photo in a row ends up the same height without measuring anything:
   // no layout shift. A lone portrait photo is at most half the row and 262 px tall, as in the approved mockup.
   return (
@@ -63,105 +67,7 @@ export function PhotoRows({ ids, order, caps, flush = false }: { ids: string[]; 
           </div>
         )
       })}
-      <Lightbox order={seq} open={open} onClose={() => setOpen(null)} />
+      <Lightbox items={items} open={open} onClose={() => setOpen(null)} domId={`lb${uid}`} />
     </div>
-  )
-}
-
-/** Scroll-snap swipe, arrows, Esc; the Android back button closes it. */
-function Lightbox({ order, open, onClose }: { order: string[]; open: number | null; onClose: () => void }) {
-  const d = React.useRef<HTMLDialogElement>(null)
-  const track = React.useRef<HTMLDivElement>(null)
-  const [cur, setCur] = React.useState(0)
-  const pushed = React.useRef(false)
-  const rm = React.useRef(false)
-  React.useEffect(() => {
-    rm.current = matchMedia('(prefers-reduced-motion: reduce)').matches
-  }, [])
-  const load = React.useCallback((i: number) => {
-    ;[i - 1, i, i + 1].forEach((j) => {
-      const im = track.current?.children[j]?.querySelector('img') as HTMLImageElement | null
-      if (im && !im.getAttribute('src') && im.dataset.src) im.src = im.dataset.src
-    })
-  }, [])
-  React.useEffect(() => {
-    const dlg = d.current
-    if (!dlg) return
-    if (open !== null && !dlg.open) {
-      dlg.showModal()
-      history.pushState({ lb: 1 }, '')
-      pushed.current = true
-      track.current?.scrollTo({ left: open * (track.current?.clientWidth ?? 0), behavior: 'auto' })
-      setCur(open)
-      load(open)
-    }
-    if (open === null && dlg.open) dlg.close()
-  }, [open, load])
-  React.useEffect(() => {
-    const onPop = () => {
-      if (pushed.current && d.current?.open) {
-        pushed.current = false
-        d.current.close()
-      }
-    }
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
-  }, [])
-  const go = (i: number) => {
-    const n = Math.max(0, Math.min(order.length - 1, i))
-    track.current?.scrollTo({ left: n * (track.current?.clientWidth ?? 0), behavior: rm.current ? 'auto' : 'smooth' })
-  }
-  return (
-    <dialog
-      id="lb"
-      ref={d}
-      aria-label="Photo viewer"
-      onKeyDown={(e) => {
-        if (e.key === 'ArrowLeft') go(cur - 1)
-        if (e.key === 'ArrowRight') go(cur + 1)
-      }}
-      onClose={() => {
-        if (pushed.current) {
-          pushed.current = false
-          history.back()
-        }
-        onClose()
-      }}
-    >
-      <div className="lbtop">
-        <span id="lbn" aria-live="polite">{`${cur + 1} / ${order.length}`}</span>
-        <button type="button" id="lbx" aria-label="Close photo viewer" onClick={() => d.current?.close()}>
-          &times;
-        </button>
-      </div>
-      <div
-        className="lbtrack"
-        id="lbt"
-        ref={track}
-        onScroll={() => {
-          const t = track.current
-          if (!t) return
-          const i = Math.round(t.scrollLeft / t.clientWidth)
-          if (i !== cur) {
-            setCur(i)
-            load(i)
-          }
-        }}
-      >
-        {order.map((id) => (
-          <div className="lbslide" key={id}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img data-src={photoSrc(id, 'full')} alt={BY_ID[id].alt} />
-          </div>
-        ))}
-      </div>
-      <button type="button" className="lbnav lbprev" aria-label="Previous photo" onClick={() => go(cur - 1)}>
-        &lsaquo;
-      </button>
-      <button type="button" className="lbnav lbnext" aria-label="Next photo" onClick={() => go(cur + 1)}>
-        &rsaquo;
-      </button>
-      <div className="lbcap" id="lbc">{order[cur] ? stopOf(order[cur]) : ''}</div>
-    </dialog>
   )
 }

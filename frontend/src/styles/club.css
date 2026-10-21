@@ -58,7 +58,7 @@
 .club .row button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .club .tilecap{margin:4px 0 0}
 .club dialog{padding:0;border:0;background:#0d0d0d;color:#fff;max-width:none;max-height:none;width:100%;height:100dvh;inset:0}
-#lb::backdrop{background:#0d0d0d}
+.club dialog.lb::backdrop{background:#0d0d0d}
 #search::backdrop{background:rgba(26,26,26,.45)}
 .club .lbtrack{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:100dvh;scrollbar-width:none}
 .club .lbtrack::-webkit-scrollbar{display:none}
@@ -319,6 +319,12 @@
 .club .ph{display:block;width:100%;aspect-ratio:3/2;object-fit:cover;border:2px solid var(--ink);margin-top:16px}
 .club .pcap{margin:6px 0 0;font:400 14px/21px var(--sans);color:var(--muted)}
 .club .sech{font:600 24px/31px var(--serif);margin:32px 0 0;scroll-margin-top:84px}
+.club .sech.sub{font:600 20px/27px var(--serif);margin:30px 0 0;scroll-margin-top:84px}
+/* The Substack story on the meetup #100 page: paragraphs with room to breathe. */
+.club .story p.body{margin:0 0 14px}
+.club .story p.body:last-child{margin-bottom:0}
+.club .story .tilecap{margin:10px 0 22px}
+.club .story figure{margin:18px 0 22px}
 .club .sech small{font:400 16px/24px var(--sans);color:var(--muted)}
 .club .brow{display:grid;grid-template-columns:48px 1fr;gap:0 14px;align-items:start;padding:10px 0;border-top:1px solid var(--line2)}
 .club .brow .th{display:block;width:48px;aspect-ratio:2/3;object-fit:cover;border:2px solid var(--ink);background:var(--paper2)}

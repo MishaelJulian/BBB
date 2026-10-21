@@ -67,6 +67,8 @@ Thumbs.db
 # Temporary scratch and media files
 scratch/
 *.mp4
+# ...but the meetup #100 clip is part of the site
+!frontend/public/meetup100/*.mp4
 
 # Local screenshots
 Screenshot *.png
