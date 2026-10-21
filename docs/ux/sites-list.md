@@ -63,7 +63,7 @@ linear.app/blog (design refresh); 925studios.co (Mercury breakdown); artisan-app
 ## 9. Platform and service sites used or discussed
 | Site | Role | Source |
 |---|---|---|
-| vercel.com, openapi.vercel.sh, mcp.vercel.com, telemetry.vercel.com, ai-gateway.vercel.sh, bbbdemo.vercel.app (live demo), bbb-library.vercel.app (old co-founder demo on Render) | hosting, API, MCP, the demo | founder / me |
+| vercel.com, openapi.vercel.sh, mcp.vercel.com, telemetry.vercel.com, ai-gateway.vercel.sh, bbbdemo.vercel.app (live demo, Vercel project `bbb-vercel-frontend`), bbb-library.vercel.app (same site, Vercel project `bbb-library` on `MishaelJulian/BBB`) | hosting, API, MCP, the demo | founder / me |
 | supabase.com, api.supabase.com, mcp.supabase.com, fdvjykrwckhovfocnnyy.supabase.co (current project) | database, auth, storage | founder / me |
 | challenges.cloudflare.com, developers.cloudflare.com, dash.cloudflare.com, api.cloudflare.com | Turnstile captcha, docs | founder / me |
 | hCaptcha, Friendly Captcha (global.frcapi.com), Resend (smtp.resend.com), Mailhog, PostHog, Render, unpkg | captcha options, SMTP, local mail, analytics, old host, CDN (rejected) | founder / me |
