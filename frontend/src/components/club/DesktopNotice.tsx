@@ -6,19 +6,22 @@ import { useScene } from './NotFound404'
 const DESKTOP = '(min-width:900px) and (hover:hover) and (pointer:fine)'
 
 /**
- * Shown instead of the app on a large screen with a mouse (see styles/desktop-gate.css). The same pixel scene as the 404 page,
- * drawn only when it is actually visible so phones never run it. A developer can open any page with ?desktop=1 to see the app anyway
- * (kept for the rest of the browser session).
+ * Desktop view is enabled by default with wide-screen responsive layouts (see styles/desktop-gate.css).
+ * The notice scene remains available only if explicitly triggered via ?desktop=0 or data-desktop="blocked".
  */
 export function DesktopNotice() {
   const cv = React.useRef<HTMLCanvasElement>(null)
   const [on, setOn] = React.useState(false)
   React.useEffect(() => {
     try {
-      if (new URLSearchParams(window.location.search).get('desktop') === '1') sessionStorage.setItem('bbb_desktop_ok', '1')
-      if (sessionStorage.getItem('bbb_desktop_ok') === '1') document.documentElement.dataset.desktop = 'ok'
+      const param = new URLSearchParams(window.location.search).get('desktop')
+      if (param === '0') {
+        document.documentElement.dataset.desktop = 'blocked'
+      } else {
+        document.documentElement.dataset.desktop = 'ok'
+      }
     } catch {}
-    setOn(matchMedia(DESKTOP).matches && document.documentElement.dataset.desktop !== 'ok')
+    setOn(matchMedia(DESKTOP).matches && document.documentElement.dataset.desktop === 'blocked')
   }, [])
   return (
     <div className="club desk-notice" role="region" aria-label="Desktop notice">

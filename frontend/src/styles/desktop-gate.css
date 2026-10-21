@@ -1,12 +1,495 @@
-/* The site is for phones for now. On a large screen with a mouse, the app is hidden and the notice (the 404's scene) shows.
-   Touch devices of any size (tablets) and narrow windows keep the app. */
-.desk-notice{display:none}
-@media (min-width:900px) and (hover:hover) and (pointer:fine){
-  html:not([data-desktop="ok"]) #app-root{display:none}
-  html:not([data-desktop="ok"]) .desk-notice{display:block}
+/* Wide-screen / desktop layout & UX adaptations.
+   Scoped strictly to @media (min-width: 900px) and (hover: hover) and (pointer: fine)
+   so mobile phones (< 900px) and touch tablets (hover: none / pointer: coarse) are 0% altered. */
+.desk-notice {
+  display: none;
 }
-.club.desk-notice{padding-top:0;min-height:100vh;background:var(--paper)}
-.club.desk-notice .stage{min-height:100svh;padding:48px 24px}
-.club.desk-notice .stage .err{font-size:min(7vw,72px);white-space:normal;max-width:900px}
-.club.desk-notice .stage .q{max-width:560px;font-size:22px;line-height:32px}
-.club.desk-notice canvas{position:absolute;left:0;top:0;width:100%;height:100%;z-index:-2;image-rendering:pixelated;image-rendering:crisp-edges;pointer-events:none;opacity:.55}
+
+@media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+  html[data-desktop="blocked"] #app-root {
+    display: none;
+  }
+  html[data-desktop="blocked"] .desk-notice {
+    display: block;
+  }
+
+  /* 0. Token adjustments: tabbar moves to top header on desktop, so bottom --tab reserve becomes 0px */
+  :root {
+    --tab: 0px;
+  }
+
+  /* 1. Map Backdrop & Sticky Reveal Layering Fix
+        In ClubPage.tsx, .dmap is a sibling before main.reveal. Keeping main.reveal transparent
+        at z-index 2 lets the halftone vector map (.dmap at z-index 1) show through on paper,
+        while footer.site (z-index 3) cleanly covers .dmap at the bottom of the page. */
+  .club .dmap {
+    z-index: 1;
+    opacity: 0.62;
+  }
+  .club .reveal {
+    background: transparent;
+    min-height: calc(100dvh - var(--bar));
+    z-index: 2;
+    padding-bottom: 72px;
+  }
+  .club footer.site {
+    position: relative;
+    z-index: 3;
+    padding: 56px 0 44px;
+  }
+
+  /* 2. Top Navigation Bar, Docked Primary Nav (.tabbar), & Search Trigger (.fsearch)
+        Fits Fitts's Law, Jakob's Law, and desktop top heat zone without altering DOM structure. */
+  .club .topbar {
+    max-width: none;
+    width: 100%;
+    left: 0;
+    transform: translateY(0);
+    padding: 0 max(92px, calc((100vw - 1120px) / 2 + 92px)) 0 max(32px, calc((100vw - 1120px) / 2 + 32px));
+    background: rgba(250, 248, 245, 0.94);
+    border-bottom: 1px solid var(--line2);
+  }
+  .club:not(:has(.fsearch)) .topbar {
+    padding-right: max(32px, calc((100vw - 1120px) / 2 + 32px));
+  }
+  .club .topbar.hide {
+    transform: translateY(-100%);
+  }
+  .club .crumb {
+    max-width: calc(50vw - 260px);
+    flex: 0 1 auto;
+  }
+  .club .crumb a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-underline-offset: 4px;
+  }
+
+  /* Dock .tabbar into the center of the top header bar */
+  .club .tabbar {
+    top: 0;
+    bottom: auto;
+    left: 50%;
+    transform: translate(-50%, 0);
+    width: auto;
+    max-width: none;
+    height: var(--bar);
+    padding-bottom: 0;
+    background: transparent;
+    border-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 42;
+    transition: transform 0.22s ease;
+  }
+  /* On /library-room, the wrapper .club has no .topbar; match the 56px first row of the Library header */
+  .club:not(:has(.topbar)) .tabbar {
+    height: 56px;
+    z-index: 45;
+  }
+  .club .topbar.hide ~ .tabbar {
+    transform: translate(-50%, -100%);
+  }
+  .club .tabbar a {
+    flex-direction: row;
+    gap: 8px;
+    padding: 0 10px;
+    min-height: 44px;
+    font: 500 15px/22px var(--sans);
+    white-space: nowrap;
+  }
+  .club .tabbar a:hover {
+    color: var(--ink);
+  }
+  .club .tabbar a.big .px,
+  .club .tabbar a:not(.big) .px {
+    width: 22px;
+    height: 22px;
+  }
+  .club .tabbar a[aria-current="page"]::before {
+    top: auto;
+    bottom: 6px;
+    left: 10px;
+    right: 10px;
+    height: 2px;
+  }
+
+  /* Dock .fsearch (#open-search) into the top-right header bar */
+  .club .fsearch {
+    top: 12px;
+    right: max(32px, calc((100vw - 1120px) / 2 + 32px));
+    width: 48px;
+    height: 48px;
+    z-index: 45;
+    transition: transform 0.22s ease, box-shadow 0.15s ease;
+  }
+  .club .fsearch:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--accent-line);
+  }
+  .club .topbar.hide ~ .fsearch {
+    transform: translateY(-100px);
+  }
+
+  /* 3. Wide-Screen Page Containers & Optimal Reading Measure (60-70ch) */
+  .club .wrap {
+    max-width: 1120px;
+    padding: 0 32px;
+  }
+  .club .h1 {
+    font-size: 40px;
+    line-height: 48px;
+  }
+  .club .h2,
+  .club .sech {
+    font-size: 28px;
+    line-height: 36px;
+  }
+  .club .pas,
+  .club .doc p,
+  .club .doc li,
+  .club .faq dd,
+  .club .faq dt,
+  .club .por,
+  .club .tag,
+  .club .sub {
+    max-width: 68ch;
+  }
+  .club .btn {
+    max-width: 360px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .club .btn:hover:not([disabled]):not([aria-disabled="true"]) {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--accent-line);
+  }
+  .club .auth .btn,
+  .club .sheetx .btn,
+  .club #fsheet .btn,
+  .club .fpair .btn,
+  .club .adm .saverow .btn {
+    max-width: none;
+  }
+  .club .link:hover,
+  .club .pn a:hover,
+  .club .jump a:hover,
+  .club .fbtn:hover {
+    color: var(--accent);
+  }
+
+  /* 4. Home Page (/) 12-Column Editorial Grid
+        Row 1 Left: Hero with ElasticHeadline (kept at max-width 430px so counter-scaling stays exact)
+        Row 1 Right: Trifecta SVG (Books, Meetups, Readers) in the above-the-fold right heat zone
+        Row 2 Left: Meetup #100 three-photo mosaic
+        Row 2 Right: Meetup #99 feature */
+  .club main.reveal:has(> .hero) {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 64px 48px;
+    align-items: start;
+  }
+  .club main.reveal:has(> .hero) > .sp48 {
+    display: none;
+  }
+  .club main.reveal:has(> .hero) .wrap {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+  .club main.reveal:has(> .hero) > .hero {
+    grid-column: 1 / 7;
+    grid-row: 1;
+    padding: 0;
+    overflow: visible;
+  }
+  .club .hero h1 {
+    max-width: 430px;
+  }
+  .club main.reveal:has(> .hero) > section[aria-labelledby="hx"] {
+    grid-column: 7 / 13;
+    grid-row: 1;
+    align-self: center;
+  }
+  .club main.reveal:has(> .hero) > section[aria-labelledby="hx"] .tri {
+    margin: 0 auto;
+    max-width: 460px;
+  }
+  .club main.reveal:has(> .hero) > section[aria-labelledby="hx"] .cap {
+    text-align: center;
+    margin-top: 12px !important;
+  }
+  .club main.reveal:has(> .hero) > section[aria-labelledby="h100"] {
+    grid-column: 1 / 8;
+    grid-row: 2;
+  }
+  .club main.reveal:has(> .hero) > section[aria-labelledby="h99"] {
+    grid-column: 8 / 13;
+    grid-row: 2;
+  }
+
+  /* 5. Directory (/directory): Side-by-Side Indian-Mail Envelopes */
+  .club .wrap:has(> .env) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 36px;
+    padding-top: 28px;
+    padding-bottom: 48px;
+  }
+  .club .wrap:has(> .env) > .sp24 {
+    display: none;
+  }
+  .club .wrap:has(> .env) > .h1 {
+    grid-column: 1 / -1;
+    margin-bottom: 4px;
+  }
+  .club .wrap:has(> .env) > .env {
+    margin: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .club .wrap:has(> .env) > .env:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 7px 8px 0 rgba(26, 26, 26, 0.22);
+  }
+
+  /* 6. Meetups (/meetups) & Readers (/members) Lists and Filter Controls */
+  .club .fwrap {
+    max-width: 560px;
+  }
+  /* Move floating mobile thumb-zone Filters/Sort button into the top control bar on desktop */
+  .club .fbtn.ffloat {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    z-index: 1;
+    display: inline-flex;
+    width: auto;
+    min-height: 44px;
+    margin-top: 14px;
+    padding: 0 20px;
+  }
+  .club .fbtn.ffloat:hover {
+    color: var(--paper);
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--accent-line);
+  }
+  .club .fbtn.ffloat:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--accent-line);
+  }
+  .club .fbtn.ffloat + .bar2 {
+    margin-top: -44px;
+    margin-bottom: 8px;
+  }
+  .club .grid2 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 28px;
+  }
+  .club .rowl {
+    padding: 14px 8px;
+    transition: background-color 0.12s ease;
+  }
+  .club .rowl:hover,
+  .club .mrow:hover,
+  .club .rrow:hover {
+    background-color: rgba(26, 26, 26, 0.035);
+  }
+  .club .tile {
+    padding: 18px 24px 18px 8px;
+    transition: background-color 0.12s ease;
+  }
+  .club .tile:hover {
+    background-color: rgba(26, 26, 26, 0.035);
+  }
+  .club .tile .go {
+    right: 8px;
+  }
+
+  /* 7. Detail Pages (/meetups/[id], /meetups/100, /books/[id], /members/[id], /authors/[id], /about, /listicles) */
+  .club img.ph {
+    max-width: 760px;
+  }
+  .club .rows.flush {
+    margin: 0;
+    max-width: 860px;
+    gap: 8px;
+  }
+  .club .rows.flush .row {
+    gap: 8px;
+  }
+  .club ol.tl {
+    max-width: 820px;
+  }
+  .club div:has(> .brow + .brow),
+  .club div:has(> .mrow + .mrow) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 40px;
+    align-items: start;
+  }
+  .club div:has(> .rrow + .rrow) {
+    max-width: 760px;
+  }
+  .club .bkhead {
+    grid-template-columns: 148px 1fr;
+    gap: 24px;
+    max-width: 760px;
+  }
+  .club .bkhead .cv,
+  .club .bkhead .nocover {
+    width: 148px;
+  }
+  .club .built {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 358px));
+    gap: 16px 28px;
+    align-items: start;
+  }
+  .club .built > .h2,
+  .club .built > .pas {
+    grid-column: 1 / -1;
+  }
+  .club .built > .dev,
+  .club .built > .dev + .dev {
+    margin: 0;
+    max-width: none;
+    height: 100%;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .club .built > .dev:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--accent-line);
+  }
+  .club .listicle {
+    max-width: 780px;
+  }
+
+  /* 8. Auth, Me, Account, Admin & Modal Dialogs (#search, #fsheet, .sheetx) */
+  .club .auth {
+    max-width: 520px;
+  }
+  .club .adm {
+    max-width: 960px;
+  }
+  .club .adm section[aria-labelledby="th"] > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 36px;
+  }
+  .club #search {
+    max-width: 560px;
+    inset: 12dvh 0 auto 0;
+    padding: 20px 24px 24px;
+    border: 2px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+  }
+  .club #fsheet,
+  .club .sheetx {
+    max-width: 560px;
+    max-height: 82dvh;
+    inset: 9dvh 0 auto 0;
+    padding: 24px;
+    border: 2px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+  }
+  .club .fpair {
+    bottom: 24px;
+  }
+  .club .fpair.right {
+    right: max(32px, calc((100vw - 1120px) / 2 + 32px));
+  }
+  .club .undo {
+    bottom: 24px;
+  }
+
+  /* 9. Library Room (/library-room: CriterionBookCloset & Modals) */
+  header.sticky.top-0.z-40 > div {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+  main.px-4.pb-28.pt-2 {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+  main.px-4.pb-28.pt-2 > div.grid.grid-cols-2 {
+    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    gap: 28px 24px;
+  }
+  div[role="dialog"][aria-modal="true"].fixed.inset-0 {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  div[role="dialog"][aria-modal="true"].fixed.inset-0 > div.relative.w-full {
+    max-width: 560px;
+    max-height: 82dvh;
+    border: 2px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    padding: 24px;
+  }
+
+  /* 10. Footer 4-Column Desktop Grid */
+  .club footer.site .wrap {
+    grid-template-columns: 1.4fr 1fr 1fr 1.2fr;
+    gap: 32px 40px;
+    align-items: start;
+  }
+  .club footer.site .legal,
+  .club footer.site .wrap > p.fine {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1200px) and (hover: hover) and (pointer: fine) {
+  .club .grid2 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0 32px;
+  }
+}
+
+.club.desk-notice {
+  padding-top: 0;
+  min-height: 100vh;
+  background: var(--paper);
+}
+.club.desk-notice .stage {
+  min-height: 100svh;
+  padding: 48px 24px;
+}
+.club.desk-notice .stage .err {
+  font-size: min(7vw, 72px);
+  white-space: normal;
+  max-width: 900px;
+}
+.club.desk-notice .stage .q {
+  max-width: 560px;
+  font-size: 22px;
+  line-height: 32px;
+}
+.club.desk-notice canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+  opacity: 0.55;
+}
